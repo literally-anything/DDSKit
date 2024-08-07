@@ -1,0 +1,10 @@
+module fastdds [system] {
+    requires cplusplus14
+
+    header "fastdds.hpp"
+
+    link "fastdds"
+    link "fastcdr"
+
+    export *
+}
