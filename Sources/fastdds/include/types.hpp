@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <cstdint>
 #include <fastdds/dds/core/Types.hpp>
