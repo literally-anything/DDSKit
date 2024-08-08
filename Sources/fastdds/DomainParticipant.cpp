@@ -85,7 +85,7 @@ namespace _DomainParticipant {
         return participant->set_qos(qos);
     }
     _ReturnCode setListener(DomainParticipant *participant, Listener *listener) {
-        return participant->set_listener(listener);
+        return participant->set_listener(listener, _StatusMask::none());
     }
 
     _ReturnCode registerType(DomainParticipant *participant,

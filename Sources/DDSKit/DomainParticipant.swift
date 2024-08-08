@@ -2,6 +2,7 @@ import fastdds
 
 public final class DomainParticipant: @unchecked Sendable {
     public let raw: OpaquePointer
+    private let listener: UnsafeMutablePointer<_DomainParticipant.Listener>
     public var qos: Qos {
         get {
             .init(from: _DomainParticipant.getQos(raw))
@@ -11,8 +12,6 @@ public final class DomainParticipant: @unchecked Sendable {
             assert(ret == fastdds.RETCODE_OK)
         }
     }
-    let listener = _DomainParticipant.createListener()
-
 
     public convenience init?(domain: _DomainId, profile: String) {
         let participantPtr = _DomainParticipant.create(domain, .init(profile), nil, _StatusMask.none())
@@ -21,18 +20,17 @@ public final class DomainParticipant: @unchecked Sendable {
         }
         self.init(from: participantPtr!)
     }
-
-    public convenience init?(domain: _DomainId, qos: Qos) {
-        let participantPtr = _DomainParticipant.create(domain, qos.raw, nil, _StatusMask.none())
+    public convenience init?(domain: _DomainId, qos: Qos? = nil) {
+        let participantPtr = _DomainParticipant.create(domain, (qos ?? .base).raw, nil, _StatusMask.none())
         guard (participantPtr != nil) else {
             return nil
         }
         self.init(from: participantPtr!)
     }
-
     public init(from participantPtr: OpaquePointer) {
         raw = participantPtr
 
+        listener = _DomainParticipant.createListener()
         _DomainParticipant.setListenerParticipantDiscoveryCallback(listener) { context, participant, reason, info in
             print("participant discovered")
             return false
@@ -47,7 +45,6 @@ public final class DomainParticipant: @unchecked Sendable {
         }
         _DomainParticipant.setListener(raw, listener)
     }
-
     deinit {
         let ret = _DomainParticipant.destroy(raw)
         assert(ret == fastdds.RETCODE_OK, "Failed to destroy DomainParticipant: \(ret)")

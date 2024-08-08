@@ -23,4 +23,7 @@ namespace _Publisher {
                       _PublisherListener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
     _ReturnCode destroy(Publisher *publisher);
     _ReturnCode destroyEntities(Publisher *publisher);
+
+    PublisherQos getQos(Publisher *publisher);
+    _ReturnCode setQos(Publisher *publisher, const PublisherQos qos);
 }

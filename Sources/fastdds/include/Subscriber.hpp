@@ -23,4 +23,7 @@ namespace _Subscriber {
                        _SubscriberListener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
     _ReturnCode destroy(Subscriber *subscriber);
     _ReturnCode destroyEntities(Subscriber *subscriber);
+
+    SubscriberQos getQos(Subscriber *subscriber);
+    _ReturnCode setQos(Subscriber *subscriber, const SubscriberQos qos);
 }
