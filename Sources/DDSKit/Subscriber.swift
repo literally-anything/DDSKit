@@ -14,14 +14,14 @@ public class Subscriber: @unchecked Sendable {
     }
 
     public convenience init?(participant: DomainParticipant, profile: String) {
-        let subscriberPtr = _Subscriber.create(participant.raw, .init(profile), nil, _StatusMask.none())
+        let subscriberPtr = _Subscriber.create(participant.raw, .init(profile))
         guard (subscriberPtr != nil) else {
             return nil
         }
         self.init(from: subscriberPtr!, participant: participant)
     }
     public convenience init?(participant: DomainParticipant, qos: Qos? = nil) {
-        let subscriberPtr = _Subscriber.create(participant.raw, (qos ?? .getBase(for: participant)).raw, nil, _StatusMask.none())
+        let subscriberPtr = _Subscriber.create(participant.raw, (qos ?? .getBase(for: participant)).raw)
         guard (subscriberPtr != nil) else {
             return nil
         }
@@ -51,7 +51,7 @@ public class Subscriber: @unchecked Sendable {
             raw = qos
         }
 
-        public static func getBase(for participant: DomainParticipant) -> Qos {
+        @inlinable public static func getBase(for participant: DomainParticipant) -> Qos {
             Qos(from: _Subscriber.getDefaultQos(participant.raw))
         }
     }

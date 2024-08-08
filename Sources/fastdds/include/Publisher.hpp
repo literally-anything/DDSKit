@@ -17,10 +17,8 @@ namespace _Publisher {
     bool compareQos(PublisherQos rhs, PublisherQos lhs);
     PublisherQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
 
-    Publisher *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile,
-                      _PublisherListener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
-    Publisher *create(_DomainParticipant::DomainParticipant *participant, const PublisherQos &qos,
-                      _PublisherListener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
+    Publisher *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile);
+    Publisher *create(_DomainParticipant::DomainParticipant *participant, const PublisherQos &qos);
     _ReturnCode destroy(Publisher *publisher);
     _ReturnCode destroyEntities(Publisher *publisher);
 

@@ -14,14 +14,14 @@ public class Publisher: @unchecked Sendable {
     }
 
     public convenience init?(participant: DomainParticipant, profile: String) {
-        let publisherPtr = _Publisher.create(participant.raw, .init(profile), nil, _StatusMask.none())
+        let publisherPtr = _Publisher.create(participant.raw, .init(profile))
         guard (publisherPtr != nil) else {
             return nil
         }
         self.init(from: publisherPtr!, participant: participant)
     }
     public convenience init?(participant: DomainParticipant, qos: Qos? = nil) {
-        let publisherPtr = _Publisher.create(participant.raw, (qos ?? .getBase(for: participant)).raw, nil, _StatusMask.none())
+        let publisherPtr = _Publisher.create(participant.raw, (qos ?? .getBase(for: participant)).raw)
         guard (publisherPtr != nil) else {
             return nil
         }
@@ -51,7 +51,7 @@ public class Publisher: @unchecked Sendable {
             raw = qos
         }
 
-        public static func getBase(for participant: DomainParticipant) -> Qos {
+        @inlinable public static func getBase(for participant: DomainParticipant) -> Qos {
             Qos(from: _Publisher.getDefaultQos(participant.raw))
         }
     }

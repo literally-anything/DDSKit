@@ -8,18 +8,23 @@ namespace _Publisher {
         return participant->get_default_publisher_qos();
     }
 
-    Publisher *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile,
-                      _PublisherListener *listener, const _StatusMask &mask) {
-        return participant->create_publisher_with_profile(profile, listener, mask);
+    Publisher *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile) {
+        return participant->create_publisher_with_profile(profile, nullptr, _StatusMask::none());
     }
-    Publisher *create(_DomainParticipant::DomainParticipant *participant, const PublisherQos &qos,
-                      _PublisherListener *listener, const _StatusMask &mask) {
-        return participant->create_publisher(qos, listener, mask);
+    Publisher *create(_DomainParticipant::DomainParticipant *participant, const PublisherQos &qos) {
+        return participant->create_publisher(qos, nullptr, _StatusMask::none());
     }
     _ReturnCode destroy(Publisher *publisher) {
         return const_cast<_DomainParticipant::DomainParticipant *>(publisher->get_participant())->delete_publisher(publisher);
     }
     _ReturnCode destroyEntities(Publisher *publisher) {
         return publisher->delete_contained_entities();
+    }
+
+    PublisherQos getQos(Publisher *publisher) {
+        return publisher->get_qos();
+    }
+    _ReturnCode setQos(Publisher *publisher, const PublisherQos qos) {
+        return publisher->set_qos(qos);
     }
 }

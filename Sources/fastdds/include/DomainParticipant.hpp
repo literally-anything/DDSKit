@@ -56,16 +56,14 @@ namespace _DomainParticipant {
     _ReturnCode loadProfiles();
     DomainParticipantQos getDefaultQos();
 
-    DomainParticipant *create(_DomainId domain, const std::string &profile,
-                              Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
-    DomainParticipant *create(_DomainId domain, const DomainParticipantQos &qos,
-                              Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
+    DomainParticipant *create(_DomainId domain, const std::string &profile);
+    DomainParticipant *create(_DomainId domain, const DomainParticipantQos &qos);
     _ReturnCode destroy(DomainParticipant *participant);
     _ReturnCode destroyEntities(DomainParticipant *participant);
 
     DomainParticipantQos getQos(DomainParticipant *participant);
     _ReturnCode setQos(DomainParticipant *participant, const DomainParticipantQos qos);
-    _ReturnCode setListener(DomainParticipant *participant, Listener *listener);
+    _ReturnCode setListener(DomainParticipant *participant, Listener *listener, const _StatusMask &mask);
 
     _ReturnCode registerType(DomainParticipant *participant,
                              _TypeSupport type, const std::string &name);

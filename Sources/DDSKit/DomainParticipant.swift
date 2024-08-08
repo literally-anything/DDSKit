@@ -14,14 +14,14 @@ public final class DomainParticipant: @unchecked Sendable {
     }
 
     public convenience init?(domain: _DomainId, profile: String) {
-        let participantPtr = _DomainParticipant.create(domain, .init(profile), nil, _StatusMask.none())
+        let participantPtr = _DomainParticipant.create(domain, .init(profile))
         guard (participantPtr != nil) else {
             return nil
         }
         self.init(from: participantPtr!)
     }
     public convenience init?(domain: _DomainId, qos: Qos? = nil) {
-        let participantPtr = _DomainParticipant.create(domain, (qos ?? .base).raw, nil, _StatusMask.none())
+        let participantPtr = _DomainParticipant.create(domain, (qos ?? .base).raw)
         guard (participantPtr != nil) else {
             return nil
         }
@@ -43,7 +43,7 @@ public final class DomainParticipant: @unchecked Sendable {
             print("publisher discovered")
             return false
         }
-        _DomainParticipant.setListener(raw, listener)
+        _DomainParticipant.setListener(raw, listener, _StatusMask.none())
     }
     deinit {
         let ret = _DomainParticipant.destroy(raw)

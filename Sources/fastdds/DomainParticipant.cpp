@@ -63,13 +63,11 @@ namespace _DomainParticipant {
         return getFactory()->get_default_participant_qos();
     }
 
-    DomainParticipant *create(fastdds::DomainId_t domain, const std::string &profile,
-                              Listener *listener, const _StatusMask &mask) {
-        return getFactory()->create_participant_with_profile(domain, profile, listener, mask);
+    DomainParticipant *create(fastdds::DomainId_t domain, const std::string &profile) {
+        return getFactory()->create_participant_with_profile(domain, profile, nullptr, _StatusMask::none());
     }
-    DomainParticipant *create(fastdds::DomainId_t domain, const DomainParticipantQos &qos,
-                              Listener *listener, const _StatusMask &mask) {
-        return getFactory()->create_participant(domain, qos, listener, mask);
+    DomainParticipant *create(fastdds::DomainId_t domain, const DomainParticipantQos &qos) {
+        return getFactory()->create_participant(domain, qos, nullptr, _StatusMask::none());
     }
     _ReturnCode destroy(DomainParticipant *participant) {
         return getFactory()->delete_participant(participant);
@@ -84,8 +82,8 @@ namespace _DomainParticipant {
     _ReturnCode setQos(DomainParticipant *participant, const DomainParticipantQos qos) {
         return participant->set_qos(qos);
     }
-    _ReturnCode setListener(DomainParticipant *participant, Listener *listener) {
-        return participant->set_listener(listener, _StatusMask::none());
+    _ReturnCode setListener(DomainParticipant *participant, Listener *listener, const _StatusMask &mask) {
+        return participant->set_listener(listener, mask);
     }
 
     _ReturnCode registerType(DomainParticipant *participant,

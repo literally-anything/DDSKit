@@ -14,6 +14,8 @@ namespace _Topic {
     typedef fastdds::TopicQos TopicQos;
     typedef eprosima::fastdds::dds::TopicDataType TopicDataType;
 
+    bool compareQos(TopicQos rhs, TopicQos lhs);
+
     class Listener : public _TopicListener {
     public:
         void *context = nullptr;
@@ -23,19 +25,21 @@ namespace _Topic {
         void on_inconsistent_topic(Topic *topic, fastdds::InconsistentTopicStatus status) override;
     };
 
-    std::shared_ptr<Listener> createListener();
-    Listener *getListenerPtr(std::shared_ptr<Listener> listener);
-    void setListenerContext(std::shared_ptr<Listener> listener, void *context);
-    void setListenerInconsistentTopicCallback(std::shared_ptr<Listener> listener,
+    Listener *createListener();
+    void destroyListener(Listener *listener);
+    void setListenerContext(Listener *listener, void *context);
+    void setListenerInconsistentTopicCallback(Listener *listener,
                                               void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status));
 
     TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
 
     Topic *create(_DomainParticipant::DomainParticipant *participant,
-                  const std::string &name, const std::string &type, const std::string &profile,
-                  Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
+                  const std::string &name, const std::string &type, const std::string &profile);
     Topic *create(_DomainParticipant::DomainParticipant *participant,
-                  const std::string &name, const std::string &type, const TopicQos &qos,
-                  Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
+                  const std::string &name, const std::string &type, const TopicQos &qos);
     _ReturnCode destroy(Topic *topic);
+
+    TopicQos getQos(Topic *topic);
+    _ReturnCode setQos(Topic *topic, const TopicQos qos);
+    _ReturnCode setListener(Topic *topic, Listener *listener, const _StatusMask &mask);
 }

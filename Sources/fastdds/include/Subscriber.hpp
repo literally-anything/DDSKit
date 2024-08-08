@@ -17,10 +17,8 @@ namespace _Subscriber {
     bool compareQos(SubscriberQos rhs, SubscriberQos lhs);
     SubscriberQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
 
-    Subscriber *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile,
-                       _SubscriberListener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
-    Subscriber *create(_DomainParticipant::DomainParticipant *participant, const SubscriberQos &qos,
-                       _SubscriberListener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
+    Subscriber *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile);
+    Subscriber *create(_DomainParticipant::DomainParticipant *participant, const SubscriberQos &qos);
     _ReturnCode destroy(Subscriber *subscriber);
     _ReturnCode destroyEntities(Subscriber *subscriber);
 
