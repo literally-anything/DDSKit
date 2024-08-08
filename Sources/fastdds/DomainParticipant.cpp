@@ -9,47 +9,37 @@ namespace _DomainParticipant {
                                             fastrtps::ParticipantDiscoveryStatus reason,
                                             const fastdds::ParticipantBuiltinTopicData &info,
                                             bool &should_be_ignored) {
-        if (onParticipantDiscovery != nullptr) {
-            should_be_ignored = onParticipantDiscovery(context, participant, reason, std::move(const_cast<fastdds::ParticipantBuiltinTopicData &>(info)));
-        }
+        should_be_ignored = onParticipantDiscovery(context, participant, reason, std::move(const_cast<fastdds::ParticipantBuiltinTopicData &>(info)));
     }
     void Listener::on_data_reader_discovery(DomainParticipant *participant,
                                             fastrtps::ReaderDiscoveryStatus reason,
                                             const fastdds::SubscriptionBuiltinTopicData &info,
                                             bool &should_be_ignored) {
-        if (onDataReaderDiscovery != nullptr) {
-            should_be_ignored = onDataReaderDiscovery(context, participant, reason, std::move(const_cast<fastdds::SubscriptionBuiltinTopicData &>(info)));
-        }
+        should_be_ignored = onDataReaderDiscovery(context, participant, reason, std::move(const_cast<fastdds::SubscriptionBuiltinTopicData &>(info)));
     }
     void Listener::on_data_writer_discovery(DomainParticipant *participant,
                                             fastrtps::WriterDiscoveryStatus reason,
                                             const fastdds::PublicationBuiltinTopicData &info,
                                             bool &should_be_ignored) {
-        if (onDataWriterDiscovery != nullptr) {
-            should_be_ignored = onDataWriterDiscovery(context, participant, reason, std::move(const_cast<fastdds::PublicationBuiltinTopicData &>(info)));
-        }
+        should_be_ignored = onDataWriterDiscovery(context, participant, reason, std::move(const_cast<fastdds::PublicationBuiltinTopicData &>(info)));
     }
 
-    Listener *createListener() {
-        return new Listener();
+    Listener *createListener(bool(*onParticipantDiscovery)(void *context, DomainParticipant *participant, fastrtps::ParticipantDiscoveryStatus reason, fastdds::ParticipantBuiltinTopicData &&info),
+                             bool(*onDataReaderDiscovery)(void *context, DomainParticipant *participant, fastrtps::ReaderDiscoveryStatus reason, fastdds::SubscriptionBuiltinTopicData &&info),
+                             bool(*onDataWriterDiscovery)(void *context, DomainParticipant *participant, fastrtps::WriterDiscoveryStatus reason, fastdds::PublicationBuiltinTopicData &&info)) {
+        Listener *listener = new Listener();
+
+        listener->onParticipantDiscovery = onParticipantDiscovery;
+        listener->onDataReaderDiscovery = onDataReaderDiscovery;
+        listener->onDataWriterDiscovery = onDataWriterDiscovery;
+
+        return listener;
     }
     void destroyListener(Listener *listener) {
         listener->~Listener();
     }
     void setListenerContext(Listener *listener, void *context) {
         listener->context = context;
-    }
-    void setListenerParticipantDiscoveryCallback(Listener *listener,
-                                                 bool(*onParticipantDiscovery)(void *context, DomainParticipant *participant, fastrtps::ParticipantDiscoveryStatus reason, fastdds::ParticipantBuiltinTopicData &&info)) {
-        listener->onParticipantDiscovery = onParticipantDiscovery;
-    }
-    void setListenerDataReaderDiscoveryCallback(Listener *listener,
-                                                bool(*onDataReaderDiscovery)(void *context, DomainParticipant *participant, fastrtps::ReaderDiscoveryStatus reason, fastdds::SubscriptionBuiltinTopicData &&info)) {
-        listener->onDataReaderDiscovery = onDataReaderDiscovery;
-    }
-    void setListenerDataWriterDiscoveryCallback(Listener *listener,
-                                                bool(*onDataWriterDiscovery)(void *context, DomainParticipant *participant, fastrtps::WriterDiscoveryStatus reason, fastdds::PublicationBuiltinTopicData &&info)) {
-        listener->onDataWriterDiscovery = onDataWriterDiscovery;
     }
 
     inline DomainParticipantFactory *getFactory() {
@@ -84,6 +74,9 @@ namespace _DomainParticipant {
     }
     _ReturnCode setListener(DomainParticipant *participant, Listener *listener, const _StatusMask &mask) {
         return participant->set_listener(listener, mask);
+    }
+    _DomainId getDomainId(DomainParticipant *participant) {
+        return participant->get_domain_id();
     }
 
     _ReturnCode registerType(DomainParticipant *participant,

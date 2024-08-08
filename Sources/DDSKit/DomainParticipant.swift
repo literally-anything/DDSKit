@@ -1,8 +1,18 @@
 import fastdds
 
 public final class DomainParticipant: @unchecked Sendable {
+    public typealias ParticipantDiscoveredCallback = (OpaquePointer, fastrtps.ParticipantDiscoveryStatus, fastdds.ParticipantBuiltinTopicData) -> Bool
+    public typealias DataReaderDiscoveredCallback = (OpaquePointer, fastrtps.ReaderDiscoveryStatus, fastdds.SubscriptionBuiltinTopicData) -> Bool
+    public typealias DataWriterDiscoveredCallback = (OpaquePointer, fastrtps.WriterDiscoveryStatus, fastdds.PublicationBuiltinTopicData) -> Bool
+
     public let raw: OpaquePointer
     private let listener: UnsafeMutablePointer<_DomainParticipant.Listener>
+    private var participantDiscoveredCallback: ParticipantDiscoveredCallback = { _, _, _ in return false }
+    private var dataReaderDiscoveredCallback: DataReaderDiscoveredCallback = { _, _, _ in return false }
+    private var dataWriterDiscoveredCallback: DataWriterDiscoveredCallback = { _, _, _ in return false }
+    public var domainId: UInt32 {
+        _DomainParticipant.getDomainId(raw)
+    }
     public var qos: Qos {
         get {
             .init(from: _DomainParticipant.getQos(raw))
@@ -30,26 +40,45 @@ public final class DomainParticipant: @unchecked Sendable {
     public init(from participantPtr: OpaquePointer) {
         raw = participantPtr
 
-        listener = _DomainParticipant.createListener()
-        _DomainParticipant.setListenerParticipantDiscoveryCallback(listener) { context, participant, reason, info in
-            print("participant discovered")
-            return false
+        listener = _DomainParticipant.createListener {contextPtr, participant, reason, info in
+            guard (contextPtr != nil) else {
+                return false
+            }
+            let context = Unmanaged<DomainParticipant>.fromOpaque(contextPtr!).takeUnretainedValue()
+            return context.participantDiscoveredCallback(participant!, reason, info.pointee)
+        } _: { contextPtr, participant, reason, info in
+            guard (contextPtr != nil) else {
+                return false
+            }
+            let context = Unmanaged<DomainParticipant>.fromOpaque(contextPtr!).takeUnretainedValue()
+            return context.dataReaderDiscoveredCallback(participant!, reason, info.pointee)
+        } _: { contextPtr, participant, reason, info in
+            guard (contextPtr != nil) else {
+                return false
+            }
+            let context = Unmanaged<DomainParticipant>.fromOpaque(contextPtr!).takeUnretainedValue()
+            return context.dataWriterDiscoveredCallback(participant!, reason, info.pointee)
         }
-        _DomainParticipant.setListenerDataReaderDiscoveryCallback(listener) { context, participant, reason, info in
-            print("subscriber discovered")
-            return false
-        }
-        _DomainParticipant.setListenerDataWriterDiscoveryCallback(listener) { context, participant, reason, info in
-            print("publisher discovered")
-            return false
-        }
+        _DomainParticipant.setListenerContext(listener, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
         _DomainParticipant.setListener(raw, listener, _StatusMask.none())
     }
     deinit {
+        _DomainParticipant.setListenerContext(listener, nil)
+
         let ret = _DomainParticipant.destroy(raw)
         assert(ret == fastdds.RETCODE_OK, "Failed to destroy DomainParticipant: \(ret)")
 
         _DomainParticipant.destroyListener(listener)
+    }
+
+    public func onParticipantDiscovery(perform action: @escaping ParticipantDiscoveredCallback) {
+        participantDiscoveredCallback = action;
+    }
+    public func onReaderDiscovery(perform action: @escaping DataReaderDiscoveredCallback) {
+        dataReaderDiscoveredCallback = action;
+    }
+    public func onWriterDiscovery(perform action: @escaping DataWriterDiscoveredCallback) {
+        dataWriterDiscoveredCallback = action;
     }
 
     public struct Qos: Sendable, Equatable {
@@ -71,4 +100,8 @@ public final class DomainParticipant: @unchecked Sendable {
     }
 }
 
-// extension DomainParticipant: 
+extension DomainParticipant: CustomStringConvertible {
+    public var description: String {
+        "DomainParticipant(domainId: \(domainId))"
+    }
+}

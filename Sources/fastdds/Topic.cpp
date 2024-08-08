@@ -6,23 +6,19 @@ namespace _Topic {
     }
 
     void Listener::on_inconsistent_topic(Topic *topic, fastdds::InconsistentTopicStatus status) {
-        if (onInconsistentTopic != nullptr) {
-            onInconsistentTopic(context, topic, status);
-        }
+        onInconsistentTopic(context, topic, status);
     }
 
-    Listener *createListener() {
-        return new Listener();
+    Listener *createListener(void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status)) {
+        Listener *listener = new Listener();
+        listener->onInconsistentTopic = onInconsistentTopic;
+        return listener;
     }
     void destroyListener(Listener *listener) {
         listener->~Listener();
     }
     void setListenerContext(Listener *listener, void *context) {
         listener->context = context;
-    }
-    void setListenerInconsistentTopicCallback(Listener *listener,
-                                              void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status)) {
-        listener->onInconsistentTopic = onInconsistentTopic;
     }
 
     TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant) {

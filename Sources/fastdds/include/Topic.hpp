@@ -25,11 +25,9 @@ namespace _Topic {
         void on_inconsistent_topic(Topic *topic, fastdds::InconsistentTopicStatus status) override;
     };
 
-    Listener *createListener();
+    Listener *createListener(void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status));
     void destroyListener(Listener *listener);
     void setListenerContext(Listener *listener, void *context);
-    void setListenerInconsistentTopicCallback(Listener *listener,
-                                              void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status));
 
     TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
 
@@ -43,3 +41,5 @@ namespace _Topic {
     _ReturnCode setQos(Topic *topic, const TopicQos qos);
     _ReturnCode setListener(Topic *topic, Listener *listener, const _StatusMask &mask);
 }
+
+void test(std::function<void(int)> func);

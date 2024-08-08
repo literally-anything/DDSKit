@@ -37,19 +37,14 @@ namespace _DomainParticipant {
         void on_data_writer_discovery(DomainParticipant *participant,
                                       fastrtps::WriterDiscoveryStatus reason,
                                       const fastdds::PublicationBuiltinTopicData &info,
-                                      bool &should_be_ignored) override;
-                                      
+                                      bool &should_be_ignored) override;         
     };
 
-    Listener *createListener();
+    Listener *createListener(bool(*onParticipantDiscovery)(void *context, DomainParticipant *participant, fastrtps::ParticipantDiscoveryStatus reason, fastdds::ParticipantBuiltinTopicData &&info),
+                             bool(*onDataReaderDiscovery)(void *context, DomainParticipant *participant, fastrtps::ReaderDiscoveryStatus reason, fastdds::SubscriptionBuiltinTopicData &&info),
+                             bool(*onDataWriterDiscovery)(void *context, DomainParticipant *participant, fastrtps::WriterDiscoveryStatus reason, fastdds::PublicationBuiltinTopicData &&info));
     void destroyListener(Listener *listener);
     void setListenerContext(Listener *listener, void *context);
-    void setListenerParticipantDiscoveryCallback(Listener *listener,
-                                                 bool(*onParticipantDiscovery)(void *context, DomainParticipant *participant, fastrtps::ParticipantDiscoveryStatus reason, fastdds::ParticipantBuiltinTopicData &&info));
-    void setListenerDataReaderDiscoveryCallback(Listener *listener,
-                                                bool(*onDataReaderDiscovery)(void *context, DomainParticipant *participant, fastrtps::ReaderDiscoveryStatus reason, fastdds::SubscriptionBuiltinTopicData &&info));
-    void setListenerDataWriterDiscoveryCallback(Listener *listener,
-                                                bool(*onDataWriterDiscovery)(void *context, DomainParticipant *participant, fastrtps::WriterDiscoveryStatus reason, fastdds::PublicationBuiltinTopicData &&info));
     
     inline DomainParticipantFactory *getFactory();
 
@@ -64,6 +59,7 @@ namespace _DomainParticipant {
     DomainParticipantQos getQos(DomainParticipant *participant);
     _ReturnCode setQos(DomainParticipant *participant, const DomainParticipantQos qos);
     _ReturnCode setListener(DomainParticipant *participant, Listener *listener, const _StatusMask &mask);
+    _DomainId getDomainId(DomainParticipant *participant);
 
     _ReturnCode registerType(DomainParticipant *participant,
                              _TypeSupport type, const std::string &name);

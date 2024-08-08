@@ -1,9 +1,12 @@
 import fastdds
 
 public final class Topic {
+    public typealias InconsistentTopicCallback = (OpaquePointer, fastdds.InconsistentTopicStatus) -> Void
+
     public let raw: OpaquePointer
     public let participant: DomainParticipant
     private let listener: UnsafeMutablePointer<_Topic.Listener>
+    private var inconsistentTopicCallback: InconsistentTopicCallback = { _, _ in }
     public var qos: Qos {
         get {
             .init(from: _Topic.getQos(raw))
@@ -32,17 +35,27 @@ public final class Topic {
         raw = topicPtr
         participant = domainParticipant
 
-        listener = _Topic.createListener()
-        _Topic.setListenerInconsistentTopicCallback(listener) { context, topic, status in
-            print("inconsistant topic types. count:", status.total_count)
+        listener = _Topic.createListener { contextPtr, topic, status in
+            guard (contextPtr != nil) else {
+                return
+            }
+            let context = Unmanaged<Topic>.fromOpaque(contextPtr!).takeUnretainedValue()
+            context.inconsistentTopicCallback(topic!, status)
         }
+        _Topic.setListenerContext(listener, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
         _Topic.setListener(raw, listener, _StatusMask.inconsistent_topic())
     }
     deinit {
+        _Topic.setListenerContext(listener, nil)
+
         let ret = _Topic.destroy(raw)
         assert(ret == fastdds.RETCODE_OK, "Failed to destroy Topic: \(ret)")
 
         _Topic.destroyListener(listener)
+    }
+
+    public func onInconsistentTopic(perform action: @escaping InconsistentTopicCallback) {
+        inconsistentTopicCallback = action
     }
 
     public struct Qos: Sendable, Equatable {
