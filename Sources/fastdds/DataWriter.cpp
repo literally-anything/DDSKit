@@ -4,76 +4,56 @@
 #include <string>
 
 namespace _DataWriter {
-    void Listener::on_publication_matched(DataWriter *writer, const fastdds::PublicationMatchedStatus &status) {
-        if (onPublicationMatched != nullptr) {
-            onPublicationMatched(context, writer, &status);
-        }
-    }
-    void Listener::on_offered_deadline_missed(DataWriter *writer, const fastdds::OfferedDeadlineMissedStatus &status) {
-        if (onOfferedDeadlineMissed != nullptr) {
-            onOfferedDeadlineMissed(context, writer, &status);
-        }
-    }
-    void Listener::on_offered_incompatible_qos(DataWriter *writer, const fastdds::OfferedIncompatibleQosStatus &status) {
-        if (onOfferedIncompatibleQos != nullptr) {
-            onOfferedIncompatibleQos(context, writer, &status);
-        }
-    }
-    void Listener::on_liveliness_lost(DataWriter *writer, const fastdds::LivelinessLostStatus &status) {
-        if (onLivelinessLost != nullptr) {
-            onLivelinessLost(context, writer, &status);
-        }
-    }
-    void Listener::on_unacknowledged_sample_removed(DataWriter *writer, const fastdds::InstanceHandle_t &instance) {
-        if (onUnacknowledgedSampleEemoved != nullptr) {
-            onUnacknowledgedSampleEemoved(context, writer, &instance);
-        }
+    bool compareQos(DataWriterQos rhs, DataWriterQos lhs) {
+        return rhs == lhs;
     }
 
-    std::shared_ptr<Listener> createListener() {
-        return std::make_shared<Listener>();
+    Listener::Listener(DDSKitInternal::WriterCallbacks *callbacks) : callbacks(callbacks) {}
+    void Listener::on_publication_matched(DataWriter *writer, const fastdds::PublicationMatchedStatus &status) {
+        callbacks->publicationMatched(&status);
     }
-    Listener *getListenerPtr(std::shared_ptr<Listener> listener) {
-        return listener.get();
+    void Listener::on_offered_deadline_missed(DataWriter *writer, const fastdds::OfferedDeadlineMissedStatus &status) {
+        callbacks->offeredDeadlineMissed(&status);
     }
-    void setListenerContext(std::shared_ptr<Listener> listener, void *context) {
-        listener->context = context;
+    void Listener::on_offered_incompatible_qos(DataWriter *writer, const fastdds::OfferedIncompatibleQosStatus &status) {
+        callbacks->offeredIncompatibleQos(&status);
     }
-    void setListenerPublicationMatchedCallback(std::shared_ptr<Listener> listener,
-                                               void(*onPublicationMatched)(void *context, DataWriter *writer, const fastdds::PublicationMatchedStatus *status)) {
-        listener->onPublicationMatched = onPublicationMatched;
+    void Listener::on_liveliness_lost(DataWriter *writer, const fastdds::LivelinessLostStatus &status) {
+        callbacks->livelinessLost(&status);
     }
-    void setListenerOfferedDeadlineMissedCallback(std::shared_ptr<Listener> listener,
-                                                  void(*onOfferedDeadlineMissed)(void *context, DataWriter *writer, const fastdds::OfferedDeadlineMissedStatus *status)) {
-        listener->onOfferedDeadlineMissed = onOfferedDeadlineMissed;
+    void Listener::on_unacknowledged_sample_removed(DataWriter *writer, const fastdds::InstanceHandle_t &instance) {
+        callbacks->unacknowledgedSampleRemoved(&instance);
     }
-    void setListenerOfferedIncompatibleQosCallback(std::shared_ptr<Listener> listener,
-                                                   void(*onOfferedIncompatibleQos)(void *context, DataWriter *writer, const fastdds::OfferedIncompatibleQosStatus *status)) {
-        listener->onOfferedIncompatibleQos = onOfferedIncompatibleQos;
+
+    Listener *createListener(DDSKitInternal::WriterCallbacks *callbacks) {
+        return new Listener(callbacks);
     }
-    void setListenerLivelinessLostCallback(std::shared_ptr<Listener> listener,
-                                           void(*onLivelinessLost)(void *context, DataWriter *writer, const fastdds::LivelinessLostStatus *status)) {
-        listener->onLivelinessLost = onLivelinessLost;
-    }
-    void setListenerUnacknowledgedSampleEemovedCallback(std::shared_ptr<Listener> listener,
-                                                        void(*onUnacknowledgedSampleEemoved)(void *context, DataWriter *writer, const fastdds::InstanceHandle_t *instance)) {
-        listener->onUnacknowledgedSampleEemoved = onUnacknowledgedSampleEemoved;
+    void destroyListener(Listener *listener) {
+        listener->~Listener();
     }
 
     DataWriterQos getDefaultQos(_Publisher::Publisher *publisher) {
         return publisher->get_default_datawriter_qos();
     }
 
-    DataWriter *create(_Publisher::Publisher *publisher, const std::string &profile, _Topic::Topic *topic,
-                       Listener *listener, const _StatusMask &mask) {
-        return publisher->create_datawriter_with_profile(topic, profile, listener, mask);
+    DataWriter *create(_Publisher::Publisher *publisher, const std::string &profile, _Topic::Topic *topic) {
+        return publisher->create_datawriter_with_profile(topic, profile);
     }
-    DataWriter *create(_Publisher::Publisher *publisher, const DataWriterQos &qos, _Topic::Topic *topic,
-                       Listener *listener, const _StatusMask &mask) {
-        return publisher->create_datawriter(topic, qos, listener, mask);
+    DataWriter *create(_Publisher::Publisher *publisher, const DataWriterQos &qos, _Topic::Topic *topic) {
+        return publisher->create_datawriter(topic, qos);
     }
     _ReturnCode destroy(DataWriter *writer) {
         return const_cast<_Publisher::Publisher *>(writer->get_publisher())->delete_datawriter(writer);
+    }
+
+    DataWriterQos getQos(DataWriter *writer) {
+        return writer->get_qos();
+    }
+    _ReturnCode setQos(DataWriter *writer, const DataWriterQos qos) {
+        return writer->set_qos(qos);
+    }
+    _ReturnCode setListener(DataWriter *writer, Listener *listener, const _StatusMask &mask) {
+        return writer->set_listener(listener, mask);
     }
 
     _ReturnCode write(DataWriter *writer, const void *const data, const WriteParams params) {

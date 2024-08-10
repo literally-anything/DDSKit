@@ -1,8 +1,11 @@
 #pragma once
 
-#include "types.hpp"
 #include <memory>
 #include <string>
+
+#include "types.hpp"
+#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
@@ -19,32 +22,20 @@ namespace _DomainParticipant {
     bool compareQos(DomainParticipantQos rhs, DomainParticipantQos lhs);
 
     class Listener : public _DomainParticipantListener {
-    public:
-        void *context = nullptr;
+    private:
+        DDSKitInternal::ParticipantCallbacks *callbacks;
 
-        bool(*onParticipantDiscovery)(void *context, DomainParticipant *participant, fastrtps::ParticipantDiscoveryStatus reason, fastdds::ParticipantBuiltinTopicData &&info) = nullptr;
-        bool(*onDataReaderDiscovery)(void *context, DomainParticipant *participant, fastrtps::ReaderDiscoveryStatus reason, fastdds::SubscriptionBuiltinTopicData &&info) = nullptr;
-        bool(*onDataWriterDiscovery)(void *context, DomainParticipant *participant, fastrtps::WriterDiscoveryStatus reason, fastdds::PublicationBuiltinTopicData &&info) = nullptr;
+    public:
+        explicit Listener(DDSKitInternal::ParticipantCallbacks *callbacks);
 
         void on_participant_discovery(DomainParticipant *participant,
                                       fastrtps::ParticipantDiscoveryStatus reason,
                                       const fastdds::ParticipantBuiltinTopicData &info,
-                                      bool &should_be_ignored) override;
-        void on_data_reader_discovery(DomainParticipant *participant,
-                                      fastrtps::ReaderDiscoveryStatus reason,
-                                      const fastdds::SubscriptionBuiltinTopicData &info,
-                                      bool &should_be_ignored) override;
-        void on_data_writer_discovery(DomainParticipant *participant,
-                                      fastrtps::WriterDiscoveryStatus reason,
-                                      const fastdds::PublicationBuiltinTopicData &info,
-                                      bool &should_be_ignored) override;         
+                                      bool &should_be_ignored) override;        
     };
 
-    Listener *createListener(bool(*onParticipantDiscovery)(void *context, DomainParticipant *participant, fastrtps::ParticipantDiscoveryStatus reason, fastdds::ParticipantBuiltinTopicData &&info),
-                             bool(*onDataReaderDiscovery)(void *context, DomainParticipant *participant, fastrtps::ReaderDiscoveryStatus reason, fastdds::SubscriptionBuiltinTopicData &&info),
-                             bool(*onDataWriterDiscovery)(void *context, DomainParticipant *participant, fastrtps::WriterDiscoveryStatus reason, fastdds::PublicationBuiltinTopicData &&info));
+    Listener *createListener(DDSKitInternal::ParticipantCallbacks *callbacks);
     void destroyListener(Listener *listener);
-    void setListenerContext(Listener *listener, void *context);
     
     inline DomainParticipantFactory *getFactory();
 

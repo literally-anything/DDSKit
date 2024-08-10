@@ -5,20 +5,16 @@ namespace _Topic {
         return rhs == lhs;
     }
 
+    Listener::Listener(DDSKitInternal::TopicCallbacks *callbacks) : callbacks(callbacks) {}
     void Listener::on_inconsistent_topic(Topic *topic, fastdds::InconsistentTopicStatus status) {
-        onInconsistentTopic(context, topic, status);
+        callbacks->inconsistentTopic(&status);
     }
 
-    Listener *createListener(void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status)) {
-        Listener *listener = new Listener();
-        listener->onInconsistentTopic = onInconsistentTopic;
-        return listener;
+    Listener *createListener(DDSKitInternal::TopicCallbacks *callbacks) {
+        return new Listener(callbacks);
     }
     void destroyListener(Listener *listener) {
         listener->~Listener();
-    }
-    void setListenerContext(Listener *listener, void *context) {
-        listener->context = context;
     }
 
     TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant) {

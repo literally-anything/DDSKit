@@ -1,12 +1,14 @@
 import fastdds
+import DDSKitInternal
 
 public final class Topic {
-    public typealias InconsistentTopicCallback = (OpaquePointer, fastdds.InconsistentTopicStatus) -> Void
+    public typealias InconsistentTopicCallback = (fastdds.InconsistentTopicStatus) -> Void
 
     public let raw: OpaquePointer
     public let participant: DomainParticipant
+    private var callbacks = TopicCallbacks()
     private let listener: UnsafeMutablePointer<_Topic.Listener>
-    private var inconsistentTopicCallback: InconsistentTopicCallback = { _, _ in }
+    private var inconsistentTopicCallback: InconsistentTopicCallback?
     public var qos: Qos {
         get {
             .init(from: _Topic.getQos(raw))
@@ -17,39 +19,38 @@ public final class Topic {
         }
     }
 
-    public convenience init?(participant: DomainParticipant, name: String, typeName: String, profile: String) {
+    public convenience init?(participant: DomainParticipant, name: String, typeName: String, profile: String) throws {
         let topicPtr = _Topic.create(participant.raw, .init(name), .init(typeName), .init(profile))
         guard (topicPtr != nil) else {
             return nil
         }
-        self.init(from: topicPtr!, participant: participant)
+        try self.init(from: topicPtr!, participant: participant)
     }
-    public convenience init?(participant: DomainParticipant, name: String, typeName: String, qos: Qos? = nil) {
+    public convenience init?(participant: DomainParticipant, name: String, typeName: String, qos: Qos? = nil) throws {
         let topicPtr = _Topic.create(participant.raw, .init(name), .init(typeName), (qos ?? .getBase(for: participant)).raw)
         guard (topicPtr != nil) else {
             return nil
         }
-        self.init(from: topicPtr!, participant: participant)
+        try self.init(from: topicPtr!, participant: participant)
     }
-    public init(from topicPtr: OpaquePointer, participant domainParticipant: DomainParticipant) {
+    public init(from topicPtr: OpaquePointer, participant domainParticipant: DomainParticipant) throws {
         raw = topicPtr
         participant = domainParticipant
 
-        listener = _Topic.createListener { contextPtr, topic, status in
-            guard (contextPtr != nil) else {
-                return
-            }
-            let context = Unmanaged<Topic>.fromOpaque(contextPtr!).takeUnretainedValue()
-            context.inconsistentTopicCallback(topic!, status)
+        listener = withUnsafePointer(to: &callbacks) { ptr in
+            _Topic.createListener(OpaquePointer(ptr))
         }
-        _Topic.setListenerContext(listener, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
-        _Topic.setListener(raw, listener, _StatusMask.inconsistent_topic())
+        callbacks.setCallbacks { status in
+            self.inconsistentTopicCallback?(UnsafePointer<fastdds.InconsistentTopicStatus>(OpaquePointer(status)).pointee)
+        }
+        let ret = _Topic.setListener(raw, listener, _StatusMask.inconsistent_topic())
+        guard (ret == fastdds.RETCODE_OK) else {
+            throw DDSError(rawValue: ret)!
+        }
     }
     deinit {
-        _Topic.setListenerContext(listener, nil)
-
         let ret = _Topic.destroy(raw)
-        assert(ret == fastdds.RETCODE_OK, "Failed to destroy Topic: \(ret)")
+        assert(ret == fastdds.RETCODE_OK, "Failed to destroy Topic: \(String(describing: DDSError(rawValue: ret)))")
 
         _Topic.destroyListener(listener)
     }
@@ -68,7 +69,6 @@ public final class Topic {
         @inlinable public init() {
             self.init(from: _Topic.TopicQos())
         }
-
         public init(from qos: _Topic.TopicQos) {
             raw = qos
         }

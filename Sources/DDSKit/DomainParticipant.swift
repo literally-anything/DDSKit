@@ -1,15 +1,13 @@
 import fastdds
+import DDSKitInternal
 
 public final class DomainParticipant: @unchecked Sendable {
-    public typealias ParticipantDiscoveredCallback = (OpaquePointer, fastrtps.ParticipantDiscoveryStatus, fastdds.ParticipantBuiltinTopicData) -> Bool
-    public typealias DataReaderDiscoveredCallback = (OpaquePointer, fastrtps.ReaderDiscoveryStatus, fastdds.SubscriptionBuiltinTopicData) -> Bool
-    public typealias DataWriterDiscoveredCallback = (OpaquePointer, fastrtps.WriterDiscoveryStatus, fastdds.PublicationBuiltinTopicData) -> Bool
+    public typealias ParticipantDiscoveredCallback = (OpaquePointer, fastrtps.ParticipantDiscoveryStatus, fastdds.ParticipantBuiltinTopicData) -> Void
 
     public let raw: OpaquePointer
+    private var callbacks = ParticipantCallbacks()
     private let listener: UnsafeMutablePointer<_DomainParticipant.Listener>
-    private var participantDiscoveredCallback: ParticipantDiscoveredCallback = { _, _, _ in return false }
-    private var dataReaderDiscoveredCallback: DataReaderDiscoveredCallback = { _, _, _ in return false }
-    private var dataWriterDiscoveredCallback: DataWriterDiscoveredCallback = { _, _, _ in return false }
+    private var participantDiscoveredCallback: ParticipantDiscoveredCallback?
     public var domainId: UInt32 {
         _DomainParticipant.getDomainId(raw)
     }
@@ -23,50 +21,39 @@ public final class DomainParticipant: @unchecked Sendable {
         }
     }
 
-    public convenience init?(domain: _DomainId, profile: String) {
+    public convenience init?(domain: _DomainId, profile: String) throws {
         let participantPtr = _DomainParticipant.create(domain, .init(profile))
         guard (participantPtr != nil) else {
             return nil
         }
-        self.init(from: participantPtr!)
+        try self.init(from: participantPtr!)
     }
-    public convenience init?(domain: _DomainId, qos: Qos? = nil) {
+    public convenience init?(domain: _DomainId, qos: Qos? = nil) throws {
         let participantPtr = _DomainParticipant.create(domain, (qos ?? .base).raw)
         guard (participantPtr != nil) else {
             return nil
         }
-        self.init(from: participantPtr!)
+        try self.init(from: participantPtr!)
     }
-    public init(from participantPtr: OpaquePointer) {
+    public init(from participantPtr: OpaquePointer) throws {
         raw = participantPtr
 
-        listener = _DomainParticipant.createListener {contextPtr, participant, reason, info in
-            guard (contextPtr != nil) else {
-                return false
-            }
-            let context = Unmanaged<DomainParticipant>.fromOpaque(contextPtr!).takeUnretainedValue()
-            return context.participantDiscoveredCallback(participant!, reason, info.pointee)
-        } _: { contextPtr, participant, reason, info in
-            guard (contextPtr != nil) else {
-                return false
-            }
-            let context = Unmanaged<DomainParticipant>.fromOpaque(contextPtr!).takeUnretainedValue()
-            return context.dataReaderDiscoveredCallback(participant!, reason, info.pointee)
-        } _: { contextPtr, participant, reason, info in
-            guard (contextPtr != nil) else {
-                return false
-            }
-            let context = Unmanaged<DomainParticipant>.fromOpaque(contextPtr!).takeUnretainedValue()
-            return context.dataWriterDiscoveredCallback(participant!, reason, info.pointee)
+        listener = withUnsafePointer(to: &callbacks) { ptr in
+            _DomainParticipant.createListener(OpaquePointer(ptr))
         }
-        _DomainParticipant.setListenerContext(listener, UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
-        _DomainParticipant.setListener(raw, listener, _StatusMask.none())
+        callbacks.setCallbacks { participant, statusPtr, infoPtr in
+            self.participantDiscoveredCallback?(participant,
+                                                UnsafePointer<fastrtps.ParticipantDiscoveryStatus>(OpaquePointer(statusPtr)).pointee,
+                                                UnsafePointer<fastdds.ParticipantBuiltinTopicData>(OpaquePointer(infoPtr)).pointee)
+        }
+        let ret = _DomainParticipant.setListener(raw, listener, _StatusMask.none())
+        guard (ret == fastdds.RETCODE_OK) else {
+            throw DDSError(rawValue: ret)!
+        }
     }
     deinit {
-        _DomainParticipant.setListenerContext(listener, nil)
-
         let ret = _DomainParticipant.destroy(raw)
-        assert(ret == fastdds.RETCODE_OK, "Failed to destroy DomainParticipant: \(ret)")
+        assert(ret == fastdds.RETCODE_OK, "Failed to destroy DomainParticipant: \(String(describing: DDSError(rawValue: ret)))")
 
         _DomainParticipant.destroyListener(listener)
     }
@@ -74,11 +61,13 @@ public final class DomainParticipant: @unchecked Sendable {
     public func onParticipantDiscovery(perform action: @escaping ParticipantDiscoveredCallback) {
         participantDiscoveredCallback = action;
     }
-    public func onReaderDiscovery(perform action: @escaping DataReaderDiscoveredCallback) {
-        dataReaderDiscoveredCallback = action;
-    }
-    public func onWriterDiscovery(perform action: @escaping DataWriterDiscoveredCallback) {
-        dataWriterDiscoveredCallback = action;
+
+    public func registerType(type: _TypeSupport, name: String) throws {
+        let ret = _DomainParticipant.registerType(raw, type, .init(name))
+        let error = DDSError(rawValue: ret)
+        guard (error == nil) else {
+            throw error!
+        }
     }
 
     public struct Qos: Sendable, Equatable {
@@ -91,7 +80,6 @@ public final class DomainParticipant: @unchecked Sendable {
         @inlinable public init() {
             self.init(from: _DomainParticipant.DomainParticipantQos())
         }
-
         public init(from qos: _DomainParticipant.DomainParticipantQos) {
             raw = qos
         }

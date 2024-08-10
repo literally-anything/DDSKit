@@ -1,3 +1,6 @@
+# Swift -> C++ compatibility headers (hopefully temporary)
+.compatibility-headers
+
 ### VisualStudioCode template
 .vscode/*
 !.vscode/settings.json

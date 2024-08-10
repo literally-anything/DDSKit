@@ -1,12 +1,16 @@
 #pragma once
 
-#include "types.hpp"
 #include <string>
+
+#include "types.hpp"
 #include "DomainParticipant.hpp"
+#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+
 #include <fastdds/dds/topic/Topic.hpp>
 #include <fastdds/dds/topic/TopicListener.hpp>
 #include <fastdds/dds/topic/qos/TopicQos.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
+
 typedef fastdds::TopicListener _TopicListener;
 
 namespace _Topic {
@@ -17,17 +21,17 @@ namespace _Topic {
     bool compareQos(TopicQos rhs, TopicQos lhs);
 
     class Listener : public _TopicListener {
-    public:
-        void *context = nullptr;
+    private:
+        DDSKitInternal::TopicCallbacks *callbacks;
 
-        void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status) = nullptr;
+    public:
+        Listener(DDSKitInternal::TopicCallbacks *callbacks);
 
         void on_inconsistent_topic(Topic *topic, fastdds::InconsistentTopicStatus status) override;
     };
 
-    Listener *createListener(void(*onInconsistentTopic)(void *context, Topic *topic, fastdds::InconsistentTopicStatus status));
+    Listener *createListener(DDSKitInternal::TopicCallbacks *callbacks);
     void destroyListener(Listener *listener);
-    void setListenerContext(Listener *listener, void *context);
 
     TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
 

@@ -1,6 +1,6 @@
 import fastdds
 
-public class Subscriber: @unchecked Sendable {
+open class Subscriber: @unchecked Sendable {
     public let raw: OpaquePointer
     public let participant: DomainParticipant
     public var qos: Qos {
@@ -33,7 +33,7 @@ public class Subscriber: @unchecked Sendable {
     }
     deinit {
         let ret = _Subscriber.destroy(raw)
-        assert(ret == fastdds.RETCODE_OK, "Failed to destroy Subscriber: \(ret)")
+        assert(ret == fastdds.RETCODE_OK, "Failed to destroy Subscriber: \(String(describing: DDSError(rawValue: ret)))")
     }
 
     public struct Qos: Sendable, Equatable {
@@ -46,7 +46,6 @@ public class Subscriber: @unchecked Sendable {
         @inlinable public init() {
             self.init(from: _Subscriber.SubscriberQos())
         }
-
         public init(from qos: _Subscriber.SubscriberQos) {
             raw = qos
         }

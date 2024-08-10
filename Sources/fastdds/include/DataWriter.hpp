@@ -16,15 +16,14 @@ namespace _DataWriter {
     typedef fastdds::DataWriterQos DataWriterQos;
     typedef fastrtps::WriteParams WriteParams;
 
-    class Listener : public _DataWriterListener {
-    public:
-        void *context = nullptr;
+    bool compareQos(DataWriterQos rhs, DataWriterQos lhs);
 
-        void(*onPublicationMatched)(void *context, DataWriter *writer, const fastdds::PublicationMatchedStatus *status) = nullptr;
-        void(*onOfferedDeadlineMissed)(void *context, DataWriter *writer, const fastdds::OfferedDeadlineMissedStatus *status) = nullptr;
-        void(*onOfferedIncompatibleQos)(void *context, DataWriter *writer, const fastdds::OfferedIncompatibleQosStatus *status) = nullptr;
-        void(*onLivelinessLost)(void *context, DataWriter *writer, const fastdds::LivelinessLostStatus *status) = nullptr;
-        void(*onUnacknowledgedSampleEemoved)(void *context, DataWriter *writer, const fastdds::InstanceHandle_t *instance) = nullptr;
+    class Listener : public _DataWriterListener {
+    private:
+        DDSKitInternal::WriterCallbacks *callbacks;
+
+    public:
+        explicit Listener(DDSKitInternal::WriterCallbacks *callbacks);
 
         void on_publication_matched(DataWriter *writer, const fastdds::PublicationMatchedStatus &status) override;
         void on_offered_deadline_missed(DataWriter *writer, const fastdds::OfferedDeadlineMissedStatus &status) override;
@@ -33,27 +32,18 @@ namespace _DataWriter {
         void on_unacknowledged_sample_removed(DataWriter *writer, const fastdds::InstanceHandle_t &instance) override;
     };
 
-    std::shared_ptr<Listener> createListener();
-    Listener *getListenerPtr(std::shared_ptr<Listener> listener);
-    void setListenerContext(std::shared_ptr<Listener> listener, void *context);
-    void setListenerPublicationMatchedCallback(std::shared_ptr<Listener> listener,
-                                               void(*onPublicationMatched)(void *context, DataWriter *writer, const fastdds::PublicationMatchedStatus *status));
-    void setListenerOfferedDeadlineMissedCallback(std::shared_ptr<Listener> listener,
-                                                  void(*onOfferedDeadlineMissed)(void *context, DataWriter *writer, const fastdds::OfferedDeadlineMissedStatus *status));
-    void setListenerOfferedIncompatibleQosCallback(std::shared_ptr<Listener> listener,
-                                                   void(*onOfferedIncompatibleQos)(void *context, DataWriter *writer, const fastdds::OfferedIncompatibleQosStatus *status));
-    void setListenerLivelinessLostCallback(std::shared_ptr<Listener> listener,
-                                           void(*onLivelinessLost)(void *context, DataWriter *writer, const fastdds::LivelinessLostStatus *status));
-    void setListenerUnacknowledgedSampleEemovedCallback(std::shared_ptr<Listener> listener,
-                                                        void(*onUnacknowledgedSampleEemoved)(void *context, DataWriter *writer, const fastdds::InstanceHandle_t *instance));
+    Listener *createListener(DDSKitInternal::WriterCallbacks *callbacks);
+    void destroyListener(Listener *listener);
 
     DataWriterQos getDefaultQos(_Publisher::Publisher *publisher);
 
-    DataWriter *create(_Publisher::Publisher *publisher, const std::string &profile, _Topic::Topic *topic,
-                       Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
-    DataWriter *create(_Publisher::Publisher *publisher, const DataWriterQos &qos, _Topic::Topic *topic,
-                       Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
+    DataWriter *create(_Publisher::Publisher *publisher, const std::string &profile, _Topic::Topic *topic);
+    DataWriter *create(_Publisher::Publisher *publisher, const DataWriterQos &qos, _Topic::Topic *topic);
     _ReturnCode destroy(DataWriter *writer);
+
+    DataWriterQos getQos(DataWriter *writer);
+    _ReturnCode setQos(DataWriter *writer, const DataWriterQos qos);
+    _ReturnCode setListener(DataWriter *writer, Listener *listener, const _StatusMask &mask);
 
     _ReturnCode write(DataWriter *writer, const void *const data, const WriteParams params);
     void *getLoanPool(DataWriter *writer);

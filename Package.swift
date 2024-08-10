@@ -16,7 +16,8 @@ let package = Package(
         .target(
             name: "DDSKit",
             dependencies: [
-                "fastdds"
+                "fastdds",
+                "DDSKitInternal"
             ],
             swiftSettings: [
                 .interoperabilityMode(.Cxx),
@@ -24,7 +25,22 @@ let package = Package(
                 .unsafeFlags(["-Onone"], .when(configuration: .debug))
             ]),
         .target(
-            name: "fastdds"),
+            name: "fastdds",
+            dependencies: [
+                "DDSKitInternal"
+            ],
+            cxxSettings: [
+                .headerSearchPath("../../.compatibility-headers/")
+            ]),
+        .target(
+            name: "DDSKitInternal",
+            swiftSettings: [
+                .interoperabilityMode(.Cxx),
+                .unsafeFlags([
+                    "-O",
+                    "-emit-clang-header-path", ".compatibility-headers/DDSKitInternal-Swift.h"
+                ])
+            ]),
     ],
     cxxLanguageStandard: .cxx14
 )

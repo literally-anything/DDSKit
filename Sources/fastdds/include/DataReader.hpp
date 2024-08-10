@@ -1,10 +1,14 @@
 #pragma once
 
-#include "types.hpp"
 #include <cstdint>
 #include <string>
+#include <swift/bridging>
+
+#include "types.hpp"
 #include "Topic.hpp"
 #include "Subscriber.hpp"
+#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
@@ -17,52 +21,36 @@ namespace _DataReader {
     typedef fastdds::DataReader DataReader;
     typedef fastdds::DataReaderQos DataReaderQos;
 
+    bool compareQos(DataReaderQos rhs, DataReaderQos lhs);
+
     class Listener : public _DataReaderListener {
+    private:
+        DDSKitInternal::ReaderCallbacks *callbacks;
+
     public:
-        void *context = nullptr;
+        explicit Listener(DDSKitInternal::ReaderCallbacks *callbacks);
 
-        void(*onDataAvailable)(void *context, DataReader *reader) = nullptr;
-        void(*onSubscriptionMatched)(void *context, DataReader *reader, const fastdds::SubscriptionMatchedStatus *status) = nullptr;
-        void(*onRequestedDeadlineMissed)(void *context, DataReader *reader, const fastdds::RequestedDeadlineMissedStatus *status) = nullptr;
-        void(*onLivelinessChanged)(void *context, DataReader *reader, const fastdds::LivelinessChangedStatus *status) = nullptr;
-        void(*onSampleRejected)(void *context, DataReader *reader, const fastdds::SampleRejectedStatus *status) = nullptr;
-        void(*onRequestedIncompatibleQos)(void *context, DataReader *reader, const fastdds::RequestedIncompatibleQosStatus *status) = nullptr;
-        void(*onSampleLost)(void *context, DataReader *reader, const fastdds::SampleLostStatus *status) = nullptr;
-
-        void on_data_available(DataReader *reader) override;
-        void on_subscription_matched(DataReader *reader, const fastdds::SubscriptionMatchedStatus &status) override;
-        void on_requested_deadline_missed(DataReader *reader, const fastdds::RequestedDeadlineMissedStatus &status) override;
-        void on_liveliness_changed(DataReader *reader, const fastdds::LivelinessChangedStatus &status) override;
-        void on_sample_rejected(DataReader *reader, const fastdds::SampleRejectedStatus &status) override;
-        void on_requested_incompatible_qos(DataReader *reader, const fastdds::RequestedIncompatibleQosStatus &status) override;
-        void on_sample_lost(DataReader *reader, const fastdds::SampleLostStatus &status) override;
+        inline void on_data_available(DataReader *reader) override;
+        inline void on_subscription_matched(DataReader *reader, const fastdds::SubscriptionMatchedStatus &status) override;
+        inline void on_requested_deadline_missed(DataReader *reader, const fastdds::RequestedDeadlineMissedStatus &status) override;
+        inline void on_liveliness_changed(DataReader *reader, const fastdds::LivelinessChangedStatus &status) override;
+        inline void on_sample_rejected(DataReader *reader, const fastdds::SampleRejectedStatus &status) override;
+        inline void on_requested_incompatible_qos(DataReader *reader, const fastdds::RequestedIncompatibleQosStatus &status) override;
+        inline void on_sample_lost(DataReader *reader, const fastdds::SampleLostStatus &status) override;
     };
 
-    std::shared_ptr<Listener> createListener();
-    Listener *getListenerPtr(std::shared_ptr<Listener> listener);
-    void setListenerContext(std::shared_ptr<Listener> listener, void *context);
-    void setListenerDataAvailableCallback(std::shared_ptr<Listener> listener,
-                                          void(*onDataAvailable)(void *context, DataReader *reader));
-    void setListenerSubscriptionMatchedCallback(std::shared_ptr<Listener> listener,
-                                                void(*onSubscriptionMatched)(void *context, DataReader *reader, const fastdds::SubscriptionMatchedStatus *status));
-    void setListenerRequestedDeadlineMissedCallback(std::shared_ptr<Listener> listener,
-                                                    void(*onRequestedDeadlineMissed)(void *context, DataReader *reader, const fastdds::RequestedDeadlineMissedStatus *status));
-    void setListenerLivelinessChangedCallback(std::shared_ptr<Listener> listener,
-                                              void(*onLivelinessChanged)(void *context, DataReader *reader, const fastdds::LivelinessChangedStatus *status));
-    void setListenerSampleRejectedCallback(std::shared_ptr<Listener> listener,
-                                           void(*onSampleRejected)(void *context, DataReader *reader, const fastdds::SampleRejectedStatus *status));
-    void setListenerRequestedIncompatibleQosCallback(std::shared_ptr<Listener> listener,
-                                                     void(*onRequestedIncompatibleQos)(void *context, DataReader *reader, const fastdds::RequestedIncompatibleQosStatus *status));
-    void setListenerSampleLostCallback(std::shared_ptr<Listener> listener,
-                                       void(*onSampleLost)(void *context, DataReader *reader, const fastdds::SampleLostStatus *status));
+    Listener *createListener(DDSKitInternal::ReaderCallbacks *callbacks);
+    void destroyListener(Listener *listener);
 
     DataReaderQos getDefaultQos(_Subscriber::Subscriber *subscriber);
 
-    DataReader *create(_Subscriber::Subscriber *subscriber, const std::string &profile, _Topic::Topic *topic,
-                       Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
-    DataReader *create(_Subscriber::Subscriber *subscriber, const DataReaderQos &qos, _Topic::Topic *topic,
-                       Listener *listener = nullptr, const _StatusMask &mask = _StatusMask::all());
+    DataReader *create(_Subscriber::Subscriber *subscriber, const std::string &profile, _Topic::Topic *topic);
+    DataReader *create(_Subscriber::Subscriber *subscriber, const DataReaderQos &qos, _Topic::Topic *topic);
     _ReturnCode destroy(DataReader *reader);
+
+    DataReaderQos getQos(DataReader *reader);
+    _ReturnCode setQos(DataReader *reader, const DataReaderQos qos);
+    _ReturnCode setListener(DataReader *reader, Listener *listener, const _StatusMask &mask);
 
     uint64_t getUnreadCount(DataReader *reader);
     _ReturnCode takeNextSample(DataReader *reader, void *data, fastdds::SampleInfo &info);
