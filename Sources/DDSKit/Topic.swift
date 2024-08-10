@@ -1,7 +1,7 @@
 import fastdds
 import DDSKitInternal
 
-public final class Topic {
+public final class Topic: @unchecked Sendable {
     public typealias InconsistentTopicCallback = (fastdds.InconsistentTopicStatus) -> Void
 
     public let raw: OpaquePointer

@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -21,6 +21,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .interoperabilityMode(.Cxx),
+                .swiftLanguageMode(.v6),
                 .unsafeFlags(["-O", "-whole-module-optimization"], .when(configuration: .release)),
                 .unsafeFlags(["-Onone"], .when(configuration: .debug))
             ]),
@@ -36,6 +37,7 @@ let package = Package(
             name: "DDSKitInternal",
             swiftSettings: [
                 .interoperabilityMode(.Cxx),
+                .swiftLanguageMode(.v6),
                 .unsafeFlags([
                     "-O",
                     "-emit-clang-header-path", ".compatibility-headers/DDSKitInternal-Swift.h"
