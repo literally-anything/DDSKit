@@ -1,3 +1,5 @@
+import fastdds
+
 public enum DDSError: Int32, Error {
     case ERROR = 1
     case UNSUPPORTED = 2
@@ -11,4 +13,17 @@ public enum DDSError: Int32, Error {
     case TIMEOUT = 10
     case NO_DATA = 11
     case ILLEGAL_OPERATION = 12
+
+    @inlinable public static func check(code ret: _ReturnCode) throws {
+        if (ret != fastdds.RETCODE_OK) {
+            let e = DDSError(rawValue: ret)
+            if (e != nil) {
+                throw e!
+            }
+        }
+    }
+}
+
+public enum DDSKitError: Error {
+    case SynchronizationError
 }

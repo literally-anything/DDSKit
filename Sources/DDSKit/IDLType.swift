@@ -1,3 +1,3 @@
-public protocol StaticIDLType: Sendable, Equatable {
+public protocol IDLType: Sendable, Equatable {
     init()
 }

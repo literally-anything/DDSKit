@@ -6,6 +6,7 @@
 #include <fastdds/dds/core/detail/DDSReturnCode.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
+#include <fastdds/dds/subscriber/SampleInfo.hpp>
 
 using _Int8Array = std::vector<int8_t>;
 using _UInt8Array = std::vector<uint8_t>;
@@ -27,3 +28,4 @@ typedef fastdds::ReturnCode_t _ReturnCode;
 typedef fastdds::DomainId_t _DomainId;
 typedef fastdds::TypeSupport _TypeSupport;
 typedef fastdds::StatusMask _StatusMask;
+typedef fastdds::SampleInfo _SampleInfo;

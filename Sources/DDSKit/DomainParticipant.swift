@@ -1,5 +1,6 @@
 import fastdds
 import DDSKitInternal
+import Synchronization
 
 public final class DomainParticipant: @unchecked Sendable {
     public typealias ParticipantDiscoveredCallback = (OpaquePointer, fastrtps.ParticipantDiscoveryStatus, fastdds.ParticipantBuiltinTopicData) -> Void
@@ -8,6 +9,7 @@ public final class DomainParticipant: @unchecked Sendable {
     private var callbacks = ParticipantCallbacks()
     private let listener: UnsafeMutablePointer<_DomainParticipant.Listener>
     private var participantDiscoveredCallback: ParticipantDiscoveredCallback?
+
     public var domainId: UInt32 {
         _DomainParticipant.getDomainId(raw)
     }
@@ -46,10 +48,7 @@ public final class DomainParticipant: @unchecked Sendable {
                                                 UnsafePointer<fastrtps.ParticipantDiscoveryStatus>(OpaquePointer(statusPtr)).pointee,
                                                 UnsafePointer<fastdds.ParticipantBuiltinTopicData>(OpaquePointer(infoPtr)).pointee)
         }
-        let ret = _DomainParticipant.setListener(raw, listener, _StatusMask.none())
-        guard (ret == fastdds.RETCODE_OK) else {
-            throw DDSError(rawValue: ret)!
-        }
+        try DDSError.check(code: _DomainParticipant.setListener(raw, listener, _StatusMask.none()))
     }
     deinit {
         let ret = _DomainParticipant.destroy(raw)
@@ -63,11 +62,7 @@ public final class DomainParticipant: @unchecked Sendable {
     }
 
     public func registerType(type: _TypeSupport, name: String) throws {
-        let ret = _DomainParticipant.registerType(raw, type, .init(name))
-        let error = DDSError(rawValue: ret)
-        guard (error == nil) else {
-            throw error!
-        }
+        try DDSError.check(code: _DomainParticipant.registerType(raw, type, .init(name)))
     }
 
     public struct Qos: Sendable, Equatable {

@@ -43,10 +43,7 @@ public final class Topic: @unchecked Sendable {
         callbacks.setCallbacks { status in
             self.inconsistentTopicCallback?(UnsafePointer<fastdds.InconsistentTopicStatus>(OpaquePointer(status)).pointee)
         }
-        let ret = _Topic.setListener(raw, listener, _StatusMask.inconsistent_topic())
-        guard (ret == fastdds.RETCODE_OK) else {
-            throw DDSError(rawValue: ret)!
-        }
+        try DDSError.check(code: _Topic.setListener(raw, listener, _StatusMask.inconsistent_topic()))
     }
     deinit {
         let ret = _Topic.destroy(raw)

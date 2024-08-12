@@ -1,11 +1,11 @@
-public struct ReaderCallbacks: Sendable {
-    public typealias DataAvailableCallback = @Sendable () -> Void
-    public typealias SubscriptionMatchedCallback = @Sendable (UnsafeRawPointer) -> Void
-    public typealias RequestedDeadlineMissedCallback = @Sendable (UnsafeRawPointer) -> Void
-    public typealias LivelinessChangedCallback = @Sendable (UnsafeRawPointer) -> Void
-    public typealias SampleRejectedCallback = @Sendable (UnsafeRawPointer) -> Void
-    public typealias RequestedIncompatibleQosCallback = @Sendable (UnsafeRawPointer) -> Void
-    public typealias SampleLostCallback = @Sendable (UnsafeRawPointer) -> Void
+public struct ReaderCallbacks {
+    public typealias DataAvailableCallback = () -> Void
+    public typealias SubscriptionMatchedCallback = (UnsafeRawPointer) -> Void
+    public typealias RequestedDeadlineMissedCallback = (UnsafeRawPointer) -> Void
+    public typealias LivelinessChangedCallback = (UnsafeRawPointer) -> Void
+    public typealias SampleRejectedCallback = (UnsafeRawPointer) -> Void
+    public typealias RequestedIncompatibleQosCallback = (UnsafeRawPointer) -> Void
+    public typealias SampleLostCallback = (UnsafeRawPointer) -> Void
 
     @usableFromInline internal var onDataAvailable: DataAvailableCallback = { }
     @usableFromInline internal var onSubscriptionMatched: SubscriptionMatchedCallback = { _ in }
