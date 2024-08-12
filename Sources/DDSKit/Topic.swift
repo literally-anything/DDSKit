@@ -2,7 +2,7 @@ import fastdds
 import DDSKitInternal
 
 public final class Topic: @unchecked Sendable {
-    public typealias InconsistentTopicCallback = (fastdds.InconsistentTopicStatus) -> Void
+    public typealias InconsistentTopicCallback = (borrowing fastdds.InconsistentTopicStatus) -> Void
 
     public let raw: OpaquePointer
     public let participant: DomainParticipant

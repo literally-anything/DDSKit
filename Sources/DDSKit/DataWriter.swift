@@ -3,11 +3,11 @@ import DDSKitInternal
 import Synchronization
 
 public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
-    public typealias PublicationMatchedCallback = @Sendable (fastdds.PublicationMatchedStatus) -> Void
-    public typealias OfferedDeadlineMissedCallback = @Sendable (fastdds.DeadlineMissedStatus) -> Void
-    public typealias OfferedIncompatibleQosCallback = @Sendable (fastdds.IncompatibleQosStatus) -> Void
-    public typealias LivelinessLostCallback = @Sendable (fastdds.LivelinessLostStatus) -> Void
-    public typealias UnacknowledgedSampleRemovedCallback = @Sendable (fastdds.InstanceHandle_t) -> Void
+    public typealias PublicationMatchedCallback = @Sendable (borrowing fastdds.PublicationMatchedStatus) -> Void
+    public typealias OfferedDeadlineMissedCallback = @Sendable (borrowing fastdds.DeadlineMissedStatus) -> Void
+    public typealias OfferedIncompatibleQosCallback = @Sendable (borrowing fastdds.IncompatibleQosStatus) -> Void
+    public typealias LivelinessLostCallback = @Sendable (borrowing fastdds.LivelinessLostStatus) -> Void
+    public typealias UnacknowledgedSampleRemovedCallback = @Sendable (borrowing fastdds.InstanceHandle_t) -> Void
 
     public let raw: OpaquePointer
     public let publisher: Publisher

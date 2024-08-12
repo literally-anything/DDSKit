@@ -3,7 +3,7 @@ import DDSKitInternal
 import Synchronization
 
 public final class DomainParticipant: @unchecked Sendable {
-    public typealias ParticipantDiscoveredCallback = (OpaquePointer, fastrtps.ParticipantDiscoveryStatus, fastdds.ParticipantBuiltinTopicData) -> Void
+    public typealias ParticipantDiscoveredCallback = (OpaquePointer, borrowing fastrtps.ParticipantDiscoveryStatus, borrowing fastdds.ParticipantBuiltinTopicData) -> Void
 
     public let raw: OpaquePointer
     private var callbacks = ParticipantCallbacks()
