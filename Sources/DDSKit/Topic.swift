@@ -40,7 +40,7 @@ public final class Topic: @unchecked Sendable {
         listener = withUnsafePointer(to: &callbacks) { ptr in
             _Topic.createListener(OpaquePointer(ptr))
         }
-        callbacks.setCallbacks { status in
+        callbacks.setCallbacks { [unowned self] status in
             self.inconsistentTopicCallback?(UnsafePointer<fastdds.InconsistentTopicStatus>(OpaquePointer(status)).pointee)
         }
         try DDSError.check(code: _Topic.setListener(raw, listener, _StatusMask.inconsistent_topic()))

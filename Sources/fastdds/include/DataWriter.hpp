@@ -1,9 +1,12 @@
 #pragma once
 
-#include "types.hpp"
 #include <string>
+
+#include "types.hpp"
 #include "Topic.hpp"
 #include "Publisher.hpp"
+#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/DataWriterListener.hpp>
 #include <fastdds/dds/publisher/qos/DataWriterQos.hpp>

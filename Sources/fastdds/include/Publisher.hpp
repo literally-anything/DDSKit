@@ -1,8 +1,10 @@
 #pragma once
 
-#include "types.hpp"
 #include <string>
+
+#include "types.hpp"
 #include "DomainParticipant.hpp"
+
 #include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/publisher/PublisherListener.hpp>
 #include <fastdds/dds/publisher/qos/PublisherQos.hpp>

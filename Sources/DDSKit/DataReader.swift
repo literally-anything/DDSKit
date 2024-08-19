@@ -67,7 +67,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
                     continuation.yield(message)
                 }
             }
-            continuation.onTermination = { _ in
+            continuation.onTermination = { [unowned self] _ in
                 self.messageCallback.withLock { callback in
                     callback = nil
                 }
@@ -101,7 +101,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
         listener = withUnsafePointer(to: &callbacks) { ptr in
             _DataReader.createListener(OpaquePointer(ptr))
         }
-        callbacks.setCallbacks {
+        callbacks.setCallbacks { [unowned self] in
             // Data Available
             self.messageCallback.withLock { callback in
                 guard callback != nil else { return }
@@ -111,34 +111,34 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
                     callback?(data)
                 }
             }
-        } onSubscriptionMatched: { statusPtr in
+        } onSubscriptionMatched: { [unowned self] statusPtr in
             // Subscription Matched
             let status = UnsafePointer<fastdds.SubscriptionMatchedStatus>(OpaquePointer(statusPtr)).pointee
             self.atomicMatchedWriters.store(status.current_count, ordering: .sequentiallyConsistent)
             self.subscriptionMatchedCallback.withLock { callback in
                 callback?(status)
             }
-        } onRequestedDeadlineMissed: { statusPtr in
+        } onRequestedDeadlineMissed: { [unowned self] statusPtr in
             // Requested Deadline Missed
             self.deadlineMissedCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.DeadlineMissedStatus>(OpaquePointer(statusPtr)).pointee)
             }
-        } onLivelinessChanged: { statusPtr in
+        } onLivelinessChanged: { [unowned self] statusPtr in
             // Liveliness Changed
             self.livelinessChangedCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.LivelinessChangedStatus>(OpaquePointer(statusPtr)).pointee)
             }
-        } onSampleRejected: { statusPtr in
+        } onSampleRejected: { [unowned self] statusPtr in
             // Sample Rejected
             self.sampleRejectedCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.SampleRejectedStatus>(OpaquePointer(statusPtr)).pointee)
             }
-        } onRequestedIncompatibleQos: { statusPtr in
+        } onRequestedIncompatibleQos: { [unowned self] statusPtr in
             // Requested Incompatible Qos
             self.incompatibleQosCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.IncompatibleQosStatus>(OpaquePointer(statusPtr)).pointee)
             }
-        } onSampleLost: { statusPtr in
+        } onSampleLost: { [unowned self] statusPtr in
             // Sample Lost
             self.sampleLostCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.SampleLostStatus>(OpaquePointer(statusPtr)).pointee)

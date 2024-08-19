@@ -1,8 +1,10 @@
 #pragma once
 
-#include "types.hpp"
 #include <string>
+
+#include "types.hpp"
 #include "DomainParticipant.hpp"
+
 #include <fastdds/dds/subscriber/Subscriber.hpp>
 #include <fastdds/dds/subscriber/SubscriberListener.hpp>
 #include <fastdds/dds/subscriber/qos/SubscriberQos.hpp>

@@ -63,7 +63,7 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
         listener = withUnsafePointer(to: &callbacks) { ptr in
             _DataWriter.createListener(OpaquePointer(ptr))
         }
-        callbacks.setCallbacks { statusPtr in
+        callbacks.setCallbacks { [unowned self] statusPtr in
             // Publication Matched
             let status = UnsafePointer<fastdds.PublicationMatchedStatus>(OpaquePointer(statusPtr)).pointee
             self.atomicMatchedReaders.store(status.current_count, ordering: .sequentiallyConsistent)
@@ -78,22 +78,22 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
             self.publicationMatchedCallback.withLock { callback in
                 callback?(status)
             }
-        } onOfferedDeadlineMissed: { statusPtr in
+        } onOfferedDeadlineMissed: { [unowned self] statusPtr in
             // Offered Deadline Missed
             self.offeredDeadlineMissedCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.DeadlineMissedStatus>(OpaquePointer(statusPtr)).pointee)
             }
-        } onOfferedIncompatibleQos: { statusPtr in
+        } onOfferedIncompatibleQos: { [unowned self] statusPtr in
             // Offered Incompatible Qos
             self.offeredIncompatibleQosCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.IncompatibleQosStatus>(OpaquePointer(statusPtr)).pointee)
             }
-        } onLivelinessLost: { statusPtr in
+        } onLivelinessLost: { [unowned self] statusPtr in
             // Liveliness Lost
             self.livelinessLostCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.LivelinessLostStatus>(OpaquePointer(statusPtr)).pointee)
             }
-        } onUnacknowledgedSampleRemoved: { handlePtr in
+        } onUnacknowledgedSampleRemoved: { [unowned self] handlePtr in
             // Unacknowledged Sample Removed
             self.unacknowledgedSampleRemovedCallback.withLock { callback in
                 callback?(UnsafePointer<fastdds.InstanceHandle_t>(OpaquePointer(handlePtr)).pointee)

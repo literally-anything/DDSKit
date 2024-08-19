@@ -43,7 +43,7 @@ public final class DomainParticipant: @unchecked Sendable {
         listener = withUnsafePointer(to: &callbacks) { ptr in
             _DomainParticipant.createListener(OpaquePointer(ptr))
         }
-        callbacks.setCallbacks { participant, statusPtr, infoPtr in
+        callbacks.setCallbacks { [unowned self] participant, statusPtr, infoPtr in
             self.participantDiscoveredCallback?(participant,
                                                 UnsafePointer<fastrtps.ParticipantDiscoveryStatus>(OpaquePointer(statusPtr)).pointee,
                                                 UnsafePointer<fastdds.ParticipantBuiltinTopicData>(OpaquePointer(infoPtr)).pointee)
