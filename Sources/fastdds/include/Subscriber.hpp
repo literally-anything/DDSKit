@@ -10,20 +10,22 @@
 #include <fastdds/dds/subscriber/qos/SubscriberQos.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
 
-typedef fastdds::SubscriberListener _SubscriberListener;
+namespace fastdds {
+    typedef epfastdds::SubscriberListener _SubscriberListener;
 
-namespace _Subscriber {
-    typedef fastdds::Subscriber Subscriber;
-    typedef fastdds::SubscriberQos SubscriberQos;
+    namespace _Subscriber {
+        typedef epfastdds::Subscriber Subscriber;
+        typedef epfastdds::SubscriberQos SubscriberQos;
 
-    bool compareQos(SubscriberQos rhs, SubscriberQos lhs);
-    SubscriberQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
+        bool compareQos(SubscriberQos rhs, SubscriberQos lhs);
+        SubscriberQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
 
-    Subscriber *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile);
-    Subscriber *create(_DomainParticipant::DomainParticipant *participant, const SubscriberQos &qos);
-    _ReturnCode destroy(Subscriber *subscriber);
-    _ReturnCode destroyEntities(Subscriber *subscriber);
+        Subscriber *create(_DomainParticipant::DomainParticipant *participant, const std::string &profile);
+        Subscriber *create(_DomainParticipant::DomainParticipant *participant, const SubscriberQos &qos);
+        DDSReturnCode destroy(Subscriber *subscriber);
+        DDSReturnCode destroyEntities(Subscriber *subscriber);
 
-    SubscriberQos getQos(Subscriber *subscriber);
-    _ReturnCode setQos(Subscriber *subscriber, const SubscriberQos qos);
+        SubscriberQos getQos(Subscriber *subscriber);
+        DDSReturnCode setQos(Subscriber *subscriber, const SubscriberQos qos);
+    }
 }

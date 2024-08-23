@@ -12,46 +12,51 @@
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
 
-typedef fastdds::DomainParticipantListener _DomainParticipantListener;
+namespace fastdds {
+    typedef epfastrtps::ParticipantDiscoveryStatus DDSParticipantDiscoveryStatus;
+    typedef epfastdds::ParticipantBuiltinTopicData DDSParticipantBuiltinTopicData;
 
-namespace _DomainParticipant {
-    typedef fastdds::DomainParticipant DomainParticipant;
-    typedef fastdds::DomainParticipantFactory DomainParticipantFactory;
-    typedef fastdds::DomainParticipantQos DomainParticipantQos;
+    typedef epfastdds::DomainParticipantListener _DomainParticipantListener;
 
-    bool compareQos(DomainParticipantQos rhs, DomainParticipantQos lhs);
+    namespace _DomainParticipant {
+        typedef epfastdds::DomainParticipant DomainParticipant;
+        typedef epfastdds::DomainParticipantFactory DomainParticipantFactory;
+        typedef epfastdds::DomainParticipantQos DomainParticipantQos;
 
-    class Listener : public _DomainParticipantListener {
-    private:
-        DDSKitInternal::ParticipantCallbacks *callbacks;
+        bool compareQos(DomainParticipantQos rhs, DomainParticipantQos lhs);
 
-    public:
-        explicit Listener(DDSKitInternal::ParticipantCallbacks *callbacks);
+        class Listener : public _DomainParticipantListener {
+        private:
+            DDSKitInternal::ParticipantCallbacks *callbacks;
 
-        void on_participant_discovery(DomainParticipant *participant,
-                                      fastrtps::ParticipantDiscoveryStatus reason,
-                                      const fastdds::ParticipantBuiltinTopicData &info,
-                                      bool &should_be_ignored) override;        
-    };
+        public:
+            explicit Listener(DDSKitInternal::ParticipantCallbacks *callbacks);
 
-    Listener *createListener(DDSKitInternal::ParticipantCallbacks *callbacks);
-    void destroyListener(Listener *listener);
-    
-    inline DomainParticipantFactory *getFactory();
+            void on_participant_discovery(DomainParticipant *participant,
+                                        DDSParticipantDiscoveryStatus reason,
+                                        const DDSParticipantBuiltinTopicData &info,
+                                        bool &should_be_ignored) override;        
+        };
 
-    _ReturnCode loadProfiles();
-    DomainParticipantQos getDefaultQos();
+        Listener *createListener(DDSKitInternal::ParticipantCallbacks *callbacks);
+        void destroyListener(Listener *listener);
+        
+        inline DomainParticipantFactory *getFactory();
 
-    DomainParticipant *create(_DomainId domain, const std::string &profile);
-    DomainParticipant *create(_DomainId domain, const DomainParticipantQos &qos);
-    _ReturnCode destroy(DomainParticipant *participant);
-    _ReturnCode destroyEntities(DomainParticipant *participant);
+        DDSReturnCode loadProfiles();
+        DomainParticipantQos getDefaultQos();
 
-    DomainParticipantQos getQos(DomainParticipant *participant);
-    _ReturnCode setQos(DomainParticipant *participant, const DomainParticipantQos qos);
-    _ReturnCode setListener(DomainParticipant *participant, Listener *listener, const _StatusMask &mask);
-    _DomainId getDomainId(DomainParticipant *participant);
+        DomainParticipant *create(DDSDomainId domain, const std::string &profile);
+        DomainParticipant *create(DDSDomainId domain, const DomainParticipantQos &qos);
+        DDSReturnCode destroy(DomainParticipant *participant);
+        DDSReturnCode destroyEntities(DomainParticipant *participant);
 
-    _ReturnCode registerType(DomainParticipant *participant,
-                             _TypeSupport type, const std::string &name);
+        DomainParticipantQos getQos(DomainParticipant *participant);
+        DDSReturnCode setQos(DomainParticipant *participant, const DomainParticipantQos qos);
+        DDSReturnCode setListener(DomainParticipant *participant, Listener *listener, const _StatusMask &mask);
+        DDSDomainId getDomainId(DomainParticipant *participant);
+
+        DDSReturnCode registerType(DomainParticipant *participant,
+                                   _TypeSupport type, const std::string &name);
+    }
 }

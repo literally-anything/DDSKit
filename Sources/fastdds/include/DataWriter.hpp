@@ -12,43 +12,51 @@
 #include <fastdds/dds/publisher/qos/DataWriterQos.hpp>
 #include <fastdds/rtps/common/WriteParams.hpp>
 
-typedef fastdds::DataWriterListener _DataWriterListener;
+namespace fastdds {
+    typedef epfastdds::PublicationMatchedStatus DDSPublicationMatchedStatus;
+    typedef epfastdds::OfferedDeadlineMissedStatus DDSOfferedDeadlineMissedStatus;
+    typedef epfastdds::OfferedIncompatibleQosStatus DDSOfferedIncompatibleQosStatus;
+    typedef epfastdds::LivelinessLostStatus DDSLivelinessLostStatus;
+    typedef epfastdds::InstanceHandle_t DDSInstanceHandle_t;
 
-namespace _DataWriter {
-    typedef fastdds::DataWriter DataWriter;
-    typedef fastdds::DataWriterQos DataWriterQos;
-    typedef fastrtps::WriteParams WriteParams;
+    typedef epfastdds::DataWriterListener _DataWriterListener;
 
-    bool compareQos(DataWriterQos rhs, DataWriterQos lhs);
+    namespace _DataWriter {
+        typedef epfastdds::DataWriter DataWriter;
+        typedef epfastdds::DataWriterQos DataWriterQos;
+        typedef epfastrtps::WriteParams WriteParams;
 
-    class Listener : public _DataWriterListener {
-    private:
-        DDSKitInternal::WriterCallbacks *callbacks;
+        bool compareQos(DataWriterQos rhs, DataWriterQos lhs);
 
-    public:
-        explicit Listener(DDSKitInternal::WriterCallbacks *callbacks);
+        class Listener : public _DataWriterListener {
+        private:
+            DDSKitInternal::WriterCallbacks *callbacks;
 
-        void on_publication_matched(DataWriter *writer, const fastdds::PublicationMatchedStatus &status) override;
-        void on_offered_deadline_missed(DataWriter *writer, const fastdds::OfferedDeadlineMissedStatus &status) override;
-        void on_offered_incompatible_qos(DataWriter *writer, const fastdds::OfferedIncompatibleQosStatus &status) override;
-        void on_liveliness_lost(DataWriter *writer, const fastdds::LivelinessLostStatus &status) override;
-        void on_unacknowledged_sample_removed(DataWriter *writer, const fastdds::InstanceHandle_t &instance) override;
-    };
+        public:
+            explicit Listener(DDSKitInternal::WriterCallbacks *callbacks);
 
-    Listener *createListener(DDSKitInternal::WriterCallbacks *callbacks);
-    void destroyListener(Listener *listener);
+            void on_publication_matched(DataWriter *writer, const DDSPublicationMatchedStatus &status) override;
+            void on_offered_deadline_missed(DataWriter *writer, const DDSOfferedDeadlineMissedStatus &status) override;
+            void on_offered_incompatible_qos(DataWriter *writer, const DDSOfferedIncompatibleQosStatus &status) override;
+            void on_liveliness_lost(DataWriter *writer, const DDSLivelinessLostStatus &status) override;
+            void on_unacknowledged_sample_removed(DataWriter *writer, const DDSInstanceHandle_t &instance) override;
+        };
 
-    DataWriterQos getDefaultQos(_Publisher::Publisher *publisher);
+        Listener *createListener(DDSKitInternal::WriterCallbacks *callbacks);
+        void destroyListener(Listener *listener);
 
-    DataWriter *create(_Publisher::Publisher *publisher, const std::string &profile, _Topic::Topic *topic);
-    DataWriter *create(_Publisher::Publisher *publisher, const DataWriterQos &qos, _Topic::Topic *topic);
-    _ReturnCode destroy(DataWriter *writer);
+        DataWriterQos getDefaultQos(_Publisher::Publisher *publisher);
 
-    DataWriterQos getQos(DataWriter *writer);
-    _ReturnCode setQos(DataWriter *writer, const DataWriterQos qos);
-    _ReturnCode setListener(DataWriter *writer, Listener *listener, const _StatusMask &mask);
+        DataWriter *create(_Publisher::Publisher *publisher, const std::string &profile, _Topic::Topic *topic);
+        DataWriter *create(_Publisher::Publisher *publisher, const DataWriterQos &qos, _Topic::Topic *topic);
+        DDSReturnCode destroy(DataWriter *writer);
 
-    _ReturnCode write(DataWriter *writer, const void *const data, const WriteParams params);
-    void *getLoanPool(DataWriter *writer);
-    _ReturnCode discardLoanedSample(DataWriter *writer, void *sample);
+        DataWriterQos getQos(DataWriter *writer);
+        DDSReturnCode setQos(DataWriter *writer, const DataWriterQos qos);
+        DDSReturnCode setListener(DataWriter *writer, Listener *listener, const _StatusMask &mask);
+
+        DDSReturnCode write(DataWriter *writer, const void *const data, const WriteParams params);
+        DDSReturnCode getLoanPool(DataWriter *writer, void *&sample);
+        DDSReturnCode discardLoanedSample(DataWriter *writer, void *sample);
+    }
 }

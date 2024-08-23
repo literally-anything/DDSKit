@@ -11,39 +11,41 @@
 #include <fastdds/dds/topic/qos/TopicQos.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
 
-typedef fastdds::TopicListener _TopicListener;
+namespace fastdds {
+    typedef epfastdds::InconsistentTopicStatus DDSInconsistentTopicStatus;
 
-namespace _Topic {
-    typedef fastdds::Topic Topic;
-    typedef fastdds::TopicQos TopicQos;
-    typedef eprosima::fastdds::dds::TopicDataType TopicDataType;
+    typedef epfastdds::TopicListener _TopicListener;
 
-    bool compareQos(TopicQos rhs, TopicQos lhs);
+    namespace _Topic {
+        typedef epfastdds::Topic Topic;
+        typedef epfastdds::TopicQos TopicQos;
+        typedef epfastdds::TopicDataType TopicDataType;
 
-    class Listener : public _TopicListener {
-    private:
-        DDSKitInternal::TopicCallbacks *callbacks;
+        bool compareQos(TopicQos rhs, TopicQos lhs);
 
-    public:
-        Listener(DDSKitInternal::TopicCallbacks *callbacks);
+        class Listener : public _TopicListener {
+        private:
+            DDSKitInternal::TopicCallbacks *callbacks;
 
-        void on_inconsistent_topic(Topic *topic, fastdds::InconsistentTopicStatus status) override;
-    };
+        public:
+            Listener(DDSKitInternal::TopicCallbacks *callbacks);
 
-    Listener *createListener(DDSKitInternal::TopicCallbacks *callbacks);
-    void destroyListener(Listener *listener);
+            void on_inconsistent_topic(Topic *topic, DDSInconsistentTopicStatus status) override;
+        };
 
-    TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
+        Listener *createListener(DDSKitInternal::TopicCallbacks *callbacks);
+        void destroyListener(Listener *listener);
 
-    Topic *create(_DomainParticipant::DomainParticipant *participant,
-                  const std::string &name, const std::string &type, const std::string &profile);
-    Topic *create(_DomainParticipant::DomainParticipant *participant,
-                  const std::string &name, const std::string &type, const TopicQos &qos);
-    _ReturnCode destroy(Topic *topic);
+        TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);
 
-    TopicQos getQos(Topic *topic);
-    _ReturnCode setQos(Topic *topic, const TopicQos qos);
-    _ReturnCode setListener(Topic *topic, Listener *listener, const _StatusMask &mask);
+        Topic *create(_DomainParticipant::DomainParticipant *participant,
+                    const std::string &name, const std::string &type, const std::string &profile);
+        Topic *create(_DomainParticipant::DomainParticipant *participant,
+                    const std::string &name, const std::string &type, const TopicQos &qos);
+        DDSReturnCode destroy(Topic *topic);
+
+        TopicQos getQos(Topic *topic);
+        DDSReturnCode setQos(Topic *topic, const TopicQos qos);
+        DDSReturnCode setListener(Topic *topic, Listener *listener, const _StatusMask &mask);
+    }
 }
-
-void test(std::function<void(int)> func);

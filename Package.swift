@@ -22,6 +22,7 @@ let package = Package(
             swiftSettings: [
                 .interoperabilityMode(.Cxx),
                 .swiftLanguageMode(.v6),
+                .enableUpcomingFeature("InternalImportsByDefault"),
                 .unsafeFlags(["-O", "-whole-module-optimization"], .when(configuration: .release)),
                 .unsafeFlags(["-Onone"], .when(configuration: .debug))
             ]),

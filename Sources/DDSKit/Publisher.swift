@@ -5,23 +5,23 @@ open class Publisher: @unchecked Sendable {
     public let participant: DomainParticipant
     public var qos: Qos {
         get {
-            .init(from: _Publisher.getQos(raw))
+            .init(from: fastdds._Publisher.getQos(raw))
         }
         set(newValue) {
-            let ret = _Publisher.setQos(raw, newValue.raw)
-            assert(ret == fastdds.RETCODE_OK)
+            let ret = fastdds._Publisher.setQos(raw, newValue.raw)
+            assert(ret == DDSError.OK)
         }
     }
 
     public convenience init?(participant: DomainParticipant, profile: String) {
-        let publisherPtr = _Publisher.create(participant.raw, .init(profile))
+        let publisherPtr = fastdds._Publisher.create(participant.raw, .init(profile))
         guard (publisherPtr != nil) else {
             return nil
         }
         self.init(from: publisherPtr!, participant: participant)
     }
     public convenience init?(participant: DomainParticipant, qos: Qos? = nil) {
-        let publisherPtr = _Publisher.create(participant.raw, (qos ?? .getBase(for: participant)).raw)
+        let publisherPtr = fastdds._Publisher.create(participant.raw, (qos ?? .getBase(for: participant)).raw)
         guard (publisherPtr != nil) else {
             return nil
         }
@@ -32,26 +32,26 @@ open class Publisher: @unchecked Sendable {
         participant = domainParticipant
     }
     deinit {
-        let ret = _Publisher.destroy(raw)
-        assert(ret == fastdds.RETCODE_OK, "Failed to destroy Publisher: \(String(describing: DDSError(rawValue: ret)))")
+        let ret = fastdds._Publisher.destroy(raw)
+        assert(ret == DDSError.OK, "Failed to destroy Publisher: \(String(describing: DDSError(rawValue: ret)))")
     }
 
     public struct Qos: Sendable, Equatable {
-        public var raw: _Publisher.PublisherQos
+        public var raw: fastdds._Publisher.PublisherQos
 
         @inlinable public static func == (lhs: Qos, rhs: Qos) -> Bool {
-            _Publisher.compareQos(lhs.raw, rhs.raw)
+            fastdds._Publisher.compareQos(lhs.raw, rhs.raw)
         }
 
         @inlinable public init() {
-            self.init(from: _Publisher.PublisherQos())
+            self.init(from: fastdds._Publisher.PublisherQos())
         }
-        public init(from qos: _Publisher.PublisherQos) {
+        public init(from qos: fastdds._Publisher.PublisherQos) {
             raw = qos
         }
 
         @inlinable public static func getBase(for participant: DomainParticipant) -> Qos {
-            Qos(from: _Publisher.getDefaultQos(participant.raw))
+            Qos(from: fastdds._Publisher.getDefaultQos(participant.raw))
         }
     }
 }

@@ -21,11 +21,14 @@ using _DoubleArray = std::vector<double>;
 using _Float80Array = std::vector<long double>;
 using _BoolArray = std::vector<bool>;
 
-namespace fastdds = eprosima::fastdds::dds;
-namespace fastrtps = eprosima::fastdds::rtps;
+namespace fastdds {
+    namespace epfastdds = eprosima::fastdds::dds;
+    namespace epfastrtps = eprosima::fastdds::rtps;
 
-typedef fastdds::ReturnCode_t _ReturnCode;
-typedef fastdds::DomainId_t _DomainId;
-typedef fastdds::TypeSupport _TypeSupport;
-typedef fastdds::StatusMask _StatusMask;
-typedef fastdds::SampleInfo _SampleInfo;
+    typedef epfastdds::TypeSupport _TypeSupport;
+    typedef epfastdds::StatusMask _StatusMask;
+    typedef epfastdds::SampleInfo _SampleInfo;
+
+    typedef epfastdds::ReturnCode_t DDSReturnCode;
+    typedef epfastdds::DomainId_t DDSDomainId;
+}

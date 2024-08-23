@@ -1,5 +1,3 @@
-#pragma once
-
 #include "types.hpp"
 
 #include "StatusMask.hpp"

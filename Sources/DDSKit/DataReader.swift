@@ -1,22 +1,22 @@
-import fastdds
+public import enum fastdds.fastdds
 import DDSKitInternal
 import Synchronization
 
 public final class DataReader<DataType: IDLType>: @unchecked Sendable {
     public typealias MessageCallback = @Sendable (borrowing DataType) -> Void
-    public typealias SubscriptionMatchedCallback = @Sendable (borrowing fastdds.SubscriptionMatchedStatus) -> Void
-    public typealias DeadlineMissedCallback = @Sendable (borrowing fastdds.RequestedDeadlineMissedStatus) -> Void
-    public typealias LivelinessChangedCallback = @Sendable (borrowing fastdds.LivelinessChangedStatus) -> Void
-    public typealias SampleRejectedCallback = @Sendable (borrowing fastdds.SampleRejectedStatus) -> Void
-    public typealias IncompatibleQosCallback = @Sendable (borrowing fastdds.RequestedIncompatibleQosStatus) -> Void
-    public typealias SampleLostCallback = @Sendable (borrowing fastdds.SampleLostStatus) -> Void
+    public typealias SubscriptionMatchedCallback = @Sendable (borrowing fastdds.DDSSubscriptionMatchedStatus) -> Void
+    public typealias DeadlineMissedCallback = @Sendable (borrowing fastdds.DDSDeadlineMissedStatus) -> Void
+    public typealias LivelinessChangedCallback = @Sendable (borrowing fastdds.DDSLivelinessChangedStatus) -> Void
+    public typealias SampleRejectedCallback = @Sendable (borrowing fastdds.DDSSampleRejectedStatus) -> Void
+    public typealias IncompatibleQosCallback = @Sendable (borrowing fastdds.DDSIncompatibleQosStatus) -> Void
+    public typealias SampleLostCallback = @Sendable (borrowing fastdds.DDSSampleLostStatus) -> Void
 
     public let raw: OpaquePointer
     public let subscriber: Subscriber
     public let topic: Topic
     private var callbacks = ReaderCallbacks()
-    private let listener: UnsafeMutablePointer<_DataReader.Listener>
-    private let mask = Mutex(_StatusMask.data_available())
+    private let listener: UnsafeMutablePointer<fastdds._DataReader.Listener>
+    private let mask = Mutex(fastdds._StatusMask.data_available())
 
     private let streamState = Mutex<Bool>(false)
 
@@ -37,11 +37,11 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
     }
     public var qos: Qos {
         get {
-            .init(from: _DataReader.getQos(raw))
+            .init(from: fastdds._DataReader.getQos(raw))
         }
         set(newValue) {
-            let ret = _DataReader.setQos(raw, newValue.raw)
-            assert(ret == fastdds.RETCODE_OK)
+            let ret = fastdds._DataReader.setQos(raw, newValue.raw)
+            assert(ret == DDSError.OK)
         }
     }
     public var messages: AsyncThrowingStream<DataType, any Error> {
@@ -59,8 +59,8 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             }
             messageCallback.withLock { callback in
                 var data = DataType()
-                var info = _SampleInfo()
-                while (withUnsafeMutablePointer(to: &data) { dataPtr in _DataReader.takeNextSample(self.raw, dataPtr, &info) } == 0) {
+                var info = fastdds._SampleInfo()
+                while (withUnsafeMutablePointer(to: &data) { dataPtr in fastdds._DataReader.takeNextSample(self.raw, dataPtr, &info) } == 0) {
                     continuation.yield(data)
                 }
                 callback = { message in
@@ -80,14 +80,14 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
     }
 
     public convenience init?(subscriber: Subscriber, topic: Topic, profile: String) throws {
-        let dataReaderPtr = _DataReader.create(subscriber.raw, .init(profile), topic.raw)
+        let dataReaderPtr = fastdds._DataReader.create(subscriber.raw, .init(profile), topic.raw)
         guard (dataReaderPtr != nil) else {
             return nil
         }
         try self.init(from: dataReaderPtr!, subscriber: subscriber, topic: topic)
     }
     public convenience init?(subscriber: Subscriber, topic: Topic, qos: Qos? = nil) throws {
-        let dataReaderPtr = _DataReader.create(subscriber.raw, (qos ?? .getBase(for: subscriber)).raw, topic.raw)
+        let dataReaderPtr = fastdds._DataReader.create(subscriber.raw, (qos ?? .getBase(for: subscriber)).raw, topic.raw)
         guard (dataReaderPtr != nil) else {
             return nil
         }
@@ -99,21 +99,21 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
         topic = associatedTopic
 
         listener = withUnsafePointer(to: &callbacks) { ptr in
-            _DataReader.createListener(OpaquePointer(ptr))
+            fastdds._DataReader.createListener(OpaquePointer(ptr))
         }
         callbacks.setCallbacks { [unowned self] in
             // Data Available
             self.messageCallback.withLock { callback in
                 guard callback != nil else { return }
                 var data = DataType()
-                var info = fastdds.SampleInfo()
-                while (withUnsafeMutablePointer(to: &data) { dataPtr in _DataReader.takeNextSample(self.raw, dataPtr, &info) } == 0) {
+                var info = fastdds._SampleInfo()
+                while (withUnsafeMutablePointer(to: &data) { dataPtr in fastdds._DataReader.takeNextSample(self.raw, dataPtr, &info) } == 0) {
                     callback?(data)
                 }
             }
         } onSubscriptionMatched: { [unowned self] statusPtr in
             // Subscription Matched
-            let status = UnsafePointer<fastdds.SubscriptionMatchedStatus>(OpaquePointer(statusPtr)).pointee
+            let status = UnsafePointer<fastdds.DDSSubscriptionMatchedStatus>(OpaquePointer(statusPtr)).pointee
             self.atomicMatchedWriters.store(status.current_count, ordering: .sequentiallyConsistent)
             self.subscriptionMatchedCallback.withLock { callback in
                 callback?(status)
@@ -121,41 +121,41 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
         } onRequestedDeadlineMissed: { [unowned self] statusPtr in
             // Requested Deadline Missed
             self.deadlineMissedCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.DeadlineMissedStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSDeadlineMissedStatus>(OpaquePointer(statusPtr)).pointee)
             }
         } onLivelinessChanged: { [unowned self] statusPtr in
             // Liveliness Changed
             self.livelinessChangedCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.LivelinessChangedStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSLivelinessChangedStatus>(OpaquePointer(statusPtr)).pointee)
             }
         } onSampleRejected: { [unowned self] statusPtr in
             // Sample Rejected
             self.sampleRejectedCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.SampleRejectedStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSSampleRejectedStatus>(OpaquePointer(statusPtr)).pointee)
             }
         } onRequestedIncompatibleQos: { [unowned self] statusPtr in
             // Requested Incompatible Qos
             self.incompatibleQosCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.IncompatibleQosStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSIncompatibleQosStatus>(OpaquePointer(statusPtr)).pointee)
             }
         } onSampleLost: { [unowned self] statusPtr in
             // Sample Lost
             self.sampleLostCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.SampleLostStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSSampleLostStatus>(OpaquePointer(statusPtr)).pointee)
             }
         }
         try setListenerMask()
     }
     deinit {
-        let ret = _DataReader.destroy(raw)
-        assert(ret == fastdds.RETCODE_OK, "Failed to destroy static DataReader: \(String(describing: DDSError(rawValue: ret)))")
+        let ret = fastdds._DataReader.destroy(raw)
+        assert(ret == DDSError.OK, "Failed to destroy static DataReader: \(String(describing: DDSError(rawValue: ret)))")
 
-        _DataReader.destroyListener(listener)
+        fastdds._DataReader.destroyListener(listener)
     }
 
     private func setListenerMask() throws {
         try mask.withLock { mask in
-            try DDSError.check(code: _DataReader.setListener(raw, listener, mask))
+            try DDSError.check(code: fastdds._DataReader.setListener(raw, listener, mask))
         }
     }
 
@@ -175,7 +175,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             callback = action
         }
         mask.withLock { mask in
-            _statusMaskAdd(&mask, _StatusMask.subscription_matched())
+            fastdds._statusMaskAdd(&mask, fastdds._StatusMask.subscription_matched())
         }
         try setListenerMask()
     }
@@ -184,7 +184,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             callback = action
         }
         mask.withLock { mask in
-            _statusMaskAdd(&mask, _StatusMask.requested_deadline_missed())
+            fastdds._statusMaskAdd(&mask, fastdds._StatusMask.requested_deadline_missed())
         }
         try setListenerMask()
     }
@@ -193,7 +193,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             callback = action
         }
         mask.withLock { mask in
-            _statusMaskAdd(&mask, _StatusMask.liveliness_changed())
+            fastdds._statusMaskAdd(&mask, fastdds._StatusMask.liveliness_changed())
         }
         try setListenerMask()
     }
@@ -202,7 +202,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             callback = action
         }
         mask.withLock { mask in
-            _statusMaskAdd(&mask, _StatusMask.sample_rejected())
+            fastdds._statusMaskAdd(&mask, fastdds._StatusMask.sample_rejected())
         }
         try setListenerMask()
     }
@@ -211,7 +211,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             callback = action
         }
         mask.withLock { mask in
-            _statusMaskAdd(&mask, _StatusMask.requested_incompatible_qos())
+            fastdds._statusMaskAdd(&mask, fastdds._StatusMask.requested_incompatible_qos())
         }
         try setListenerMask()
     }
@@ -220,27 +220,27 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             callback = action
         }
         mask.withLock { mask in
-            _statusMaskAdd(&mask, _StatusMask.sample_lost())
+            fastdds._statusMaskAdd(&mask, fastdds._StatusMask.sample_lost())
         }
         try setListenerMask()
     }
 
     public struct Qos: Sendable, Equatable {
-        public var raw: _DataReader.DataReaderQos
+        public var raw: fastdds._DataReader.DataReaderQos
 
-        @inlinable public static func == (lhs: Qos, rhs: Qos) -> Bool {
-            _DataReader.compareQos(lhs.raw, rhs.raw)
+        public static func == (lhs: Qos, rhs: Qos) -> Bool {
+            fastdds._DataReader.compareQos(lhs.raw, rhs.raw)
         }
 
-        @inlinable public init() {
-            self.init(from: _DataReader.DataReaderQos())
+        public init() {
+            self.init(from: fastdds._DataReader.DataReaderQos())
         }
-        public init(from qos: _DataReader.DataReaderQos) {
+        public init(from qos: fastdds._DataReader.DataReaderQos) {
             raw = qos
         }
 
-        @inlinable public static func getBase(for subscriber: Subscriber) -> Qos {
-            Qos(from: _DataReader.getDefaultQos(subscriber.raw))
+        public static func getBase(for subscriber: Subscriber) -> Qos {
+            Qos(from: fastdds._DataReader.getDefaultQos(subscriber.raw))
         }
     }
 }

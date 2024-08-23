@@ -1,19 +1,19 @@
-import fastdds
+public import enum fastdds.fastdds
+public import Synchronization
 import DDSKitInternal
-import Synchronization
 
 public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
-    public typealias PublicationMatchedCallback = @Sendable (borrowing fastdds.PublicationMatchedStatus) -> Void
-    public typealias OfferedDeadlineMissedCallback = @Sendable (borrowing fastdds.DeadlineMissedStatus) -> Void
-    public typealias OfferedIncompatibleQosCallback = @Sendable (borrowing fastdds.IncompatibleQosStatus) -> Void
-    public typealias LivelinessLostCallback = @Sendable (borrowing fastdds.LivelinessLostStatus) -> Void
-    public typealias UnacknowledgedSampleRemovedCallback = @Sendable (borrowing fastdds.InstanceHandle_t) -> Void
+    public typealias PublicationMatchedCallback = @Sendable (borrowing fastdds.DDSPublicationMatchedStatus) -> Void
+    public typealias OfferedDeadlineMissedCallback = @Sendable (borrowing fastdds.DDSDeadlineMissedStatus) -> Void
+    public typealias OfferedIncompatibleQosCallback = @Sendable (borrowing fastdds.DDSIncompatibleQosStatus) -> Void
+    public typealias LivelinessLostCallback = @Sendable (borrowing fastdds.DDSLivelinessLostStatus) -> Void
+    public typealias UnacknowledgedSampleRemovedCallback = @Sendable (borrowing fastdds.DDSInstanceHandle_t) -> Void
 
     public let raw: OpaquePointer
     public let publisher: Publisher
     public let topic: Topic
     private var callbacks = WriterCallbacks()
-    private let listener: UnsafeMutablePointer<_DataWriter.Listener>
+    private let listener: UnsafeMutablePointer<fastdds._DataWriter.Listener>
 
     private let waitingState = Mutex<Bool>(false)
     private let waitingContinution = Mutex<CheckedContinuation<Void, Never>?>(nil)
@@ -33,23 +33,23 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
     }
     public var qos: Qos {
         get {
-            .init(from: _DataWriter.getQos(raw))
+            .init(from: fastdds._DataWriter.getQos(raw))
         }
         set(newValue) {
-            let ret = _DataWriter.setQos(raw, newValue.raw)
-            assert(ret == fastdds.RETCODE_OK)
+            let ret = fastdds._DataWriter.setQos(raw, newValue.raw)
+            assert(ret == DDSError.OK)
         }
     }
 
     public convenience init?(publisher: Publisher, topic: Topic, profile: String) throws {
-        let dataReaderPtr = _DataWriter.create(publisher.raw, .init(profile), topic.raw)
+        let dataReaderPtr = fastdds._DataWriter.create(publisher.raw, .init(profile), topic.raw)
         guard dataReaderPtr != nil else {
             return nil
         }
         try self.init(from: dataReaderPtr!, publisher: publisher, topic: topic)
     }
     public convenience init?(publisher: Publisher, topic: Topic, qos: Qos? = nil) throws {
-        let dataReaderPtr = _DataWriter.create(publisher.raw, (qos ?? .getBase(for: publisher)).raw, topic.raw)
+        let dataReaderPtr = fastdds._DataWriter.create(publisher.raw, (qos ?? .getBase(for: publisher)).raw, topic.raw)
         guard dataReaderPtr != nil else {
             return nil
         }
@@ -61,11 +61,11 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
         topic = associatedTopic
 
         listener = withUnsafePointer(to: &callbacks) { ptr in
-            _DataWriter.createListener(OpaquePointer(ptr))
+            fastdds._DataWriter.createListener(OpaquePointer(ptr))
         }
         callbacks.setCallbacks { [unowned self] statusPtr in
             // Publication Matched
-            let status = UnsafePointer<fastdds.PublicationMatchedStatus>(OpaquePointer(statusPtr)).pointee
+            let status = UnsafePointer<fastdds.DDSPublicationMatchedStatus>(OpaquePointer(statusPtr)).pointee
             self.atomicMatchedReaders.store(status.current_count, ordering: .sequentiallyConsistent)
             if status.current_count > 0 {
                 self.waitingContinution.withLock { continuation in
@@ -81,40 +81,40 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
         } onOfferedDeadlineMissed: { [unowned self] statusPtr in
             // Offered Deadline Missed
             self.offeredDeadlineMissedCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.DeadlineMissedStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSDeadlineMissedStatus>(OpaquePointer(statusPtr)).pointee)
             }
         } onOfferedIncompatibleQos: { [unowned self] statusPtr in
             // Offered Incompatible Qos
             self.offeredIncompatibleQosCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.IncompatibleQosStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSIncompatibleQosStatus>(OpaquePointer(statusPtr)).pointee)
             }
         } onLivelinessLost: { [unowned self] statusPtr in
             // Liveliness Lost
             self.livelinessLostCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.LivelinessLostStatus>(OpaquePointer(statusPtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSLivelinessLostStatus>(OpaquePointer(statusPtr)).pointee)
             }
         } onUnacknowledgedSampleRemoved: { [unowned self] handlePtr in
             // Unacknowledged Sample Removed
             self.unacknowledgedSampleRemovedCallback.withLock { callback in
-                callback?(UnsafePointer<fastdds.InstanceHandle_t>(OpaquePointer(handlePtr)).pointee)
+                callback?(UnsafePointer<fastdds.DDSInstanceHandle_t>(OpaquePointer(handlePtr)).pointee)
             }
         }
-        var mask = _StatusMask.publication_matched()
-        _statusMaskAdd(&mask, _StatusMask.offered_deadline_missed())
-        _statusMaskAdd(&mask, _StatusMask.offered_incompatible_qos())
-        _statusMaskAdd(&mask, _StatusMask.liveliness_lost())
-        try DDSError.check(code: _DataWriter.setListener(raw, listener, mask))
+        var mask = fastdds._StatusMask.publication_matched()
+        fastdds._statusMaskAdd(&mask, fastdds._StatusMask.offered_deadline_missed())
+        fastdds._statusMaskAdd(&mask, fastdds._StatusMask.offered_incompatible_qos())
+        fastdds._statusMaskAdd(&mask, fastdds._StatusMask.liveliness_lost())
+        try DDSError.check(code: fastdds._DataWriter.setListener(raw, listener, mask))
     }
     deinit {
-        let ret = _DataWriter.destroy(raw)
-        assert(ret == fastdds.RETCODE_OK, "Failed to destroy static DataReader: \(String(describing: DDSError(rawValue: ret)))")
+        let ret = fastdds._DataWriter.destroy(raw)
+        assert(ret == DDSError.OK, "Failed to destroy static DataReader: \(String(describing: DDSError(rawValue: ret)))")
 
-        _DataWriter.destroyListener(listener)
+        fastdds._DataWriter.destroyListener(listener)
     }
 
     public func write(message: borrowing DataType) throws {
         let ret = withUnsafePointer(to: message) { messagePtr in
-            _DataWriter.write(raw, messagePtr, _DataWriter.WriteParams.write_params_default())
+            fastdds._DataWriter.write(raw, messagePtr, fastdds._DataWriter.WriteParams.write_params_default())
         }
         try DDSError.check(code: ret)
     }
@@ -174,21 +174,21 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
     }
 
     public struct Qos: Sendable, Equatable {
-        public var raw: _DataWriter.DataWriterQos
+        public var raw: fastdds._DataWriter.DataWriterQos
 
-        @inlinable public static func == (lhs: Qos, rhs: Qos) -> Bool {
-            _DataWriter.compareQos(lhs.raw, rhs.raw)
+        public static func == (lhs: Qos, rhs: Qos) -> Bool {
+            fastdds._DataWriter.compareQos(lhs.raw, rhs.raw)
         }
 
-        @inlinable public init() {
-            self.init(from: _DataWriter.DataWriterQos())
+        public init() {
+            self.init(from: fastdds._DataWriter.DataWriterQos())
         }
-        public init(from qos: _DataWriter.DataWriterQos) {
+        public init(from qos: fastdds._DataWriter.DataWriterQos) {
             raw = qos
         }
 
-        @inlinable public static func getBase(for publisher: Publisher) -> Qos {
-            Qos(from: _DataWriter.getDefaultQos(publisher.raw))
+        public static func getBase(for publisher: Publisher) -> Qos {
+            Qos(from: fastdds._DataWriter.getDefaultQos(publisher.raw))
         }
     }
 }

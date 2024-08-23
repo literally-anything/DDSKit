@@ -1,5 +1,3 @@
-import fastdds
-
 public enum DDSError: Int32, Error {
     case ERROR = 1
     case UNSUPPORTED = 2
@@ -14,8 +12,10 @@ public enum DDSError: Int32, Error {
     case NO_DATA = 11
     case ILLEGAL_OPERATION = 12
 
-    @inlinable public static func check(code ret: _ReturnCode) throws {
-        if (ret != fastdds.RETCODE_OK) {
+    public static let OK = 0
+
+    public static func check(code ret: Int32) throws {
+        if (ret != OK) {
             let e = DDSError(rawValue: ret)
             if (e != nil) {
                 throw e!

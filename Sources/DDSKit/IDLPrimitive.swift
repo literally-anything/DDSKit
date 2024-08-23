@@ -1,6 +1,6 @@
-import CxxStdlib
+import enum CxxStdlib.std
 
-public protocol IDLPrimitive: Hashable {}
+public protocol IDLPrimitive {}
 
 extension Int8: IDLPrimitive {}
 extension UInt8: IDLPrimitive {}
