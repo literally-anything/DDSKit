@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:DDSKit}",
+            "name": "Debug test",
+            "program": "${workspaceFolder:DDSKit}/.build/debug/test",
+            "preLaunchTask": "swift: Build Debug test"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:DDSKit}",
+            "name": "Release test",
+            "program": "${workspaceFolder:DDSKit}/.build/release/test",
+            "preLaunchTask": "swift: Build Release test"
+        }
+    ]
+}

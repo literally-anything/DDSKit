@@ -1,0 +1,24 @@
+{
+    "lldb.launch.env": {
+        "LD_LIBRARY_PATH": "/usr/local/lib"
+    },
+    "psi-header.changes-tracking": {
+        "isActive": true,
+        "includeGlob": [
+            "**/*.modulemap"
+        ],
+        "include": [
+            "c",
+            "cpp",
+            "swift",
+            "python"
+        ],
+        "excludeGlob": [
+            "**/Block.h"
+        ]
+    },
+    "psi-header.variables": [
+        ["projectCreationYear", "2024"]
+    ],
+    "cmake.ignoreCMakeListsMissing": true
+}
