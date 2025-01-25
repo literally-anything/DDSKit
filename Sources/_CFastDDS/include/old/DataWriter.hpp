@@ -1,3 +1,10 @@
+/*
+ * DataWriter.hpp
+ * old
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
 #pragma once
 
 #include <string>
@@ -5,7 +12,7 @@
 #include "types.hpp"
 #include "Topic.hpp"
 #include "Publisher.hpp"
-#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+#include "../../../.compatibility-headers/_FastDDSHelpers-Swift.h"
 
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/DataWriterListener.hpp>
@@ -30,10 +37,10 @@ namespace fastdds {
 
         class Listener : public _DataWriterListener {
         private:
-            DDSKitInternal::WriterCallbacks *callbacks;
+            _FastDDSHelpers::WriterCallbacks *callbacks;
 
         public:
-            explicit Listener(DDSKitInternal::WriterCallbacks *callbacks);
+            explicit Listener(_FastDDSHelpers::WriterCallbacks *callbacks);
 
             void on_publication_matched(DataWriter *writer, const DDSPublicationMatchedStatus &status) override;
             void on_offered_deadline_missed(DataWriter *writer, const DDSOfferedDeadlineMissedStatus &status) override;
@@ -42,7 +49,7 @@ namespace fastdds {
             void on_unacknowledged_sample_removed(DataWriter *writer, const DDSInstanceHandle_t &instance) override;
         };
 
-        Listener *createListener(DDSKitInternal::WriterCallbacks *callbacks);
+        Listener *createListener(_FastDDSHelpers::WriterCallbacks *callbacks);
         void destroyListener(Listener *listener);
 
         DataWriterQos getDefaultQos(_Publisher::Publisher *publisher);

@@ -1,8 +1,15 @@
-public import enum fastdds.fastdds
-import DDSKitInternal
+/**
+ * DataReader.swift
+ * DDSKit
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+public import enum _CFastDDS.fastdds
+import _FastDDSHelpers
 import Synchronization
 
-public final class DataReader<DataType: IDLType>: @unchecked Sendable {
+public final class DataReaderOld<DataType: IDLType>: @unchecked Sendable {
     public typealias MessageCallback = @Sendable (borrowing DataType) -> Void
     public typealias SubscriptionMatchedCallback = @Sendable (borrowing fastdds.DDSSubscriptionMatchedStatus) -> Void
     public typealias DeadlineMissedCallback = @Sendable (borrowing fastdds.DDSDeadlineMissedStatus) -> Void
@@ -12,8 +19,8 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
     public typealias SampleLostCallback = @Sendable (borrowing fastdds.DDSSampleLostStatus) -> Void
 
     public let raw: OpaquePointer
-    public let subscriber: Subscriber
-    public let topic: Topic
+    public let subscriber: SubscriberOld
+    public let topic: TopicOld
     private var callbacks = ReaderCallbacks()
     private let listener: UnsafeMutablePointer<fastdds._DataReader.Listener>
     private let mask = Mutex(fastdds._StatusMask.data_available())
@@ -41,7 +48,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
         }
         set(newValue) {
             let ret = fastdds._DataReader.setQos(raw, newValue.raw)
-            assert(ret == DDSError.OK)
+            assert(ret == FastDDSError.OK)
         }
     }
     public var messages: AsyncThrowingStream<DataType, any Error> {
@@ -79,21 +86,21 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
         }
     }
 
-    public convenience init?(subscriber: Subscriber, topic: Topic, profile: String) throws {
+    public convenience init?(subscriber: SubscriberOld, topic: TopicOld, profile: String) throws {
         let dataReaderPtr = fastdds._DataReader.create(subscriber.raw, .init(profile), topic.raw)
         guard (dataReaderPtr != nil) else {
             return nil
         }
         try self.init(from: dataReaderPtr!, subscriber: subscriber, topic: topic)
     }
-    public convenience init?(subscriber: Subscriber, topic: Topic, qos: Qos? = nil) throws {
+    public convenience init?(subscriber: SubscriberOld, topic: TopicOld, qos: Qos? = nil) throws {
         let dataReaderPtr = fastdds._DataReader.create(subscriber.raw, (qos ?? .getBase(for: subscriber)).raw, topic.raw)
         guard (dataReaderPtr != nil) else {
             return nil
         }
         try self.init(from: dataReaderPtr!, subscriber: subscriber, topic: topic)
     }
-    public init(from dataReaderPtr: OpaquePointer, subscriber parent: Subscriber, topic associatedTopic: Topic) throws {
+    public init(from dataReaderPtr: OpaquePointer, subscriber parent: SubscriberOld, topic associatedTopic: TopicOld) throws {
         raw = dataReaderPtr
         subscriber = parent
         topic = associatedTopic
@@ -148,14 +155,14 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
     }
     deinit {
         let ret = fastdds._DataReader.destroy(raw)
-        assert(ret == DDSError.OK, "Failed to destroy static DataReader: \(String(describing: DDSError(rawValue: ret)))")
+        assert(ret == FastDDSError.OK, "Failed to destroy static DataReader: \(String(describing: FastDDSError(rawValue: ret)))")
 
         fastdds._DataReader.destroyListener(listener)
     }
 
     private func setListenerMask() throws {
         try mask.withLock { mask in
-            try DDSError.check(code: fastdds._DataReader.setListener(raw, listener, mask))
+            try FastDDSError.check(code: fastdds._DataReader.setListener(raw, listener, mask))
         }
     }
 
@@ -239,7 +246,7 @@ public final class DataReader<DataType: IDLType>: @unchecked Sendable {
             raw = qos
         }
 
-        public static func getBase(for subscriber: Subscriber) -> Qos {
+        public static func getBase(for subscriber: SubscriberOld) -> Qos {
             Qos(from: fastdds._DataReader.getDefaultQos(subscriber.raw))
         }
     }

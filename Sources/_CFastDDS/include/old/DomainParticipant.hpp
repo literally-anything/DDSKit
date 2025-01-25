@@ -1,10 +1,17 @@
+/*
+ * DomainParticipant.hpp
+ * old
+ * 
+ * Created by Hunter Baker on 8/01/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
 #pragma once
 
 #include <memory>
 #include <string>
 
 #include "types.hpp"
-#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+#include "../../../.compatibility-headers/_FastDDSHelpers-Swift.h"
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
@@ -27,10 +34,10 @@ namespace fastdds {
 
         class Listener : public _DomainParticipantListener {
         private:
-            DDSKitInternal::ParticipantCallbacks *callbacks;
+            _FastDDSHelpers::ParticipantCallbacks *callbacks;
 
         public:
-            explicit Listener(DDSKitInternal::ParticipantCallbacks *callbacks);
+            explicit Listener(_FastDDSHelpers::ParticipantCallbacks *callbacks);
 
             void on_participant_discovery(DomainParticipant *participant,
                                         DDSParticipantDiscoveryStatus reason,
@@ -38,7 +45,7 @@ namespace fastdds {
                                         bool &should_be_ignored) override;        
         };
 
-        Listener *createListener(DDSKitInternal::ParticipantCallbacks *callbacks);
+        Listener *createListener(_FastDDSHelpers::ParticipantCallbacks *callbacks);
         void destroyListener(Listener *listener);
         
         inline DomainParticipantFactory *getFactory();

@@ -1,3 +1,10 @@
+/*
+ * DataReader.hpp
+ * old
+ * 
+ * Created by Hunter Baker on 8/05/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
 #pragma once
 
 #include <cstdint>
@@ -7,7 +14,7 @@
 #include "types.hpp"
 #include "Topic.hpp"
 #include "Subscriber.hpp"
-#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+#include "../../../.compatibility-headers/_FastDDSHelpers-Swift.h"
 
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
@@ -33,10 +40,10 @@ namespace fastdds {
 
         class Listener : public _DataReaderListener {
         private:
-            DDSKitInternal::ReaderCallbacks *callbacks;
+            _FastDDSHelpers::ReaderCallbacks *callbacks;
 
         public:
-            explicit Listener(DDSKitInternal::ReaderCallbacks *callbacks);
+            explicit Listener(_FastDDSHelpers::ReaderCallbacks *callbacks);
 
             inline void on_data_available(DataReader *reader) override;
             inline void on_subscription_matched(DataReader *reader, const DDSSubscriptionMatchedStatus &status) override;
@@ -47,7 +54,7 @@ namespace fastdds {
             inline void on_sample_lost(DataReader *reader, const DDSSampleLostStatus &status) override;
         };
 
-        Listener *createListener(DDSKitInternal::ReaderCallbacks *callbacks);
+        Listener *createListener(_FastDDSHelpers::ReaderCallbacks *callbacks);
         void destroyListener(Listener *listener);
 
         DataReaderQos getDefaultQos(_Subscriber::Subscriber *subscriber);

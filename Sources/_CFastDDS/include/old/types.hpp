@@ -1,11 +1,15 @@
 #pragma once
 
+#include <swift/bridging>
+
 #include <vector>
 #include <cstdint>
 #include <fastdds/dds/core/Types.hpp>
 #include <fastdds/dds/core/detail/DDSReturnCode.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
+#pragma clang attribute push(SWIFT_COMPUTED_PROPERTY, apply_to = function(is_member))
 #include <fastdds/dds/core/status/StatusMask.hpp>
+#pragma clang attribute pop
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
 
 using _Int8Array = std::vector<int8_t>;

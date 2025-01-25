@@ -1,0 +1,17 @@
+/*
+ * common.h
+ * include
+ * 
+ * Created by Hunter Baker on 1/21/2025
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+#pragma once
+
+#ifndef __cplusplus 
+#error "_CFastDDS needs to be compiled in cxx compatibility mode, this probably means that some higher up package doesn't have the flag set"
+#endif 
+
+#define INLINE inline __attribute__((__always_inline__))
+
+#define SWIFT_ATTR(attr) __attribute__((swift_attr(attr)))
+#define SENDABLE SWIFT_ATTR("@Sendable")

@@ -1,7 +1,23 @@
-#include "DataWriter.hpp"
+/*
+ * DataWriter.cpp
+ * src
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+#include "old/DataWriter.hpp"
 
 #include <stdexcept>
 #include <string>
+
+#include "old/HelloWorldPubSubTypes.hpp"
+#include "old/DynamicTypes.hpp"
+
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilder.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
 
 namespace fastdds {
     namespace _DataWriter {
@@ -9,7 +25,7 @@ namespace fastdds {
             return rhs == lhs;
         }
 
-        Listener::Listener(DDSKitInternal::WriterCallbacks *callbacks) : callbacks(callbacks) {}
+        Listener::Listener(_FastDDSHelpers::WriterCallbacks *callbacks) : callbacks(callbacks) {}
         void Listener::on_publication_matched(DataWriter *writer, const DDSPublicationMatchedStatus &status) {
             callbacks->publicationMatched(&status);
         }
@@ -26,7 +42,7 @@ namespace fastdds {
             callbacks->unacknowledgedSampleRemoved(&instance);
         }
 
-        Listener *createListener(DDSKitInternal::WriterCallbacks *callbacks) {
+        Listener *createListener(_FastDDSHelpers::WriterCallbacks *callbacks) {
             return new Listener(callbacks);
         }
         void destroyListener(Listener *listener) {

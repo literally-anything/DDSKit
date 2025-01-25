@@ -12,9 +12,6 @@
             "cpp",
             "swift",
             "python"
-        ],
-        "excludeGlob": [
-            "**/Block.h"
         ]
     },
     "psi-header.variables": [

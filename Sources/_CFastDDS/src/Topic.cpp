@@ -1,4 +1,11 @@
-#include "Topic.hpp"
+/*
+ * Topic.cpp
+ * src
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+#include "old/Topic.hpp"
 
 namespace fastdds {
     namespace _Topic {
@@ -6,12 +13,12 @@ namespace fastdds {
             return rhs == lhs;
         }
 
-        Listener::Listener(DDSKitInternal::TopicCallbacks *callbacks) : callbacks(callbacks) {}
+        Listener::Listener(_FastDDSHelpers::TopicCallbacks *callbacks) : callbacks(callbacks) {}
         void Listener::on_inconsistent_topic(Topic *topic, DDSInconsistentTopicStatus status) {
             callbacks->inconsistentTopic(&status);
         }
 
-        Listener *createListener(DDSKitInternal::TopicCallbacks *callbacks) {
+        Listener *createListener(_FastDDSHelpers::TopicCallbacks *callbacks) {
             return new Listener(callbacks);
         }
         void destroyListener(Listener *listener) {

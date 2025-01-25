@@ -1,8 +1,15 @@
-public import enum fastdds.fastdds
+/**
+ * DataWriter.swift
+ * DDSKit
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+public import enum _CFastDDS.fastdds
 public import Synchronization
-import DDSKitInternal
+import _FastDDSHelpers
 
-public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
+public final class DataWriterOld<DataType: IDLType>: @unchecked Sendable {
     public typealias PublicationMatchedCallback = @Sendable (borrowing fastdds.DDSPublicationMatchedStatus) -> Void
     public typealias OfferedDeadlineMissedCallback = @Sendable (borrowing fastdds.DDSDeadlineMissedStatus) -> Void
     public typealias OfferedIncompatibleQosCallback = @Sendable (borrowing fastdds.DDSIncompatibleQosStatus) -> Void
@@ -10,8 +17,8 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
     public typealias UnacknowledgedSampleRemovedCallback = @Sendable (borrowing fastdds.DDSInstanceHandle_t) -> Void
 
     public let raw: OpaquePointer
-    public let publisher: Publisher
-    public let topic: Topic
+    public let publisher: PublisherOld
+    public let topic: TopicOld
     private var callbacks = WriterCallbacks()
     private let listener: UnsafeMutablePointer<fastdds._DataWriter.Listener>
 
@@ -37,25 +44,25 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
         }
         set(newValue) {
             let ret = fastdds._DataWriter.setQos(raw, newValue.raw)
-            assert(ret == DDSError.OK)
+            assert(ret == FastDDSError.OK)
         }
     }
 
-    public convenience init?(publisher: Publisher, topic: Topic, profile: String) throws {
+    public convenience init?(publisher: PublisherOld, topic: TopicOld, profile: String) throws {
         let dataReaderPtr = fastdds._DataWriter.create(publisher.raw, .init(profile), topic.raw)
         guard dataReaderPtr != nil else {
             return nil
         }
         try self.init(from: dataReaderPtr!, publisher: publisher, topic: topic)
     }
-    public convenience init?(publisher: Publisher, topic: Topic, qos: Qos? = nil) throws {
+    public convenience init?(publisher: PublisherOld, topic: TopicOld, qos: Qos? = nil) throws {
         let dataReaderPtr = fastdds._DataWriter.create(publisher.raw, (qos ?? .getBase(for: publisher)).raw, topic.raw)
         guard dataReaderPtr != nil else {
             return nil
         }
         try self.init(from: dataReaderPtr!, publisher: publisher, topic: topic)
     }
-    public init(from dataReaderPtr: OpaquePointer, publisher parent: Publisher, topic associatedTopic: Topic) throws {
+    public init(from dataReaderPtr: OpaquePointer, publisher parent: PublisherOld, topic associatedTopic: TopicOld) throws {
         raw = dataReaderPtr
         publisher = parent
         topic = associatedTopic
@@ -103,11 +110,11 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
         fastdds._statusMaskAdd(&mask, fastdds._StatusMask.offered_deadline_missed())
         fastdds._statusMaskAdd(&mask, fastdds._StatusMask.offered_incompatible_qos())
         fastdds._statusMaskAdd(&mask, fastdds._StatusMask.liveliness_lost())
-        try DDSError.check(code: fastdds._DataWriter.setListener(raw, listener, mask))
+        try FastDDSError.check(code: fastdds._DataWriter.setListener(raw, listener, mask))
     }
     deinit {
         let ret = fastdds._DataWriter.destroy(raw)
-        assert(ret == DDSError.OK, "Failed to destroy static DataReader: \(String(describing: DDSError(rawValue: ret)))")
+        assert(ret == FastDDSError.OK, "Failed to destroy static DataReader: \(String(describing: FastDDSError(rawValue: ret)))")
 
         fastdds._DataWriter.destroyListener(listener)
     }
@@ -116,7 +123,7 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
         let ret = withUnsafePointer(to: message) { messagePtr in
             fastdds._DataWriter.write(raw, messagePtr, fastdds._DataWriter.WriteParams.write_params_default())
         }
-        try DDSError.check(code: ret)
+        try FastDDSError.check(code: ret)
     }
 
     @discardableResult public func waitForSubscriber() async -> Bool {
@@ -187,7 +194,7 @@ public final class DataWriter<DataType: IDLType>: @unchecked Sendable {
             raw = qos
         }
 
-        public static func getBase(for publisher: Publisher) -> Qos {
+        public static func getBase(for publisher: PublisherOld) -> Qos {
             Qos(from: fastdds._DataWriter.getDefaultQos(publisher.raw))
         }
     }

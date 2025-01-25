@@ -1,8 +1,24 @@
-public import enum fastdds.fastdds
-import DDSKitInternal
+/**
+ * DomainParticipant.swift
+ * DDSKit
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+/**
+ * DomainParticipant.swift
+ * DDSKit
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+public import enum _CFastDDS.fastdds
+import CxxStdlib
+import _FastDDSHelpers
 import Synchronization
 
-public final class DomainParticipant: @unchecked Sendable {
+/// Groups Publishers and Subscribers into a single working unit.
+public final class DomainParticipantOld: @unchecked Sendable {
     public typealias ParticipantDiscoveredCallback = (OpaquePointer, borrowing fastdds.DDSParticipantDiscoveryStatus, borrowing fastdds.DDSParticipantBuiltinTopicData) -> Void
 
     public let raw: OpaquePointer
@@ -19,7 +35,7 @@ public final class DomainParticipant: @unchecked Sendable {
         }
         set(newValue) {
             let ret = fastdds._DomainParticipant.setQos(raw, newValue.raw)
-            assert(ret == DDSError.OK)
+            assert(ret == FastDDSError.OK)
         }
     }
 
@@ -48,11 +64,11 @@ public final class DomainParticipant: @unchecked Sendable {
                                                 UnsafePointer<fastdds.DDSParticipantDiscoveryStatus>(OpaquePointer(statusPtr)).pointee,
                                                 UnsafePointer<fastdds.DDSParticipantBuiltinTopicData>(OpaquePointer(infoPtr)).pointee)
         }
-        try DDSError.check(code: fastdds._DomainParticipant.setListener(raw, listener, fastdds._StatusMask.none()))
+        try FastDDSError.check(code: fastdds._DomainParticipant.setListener(raw, listener, fastdds._StatusMask.none()))
     }
     deinit {
         let ret = fastdds._DomainParticipant.destroy(raw)
-        assert(ret == DDSError.OK, "Failed to destroy DomainParticipant: \(String(describing: DDSError(rawValue: ret)))")
+        assert(ret == FastDDSError.OK, "Failed to destroy DomainParticipant: \(String(describing: FastDDSError(rawValue: ret)))")
 
         fastdds._DomainParticipant.destroyListener(listener)
     }
@@ -62,7 +78,7 @@ public final class DomainParticipant: @unchecked Sendable {
     }
 
     public func registerType(type: fastdds._TypeSupport, name: String) throws {
-        try DDSError.check(code: fastdds._DomainParticipant.registerType(raw, type, .init(name)))
+        try FastDDSError.check(code: fastdds._DomainParticipant.registerType(raw, type, .init(name)))
     }
 
     public struct Qos: Sendable, Equatable {
@@ -83,7 +99,7 @@ public final class DomainParticipant: @unchecked Sendable {
     }
 }
 
-extension DomainParticipant: CustomStringConvertible {
+extension DomainParticipantOld: CustomStringConvertible {
     public var description: String {
         "DomainParticipant(domainId: \(domainId))"
     }

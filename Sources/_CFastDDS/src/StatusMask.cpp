@@ -1,4 +1,4 @@
-#include "StatusMask.hpp"
+#include "old/StatusMask.hpp"
 
 namespace fastdds {
     void _statusMaskAdd(_StatusMask &mask1, _StatusMask mask2) {

@@ -1,10 +1,17 @@
+/*
+ * Topic.hpp
+ * old
+ * 
+ * Created by Hunter Baker on 8/04/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
 #pragma once
 
 #include <string>
 
 #include "types.hpp"
 #include "DomainParticipant.hpp"
-#include "../../../.compatibility-headers/DDSKitInternal-Swift.h"
+#include "../../../.compatibility-headers/_FastDDSHelpers-Swift.h"
 
 #include <fastdds/dds/topic/Topic.hpp>
 #include <fastdds/dds/topic/TopicListener.hpp>
@@ -25,15 +32,15 @@ namespace fastdds {
 
         class Listener : public _TopicListener {
         private:
-            DDSKitInternal::TopicCallbacks *callbacks;
+            _FastDDSHelpers::TopicCallbacks *callbacks;
 
         public:
-            Listener(DDSKitInternal::TopicCallbacks *callbacks);
+            Listener(_FastDDSHelpers::TopicCallbacks *callbacks);
 
             void on_inconsistent_topic(Topic *topic, DDSInconsistentTopicStatus status) override;
         };
 
-        Listener *createListener(DDSKitInternal::TopicCallbacks *callbacks);
+        Listener *createListener(_FastDDSHelpers::TopicCallbacks *callbacks);
         void destroyListener(Listener *listener);
 
         TopicQos getDefaultQos(_DomainParticipant::DomainParticipant *participant);

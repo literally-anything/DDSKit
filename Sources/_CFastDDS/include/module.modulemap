@@ -1,0 +1,24 @@
+/*
+ * module.modulemap
+ * include
+ * 
+ * Created by Hunter Baker on 7/29/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+module _CFastDDS [system] {
+    requires cplusplus14
+
+    header "common.h"
+    header "fastdds.hpp"
+    header "logging.hpp"
+    header "type_representation.hpp"
+    header "GenericTopicType.hpp"
+    header "StatusMask.hpp"
+    header "old/fastdds.hpp"
+
+    link "fastdds"
+    link "fastcdr"
+    link "BlocksRuntime"
+
+    export *
+}

@@ -1,39 +1,46 @@
-import fastdds
+/**
+ * Subscriber.swift
+ * DDSKit
+ * 
+ * Created by Hunter Baker on 8/07/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+import _CFastDDS
 
-open class Subscriber: @unchecked Sendable {
+open class SubscriberOld: @unchecked Sendable {
     public let raw: OpaquePointer
-    public let participant: DomainParticipant
+    public let participant: DomainParticipantOld
     public var qos: Qos {
         get {
             .init(from: fastdds._Subscriber.getQos(raw))
         }
         set(newValue) {
             let ret = fastdds._Subscriber.setQos(raw, newValue.raw)
-            assert(ret == DDSError.OK)
+            assert(ret == FastDDSError.OK)
         }
     }
 
-    public convenience init?(participant: DomainParticipant, profile: String) {
+    public convenience init?(participant: DomainParticipantOld, profile: String) {
         let subscriberPtr = fastdds._Subscriber.create(participant.raw, .init(profile))
         guard (subscriberPtr != nil) else {
             return nil
         }
         self.init(from: subscriberPtr!, participant: participant)
     }
-    public convenience init?(participant: DomainParticipant, qos: Qos? = nil) {
+    public convenience init?(participant: DomainParticipantOld, qos: Qos? = nil) {
         let subscriberPtr = fastdds._Subscriber.create(participant.raw, (qos ?? .getBase(for: participant)).raw)
         guard (subscriberPtr != nil) else {
             return nil
         }
         self.init(from: subscriberPtr!, participant: participant)
     }
-    public init(from subscriberPtr: OpaquePointer, participant domainParticipant: DomainParticipant) {
+    public init(from subscriberPtr: OpaquePointer, participant domainParticipant: DomainParticipantOld) {
         raw = subscriberPtr
         participant = domainParticipant
     }
     deinit {
         let ret = fastdds._Subscriber.destroy(raw)
-        assert(ret == DDSError.OK, "Failed to destroy Subscriber: \(String(describing: DDSError(rawValue: ret)))")
+        assert(ret == FastDDSError.OK, "Failed to destroy Subscriber: \(String(describing: FastDDSError(rawValue: ret)))")
     }
 
     public struct Qos: Sendable, Equatable {
@@ -50,7 +57,7 @@ open class Subscriber: @unchecked Sendable {
             raw = qos
         }
 
-        @inlinable public static func getBase(for participant: DomainParticipant) -> Qos {
+        @inlinable public static func getBase(for participant: DomainParticipantOld) -> Qos {
             Qos(from: fastdds._Subscriber.getDefaultQos(participant.raw))
         }
     }

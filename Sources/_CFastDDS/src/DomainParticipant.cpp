@@ -1,4 +1,20 @@
-#include "DomainParticipant.hpp"
+/*
+ * DomainParticipant.cpp
+ * src
+ * 
+ * Created by Hunter Baker on 8/01/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+#include "old/DomainParticipant.hpp"
+#include "old/HelloWorldPubSubTypes.hpp"
+#include "old/DynamicTypes.hpp"
+
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilder.hpp>
+// #include <fastdds/dds/xtypes/dynamic_types/DynamicTypeMember.hpp>
+// #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
+// #include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
 
 namespace fastdds {
     namespace _DomainParticipant {
@@ -6,7 +22,7 @@ namespace fastdds {
             return rhs == lhs;
         }
 
-        Listener::Listener(DDSKitInternal::ParticipantCallbacks *callbacks) : callbacks(callbacks) {}
+        Listener::Listener(_FastDDSHelpers::ParticipantCallbacks *callbacks) : callbacks(callbacks) {}
         void Listener::on_participant_discovery(DomainParticipant *participant,
                                                 epfastrtps::ParticipantDiscoveryStatus reason,
                                                 const DDSParticipantBuiltinTopicData &info,
@@ -14,7 +30,7 @@ namespace fastdds {
             callbacks->participantDiscovered(participant, &reason, &info);
         }
 
-        Listener *createListener(DDSKitInternal::ParticipantCallbacks *callbacks) {
+        Listener *createListener(_FastDDSHelpers::ParticipantCallbacks *callbacks) {
             return new Listener(callbacks);
         }
         void destroyListener(Listener *listener) {
@@ -60,6 +76,21 @@ namespace fastdds {
 
         DDSReturnCode registerType(DomainParticipant *participant,
                                    _TypeSupport type, const std::string &name) {
+            // _DynamicTypes::TypeDescriptor descriptor = epfastdds::traits<epfastdds::TypeDescriptor>::make_shared();
+            // descriptor->kind(epfastdds::TK_STRUCTURE);
+            // descriptor->name("ty");
+            // auto builder = epfastdds::DynamicTypeBuilderFactory::get_instance()->create_type(descriptor);
+
+            // epfastdds::MemberDescriptor::_ref_type member = epfastdds::traits<epfastdds::MemberDescriptor>::make_shared();
+            // member->name("index");
+            // member->type(epfastdds::DynamicTypeBuilderFactory::get_instance()->get_primitive_type(epfastdds::TK_UINT32));
+            // builder->add_member(member);
+
+            // epfastdds::traits<epfastdds::DynamicType>::ref_type t = builder->build();
+            // epfastdds::DynamicPubSubType *pubSubType = new epfastdds::DynamicPubSubType(t);
+            // pubSubType->register_type_object_representation();
+            // _TypeSupport(pubSubType)
+
             return participant->register_type(type, name);
         }
     }

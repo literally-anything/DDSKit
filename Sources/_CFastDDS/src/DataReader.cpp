@@ -1,4 +1,11 @@
-#include "DataReader.hpp"
+/*
+ * DataReader.cpp
+ * src
+ * 
+ * Created by Hunter Baker on 8/05/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
+#include "old/DataReader.hpp"
 
 namespace fastdds {
     namespace _DataReader {
@@ -6,7 +13,7 @@ namespace fastdds {
             return rhs == lhs;
         }
 
-        Listener::Listener(DDSKitInternal::ReaderCallbacks *callbacks) : callbacks(callbacks) {}
+        Listener::Listener(_FastDDSHelpers::ReaderCallbacks *callbacks) : callbacks(callbacks) {}
         void Listener::on_data_available(DataReader *reader) {
             callbacks->dataAvailable();
         }
@@ -29,7 +36,7 @@ namespace fastdds {
             callbacks->sampleLost(&status);
         }
 
-        Listener *createListener(DDSKitInternal::ReaderCallbacks *callbacks) {
+        Listener *createListener(_FastDDSHelpers::ReaderCallbacks *callbacks) {
             return new Listener(callbacks);
         }
         void destroyListener(Listener *listener) {
