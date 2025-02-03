@@ -10,11 +10,11 @@
 #include <fastdds/fastdds_dll.hpp>
 #include <fastdds/LibrarySettings.hpp>
 
+#include <fastdds/rtps/common/SerializedPayload.hpp>
 #include <fastdds/dds/core/ReturnCode.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
 #include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
 
 using eprosima::fastdds::dds::StatusMask;
-using eprosima::fastdds::dds::xtypes::TypeIdentifierPair;
-using eprosima::fastdds::dds::TypeSupport;
+using eprosima::fastdds::rtps::SerializedPayload_t;

@@ -22,6 +22,8 @@
 #include <fastdds/dds/xtypes/type_representation/detail/dds_xtypes_typeobject.hpp>
 
 namespace XTypes {
+    using eprosima::fastdds::dds::xtypes::TypeIdentifierPair;
+
     namespace fastddsxtypes = eprosima::fastdds::dds::xtypes;
 
     class CreateInfo final {
@@ -36,9 +38,18 @@ namespace XTypes {
         fastddsxtypes::AppliedAnnotationSeq tmp_ann_custom;
     };
 
-    INLINE fastddsxtypes::TypeIdentifierPair initIdentifierPair() {
-        return fastddsxtypes::TypeIdentifierPair();
-    }
+    class TypeIdentifierPairWrapper final {
+    public:
+        INLINE TypeIdentifierPairWrapper() : pair() {}
+        INLINE TypeIdentifierPairWrapper(TypeIdentifierPair pair) : pair(pair) {}
+        INLINE TypeIdentifierPairWrapper(const TypeIdentifierPairWrapper &other) : pair(other.pair) {}
+
+        INLINE TypeIdentifierPair unwrap() const {
+            return pair;
+        }
+
+        TypeIdentifierPair pair;
+    };
 
     INLINE bool getIdentifiers(
         const std::string &name, fastddsxtypes::TypeIdentifierPair &typeIdentifiers
@@ -50,7 +61,7 @@ namespace XTypes {
         return ret == eprosima::fastdds::dds::RETCODE_OK;
     }
 
-    INLINE fastddsxtypes::CompleteStructMemberSeq createStruct(
+    INLINE void createStruct(
         CreateInfo &info, const std::string &name
     ) SWIFT_NAME(createStruct(info:name:)) {
         info.struct_flags = fastddsxtypes::TypeObjectUtils::build_struct_type_flag(
@@ -69,31 +80,13 @@ namespace XTypes {
             name
         );
         info.header = fastddsxtypes::TypeObjectUtils::build_complete_struct_header(fastddsxtypes::TypeIdentifier(), detail);
-        return fastddsxtypes::CompleteStructMemberSeq();
-    }
-
-    INLINE void finishAndRegisterStruct(
-        const CreateInfo &info, const fastddsxtypes::CompleteStructMemberSeq &members, fastddsxtypes::TypeIdentifierPair &identifiers
-    ) SWIFT_NAME(createStruct(info:members:identifiers:)) {
-        auto struct_type = fastddsxtypes::TypeObjectUtils::build_complete_struct_type(
-            info.struct_flags,
-            info.header,
-            members
-        );
-        if (
-            eprosima::fastdds::dds::RETCODE_BAD_PARAMETER == fastddsxtypes::TypeObjectUtils::build_and_register_struct_type_object(
-                struct_type, info.header.detail().type_name().to_string(), identifiers
-            )
-        ) {
-            EPROSIMA_LOG_ERROR(XTYPES_TYPE_REPRESENTATION,
-                    "HelloWorld already registered in TypeObjectRegistry for a different type.");
-        }
     }
 
     INLINE void addStructMember(
-        CreateInfo &info, fastddsxtypes::CompleteStructMemberSeq &members,
-        const fastddsxtypes::TypeIdentifierPair &memberIdentifiers, const std::string &name, uint32_t id, bool isOptional, bool isKey
-    ) SWIFT_NAME(addStructMember(info:members:identifiers:name:id:isOptional:isKey:)) {
+        CreateInfo &info,
+        const fastddsxtypes::TypeIdentifierPair &memberIdentifiers,
+        const std::string &name, uint32_t id, bool isOptional, bool isKey
+    ) SWIFT_NAME(addStructMember(info:identifiers:name:id:isOptional:isKey:)) {
         fastddsxtypes::StructMemberFlag member_flags_index = fastddsxtypes::TypeObjectUtils::build_struct_member_flag(
             eprosima::fastdds::dds::xtypes::TryConstructFailAction::DISCARD,
             isOptional, false, isKey, false
@@ -119,6 +112,24 @@ namespace XTypes {
         fastddsxtypes::CompleteStructMember member_index = fastddsxtypes::TypeObjectUtils::build_complete_struct_member(
             common_index, detail_index
         );
-        fastddsxtypes::TypeObjectUtils::add_complete_struct_member(members, member_index);
+        fastddsxtypes::TypeObjectUtils::add_complete_struct_member(info.member_seq, member_index);
+    }
+
+    INLINE void finishAndRegisterStruct(
+        const CreateInfo &info, fastddsxtypes::TypeIdentifierPair &identifiers
+    ) SWIFT_NAME(createStruct(info:identifiers:)) {
+        auto struct_type = fastddsxtypes::TypeObjectUtils::build_complete_struct_type(
+            info.struct_flags,
+            info.header,
+            info.member_seq
+        );
+        if (
+            eprosima::fastdds::dds::RETCODE_BAD_PARAMETER == fastddsxtypes::TypeObjectUtils::build_and_register_struct_type_object(
+                struct_type, info.header.detail().type_name().to_string(), identifiers
+            )
+        ) {
+            EPROSIMA_LOG_ERROR(XTYPES_TYPE_REPRESENTATION,
+                    "HelloWorld already registered in TypeObjectRegistry for a different type.");
+        }
     }
 }

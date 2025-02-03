@@ -1,3 +1,10 @@
+/*
+ * types.hpp
+ * old
+ * 
+ * Created by Hunter Baker on 8/05/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
 #pragma once
 
 #include <swift/bridging>

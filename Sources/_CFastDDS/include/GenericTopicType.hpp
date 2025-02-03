@@ -21,9 +21,13 @@
 
 #include <fastdds/dds/xtypes/type_representation/TypeObjectUtils.hpp>
 
-class _TypeSupportWrapper final {
+class TypeSupportWrapper final {
 public:
-    INLINE _TypeSupportWrapper(eprosima::fastdds::dds::TypeSupport &&typeSupport) : typeSupport(typeSupport) {}
+    INLINE TypeSupportWrapper(eprosima::fastdds::dds::TypeSupport &&typeSupport) : typeSupport(typeSupport) {}
+
+    INLINE std::string getName() const {
+        return typeSupport.get_type_name();
+    }
 
     eprosima::fastdds::dds::TypeSupport typeSupport;
 };
@@ -45,11 +49,6 @@ public:
         eprosima::fastdds::dds::DataRepresentationId_t data_representation
     );
     using computeKeyCallback_t = bool (^ SENDABLE _Nonnull)(
-        eprosima::fastdds::rtps::SerializedPayload_t &payload,
-        eprosima::fastdds::rtps::InstanceHandle_t &ihandle,
-        bool force_md5
-    );
-    using computeKeyRawCallback_t = bool (^ SENDABLE _Nonnull)(
         const void* const data,
         eprosima::fastdds::rtps::InstanceHandle_t &ihandle,
         bool force_md5
@@ -63,10 +62,10 @@ public:
         uint32_t maxKeySize, uint32_t maxSize,
         registerTypeCallback_t registerType,
         serializeCallback_t serialize, deserializeCallback_t deserialize,
-        calculateSizeCallback_t calculateSize, computeKeyCallback_t computeKey, computeKeyRawCallback_t computeKeyRaw,
+        calculateSizeCallback_t calculateSize, computeKeyCallback_t computeKey,
         createCallback_t create, destroyCallback_t destroy
     ) SWIFT_NAME(
-        init(name:hasComputeKey:isBounded:isPlain:contructSample:maxKeySize:maxSize:registerType:serialize:deserialize:calculateSize:computeKey:computeKeyRaw:create:destroy:)
+        init(name:hasComputeKey:isBounded:isPlain:contructSample:maxKeySize:maxSize:registerType:serialize:deserialize:calculateSize:computeKey:create:destroy:)
     ) : isBounded(isBounded), isPlain(isPlain), contructSample(contructSample), maxKeySize(maxKeySize), maxSize(maxSize), TopicDataType() {
         set_name(name);
         is_compute_key_provided = computeKeyProvided;
@@ -80,7 +79,6 @@ public:
         deserializeCallback = Block_copy(deserialize);
         calculateSizeCallback = Block_copy(calculateSize);
         computeKeyCallback = Block_copy(computeKey);
-        computeKeyRawCallback = Block_copy(computeKeyRaw);
         createCallback = Block_copy(create);
         destroyCallback = Block_copy(destroy);
     }
@@ -93,7 +91,7 @@ public:
         other.registerTypeCallback,
         other.serializeCallback, other.deserializeCallback,
         other.calculateSizeCallback,
-        other.computeKeyCallback, other.computeKeyRawCallback,
+        other.computeKeyCallback,
         other.createCallback, other.destroyCallback
     ) {}
 
@@ -103,13 +101,24 @@ public:
         Block_release(deserializeCallback);
         Block_release(calculateSizeCallback);
         Block_release(computeKeyCallback);
-        Block_release(computeKeyRawCallback);
         Block_release(createCallback);
         Block_release(destroyCallback);
 
         if (key_buffer_ != nullptr) {
             free(key_buffer_);
         }
+    }
+
+    INLINE static TypeSupportWrapper getTypeSupport(const GenericTopicType &type) {
+        return TypeSupportWrapper(
+            eprosima::fastdds::dds::TypeSupport(
+                new GenericTopicType(type)
+            )
+        );
+    }
+
+    INLINE void register_type_object_representation() override {
+        registerTypeCallback(type_identifiers_);
     }
 
     INLINE bool serialize(
@@ -139,7 +148,20 @@ public:
         eprosima::fastdds::rtps::InstanceHandle_t &ihandle,
         bool force_md5 = false
     ) override {
-        return computeKeyCallback(payload, ihandle, force_md5);
+        if (!is_compute_key_provided)
+        {
+            return false;
+        }
+
+        bool couldComputeKey = false;
+        auto data = create_data();
+        if (deserialize(payload, data))
+        {
+            couldComputeKey = compute_key(data, ihandle, force_md5);
+        }
+        delete_data(data);
+
+        return couldComputeKey;
     }
 
     INLINE bool compute_key(
@@ -147,7 +169,7 @@ public:
         eprosima::fastdds::rtps::InstanceHandle_t &ihandle,
         bool force_md5 = false
     ) override {
-        return computeKeyRawCallback(data, ihandle, force_md5);
+        return computeKeyCallback(data, ihandle, force_md5);
     }
 
     INLINE void *create_data() override {
@@ -156,10 +178,6 @@ public:
 
     INLINE void delete_data(void *data) override {
         return destroyCallback(data);
-    }
-
-    INLINE void register_type_object_representation() override {
-        registerTypeCallback(type_identifiers_);
     }
 
     INLINE bool is_bounded() const override {
@@ -176,14 +194,6 @@ public:
         return contructSample;
     }
 
-    INLINE static _TypeSupportWrapper getTypeSupport(const GenericTopicType &type) {
-        return _TypeSupportWrapper(
-            eprosima::fastdds::dds::TypeSupport(
-                new GenericTopicType(type)
-            )
-        );
-    }
-
 private:
     const bool isBounded;
     const bool isPlain;
@@ -196,7 +206,6 @@ private:
     deserializeCallback_t deserializeCallback;
     calculateSizeCallback_t calculateSizeCallback;
     computeKeyCallback_t computeKeyCallback;
-    computeKeyRawCallback_t computeKeyRawCallback;
     createCallback_t createCallback;
     destroyCallback_t destroyCallback;
 

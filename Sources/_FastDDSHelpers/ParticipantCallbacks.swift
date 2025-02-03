@@ -9,7 +9,7 @@ public struct ParticipantCallbacks: Sendable {
     public typealias ParticipantDiscoveredCallback = @Sendable (OpaquePointer, UnsafeRawPointer, UnsafeRawPointer) -> Void
 
     @usableFromInline
-    internal var onParticipantDiscovered: ParticipantDiscoveredCallback = { participant, status, info in }
+    internal var onParticipantDiscovered: ParticipantDiscoveredCallback? = nil
 
     @inlinable
     @inline(__always)
@@ -17,13 +17,13 @@ public struct ParticipantCallbacks: Sendable {
 
     @inlinable
     @inline(__always)
-    public mutating func setCallbacks(onParticipantDiscovered participantDiscovered: @escaping ParticipantDiscoveredCallback) {
+    public mutating func setCallbacks(onParticipantDiscovered participantDiscovered: ParticipantDiscoveredCallback?) {
         onParticipantDiscovered = participantDiscovered
     }
 
     @inlinable
     @inline(__always)
     public func participantDiscovered(_ participant: OpaquePointer, _ status: UnsafeRawPointer, _ info: UnsafeRawPointer) {
-        onParticipantDiscovered(participant, status, info)
+        onParticipantDiscovered?(participant, status, info)
     }
 }

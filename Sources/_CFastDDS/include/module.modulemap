@@ -12,9 +12,11 @@ module _CFastDDS [system] {
     header "fastdds.hpp"
     header "logging.hpp"
     header "type_representation.hpp"
+    header "cdr_size.hpp"
     header "GenericTopicType.hpp"
     header "StatusMask.hpp"
     header "old/fastdds.hpp"
+    header "participant.hpp"
 
     link "fastdds"
     link "fastcdr"

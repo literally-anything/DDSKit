@@ -1,3 +1,10 @@
+/*
+ * DynamicTypes.cpp
+ * src
+ * 
+ * Created by Hunter Baker on 8/19/2024
+ * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
+ */
 #include "old/DynamicTypes.hpp"
 
 #include <fastdds/dds/core/Types.hpp>
@@ -185,6 +192,11 @@ namespace fastdds {
             data->get_string_value(value, memberId);
             return value;
         }
+        DynamicData getComplex(DynamicData data, epfastdds::MemberId memberId) {
+            DynamicData value;
+            data->get_complex_value(value, memberId);
+            return value;
+        }
 
         void setBool(DynamicData data, epfastdds::MemberId memberId, bool value) {
             data->set_boolean_value(memberId, value);
@@ -221,6 +233,9 @@ namespace fastdds {
         }
         void setString(DynamicData data, epfastdds::MemberId memberId, const std::string &value) {
             data->set_string_value(memberId, value);
+        }
+        void setComplex(DynamicData data, epfastdds::MemberId memberId, DynamicData value) {
+            data->set_complex_value(memberId, value);
         }
     }
 }
