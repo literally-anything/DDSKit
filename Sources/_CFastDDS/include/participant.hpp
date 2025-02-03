@@ -7,17 +7,17 @@
  */
 #pragma once
 
-#include <fastdds/dds/builtin/topic/ParticipantBuiltinTopicData.hpp>
-#include <fastdds/dds/core/status/StatusMask.hpp>
 #include <swift/bridging>
 
 #include "common.h"
 #include "swift_helpers.hpp"
 
+#include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
+#include <fastdds/dds/builtin/topic/ParticipantBuiltinTopicData.hpp>
 
 class Participant final {
 public:
@@ -27,22 +27,27 @@ public:
     using DomainID = eprosima::fastdds::dds::DomainId_t;
     using StatusMask = eprosima::fastdds::dds::StatusMask;
 
-    INLINE Participant() : listener(nullptr) {
+    INLINE static DomainParticipantQos getDefaultQos() {
+        return getFactory()->get_default_participant_qos();
+    }
+    INLINE static bool compareQos(DomainParticipantQos lhs, DomainParticipantQos rhs) {
+        return lhs == rhs;
+    }
+
+    INLINE Participant(_FastDDSHelpers::ParticipantCallbacks *callbacks) SWIFT_NAME(init(callbacks:)) : listener(callbacks) {
         participant = getFactory()->create_participant_with_default_profile();
         participant->set_listener(&listener);
     }
 
     INLINE Participant(
         DomainID domainId, const std::string &profileName, _FastDDSHelpers::ParticipantCallbacks *callbacks, const StatusMask &statusMask
-    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:)) : listener(nullptr) {
-        listener.callbacks = callbacks;
+    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:)) : listener(callbacks) {
         participant = getFactory()->create_participant_with_profile(domainId, profileName, &listener, statusMask);
     }
 
     INLINE Participant(
         DomainID domainId, const DomainParticipantQos &qos, _FastDDSHelpers::ParticipantCallbacks *callbacks, const StatusMask &statusMask
-    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:)) : listener(nullptr) {
-        listener.callbacks = callbacks;
+    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:)) : listener(callbacks) {
         participant = getFactory()->create_participant(domainId, qos, &listener, statusMask);
     }
 
