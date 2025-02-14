@@ -8,15 +8,11 @@
 public import _CFastDDS
 
 extension StatusMask: OptionSet {
-    @inlinable
-    @inline(__always)
     public init(rawValue: UInt32) {
         self.init(rawValue)
     }
 
-    @inlinable
-    @inline(__always)
     public var rawValue: UInt32 {
-        StatusMask_rawValue(self)
+        StatusMaskHelpers.getRawValue(self)
     }
 }

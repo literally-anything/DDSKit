@@ -24,6 +24,7 @@
 class TypeSupportWrapper final {
 public:
     INLINE TypeSupportWrapper(eprosima::fastdds::dds::TypeSupport &&typeSupport) : typeSupport(typeSupport) {}
+    INLINE TypeSupportWrapper(const eprosima::fastdds::dds::TypeSupport &typeSupport) : typeSupport(typeSupport) {}
 
     INLINE std::string getName() const {
         return typeSupport.get_type_name();

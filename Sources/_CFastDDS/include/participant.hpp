@@ -7,17 +7,25 @@
  */
 #pragma once
 
+#include <fastcdr/cdr/fixed_size_string.hpp>
+#include <memory>
 #include <swift/bridging>
 
 #include "common.h"
+#include "GenericTopicType.hpp"
 #include "swift_helpers.hpp"
 
+#include <fastdds/dds/log/Log.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
 #include <fastdds/dds/builtin/topic/ParticipantBuiltinTopicData.hpp>
+
+class Publisher;
+class Subscriber;
+class Topic;
 
 class Participant final {
 public:
@@ -27,28 +35,38 @@ public:
     using DomainID = eprosima::fastdds::dds::DomainId_t;
     using StatusMask = eprosima::fastdds::dds::StatusMask;
 
-    INLINE static DomainParticipantQos getDefaultQos() {
-        return getFactory()->get_default_participant_qos();
-    }
-    INLINE static bool compareQos(DomainParticipantQos lhs, DomainParticipantQos rhs) {
-        return lhs == rhs;
-    }
-
-    INLINE Participant(_FastDDSHelpers::ParticipantCallbacks *callbacks) SWIFT_NAME(init(callbacks:)) : listener(callbacks) {
-        participant = getFactory()->create_participant_with_default_profile();
-        participant->set_listener(&listener);
+    static INLINE DomainParticipantQos getDefaultQos() SWIFT_COMPUTED_PROPERTY {
+        return DomainParticipantFactory::get_instance()->get_default_participant_qos();
     }
 
     INLINE Participant(
-        DomainID domainId, const std::string &profileName, _FastDDSHelpers::ParticipantCallbacks *callbacks, const StatusMask &statusMask
-    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:)) : listener(callbacks) {
-        participant = getFactory()->create_participant_with_profile(domainId, profileName, &listener, statusMask);
+        DomainID domainId, const std::string &profileName, _FastDDSHelpers::ParticipantCallbacks * _Nonnull callbacks, const StatusMask &statusMask, bool &success
+    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:success:)) : listener(std::make_unique<Listener>(callbacks)) {
+        participant = getFactory()->create_participant_with_profile(domainId, profileName, listener.get(), statusMask);
+        success = participant != nullptr;
     }
 
     INLINE Participant(
-        DomainID domainId, const DomainParticipantQos &qos, _FastDDSHelpers::ParticipantCallbacks *callbacks, const StatusMask &statusMask
-    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:)) : listener(callbacks) {
-        participant = getFactory()->create_participant(domainId, qos, &listener, statusMask);
+        DomainID domainId, const DomainParticipantQos &qos, _FastDDSHelpers::ParticipantCallbacks * _Nonnull callbacks, const StatusMask &statusMask, bool &success
+    ) SWIFT_NAME(init(domain:profile:callbacks:statusMask:success:)) : listener(std::make_unique<Listener>(callbacks)) {
+        participant = getFactory()->create_participant(domainId, qos, listener.get(), statusMask);
+        success = participant != nullptr;
+    }
+
+    INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+        if (!destroyed) {
+            auto ret = participant->delete_contained_entities();
+            if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
+
+            ret = getFactory()->delete_participant(participant);
+            if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
+
+            destroyed = true;
+        }
+        return eprosima::fastdds::dds::RETCODE_OK;
+    }
+    INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
+        return destroyed;
     }
 
     INLINE DomainID getDomain() const SWIFT_COMPUTED_PROPERTY {
@@ -59,36 +77,52 @@ public:
         return participant->get_status_mask();
     }
     INLINE void setStatusMask(const StatusMask &mask) SWIFT_COMPUTED_PROPERTY {
-        participant->set_listener(&listener, mask);
+        participant->set_listener(listener.get(), mask);
     }
 
     INLINE DomainParticipantQos getQos() const SWIFT_COMPUTED_PROPERTY {
         return participant->get_qos();
     }
     INLINE void setQos(const DomainParticipantQos &qos) SWIFT_COMPUTED_PROPERTY {
-        participant->set_qos(qos);
+        if (participant->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
+            EPROSIMA_LOG_WARNING(Participant, "Failed to set QoS");
+        }
+    }
+
+    INLINE eprosima::fastdds::dds::ReturnCode_t registerDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(registerType(typeSupport:)) {
+        return participant->register_type(typeSupportWrapper.typeSupport);
+    }
+
+    INLINE eprosima::fastdds::dds::ReturnCode_t unregisterDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(unregisterType(typeSupport:)) {
+        return participant->unregister_type(typeSupportWrapper.typeSupport.get_type_name());
     }
 
 private:
+    static INLINE DomainParticipantFactory * _Nonnull getFactory() {
+        return DomainParticipantFactory::get_instance();
+    }
+
     class Listener final : public eprosima::fastdds::dds::DomainParticipantListener {
     public:
-        _FastDDSHelpers::ParticipantCallbacks *callbacks;
+        INLINE explicit Listener(_FastDDSHelpers::ParticipantCallbacks * _Nonnull callbacks) : callbacks(callbacks) {}
 
-        INLINE explicit Listener(_FastDDSHelpers::ParticipantCallbacks *callbacks) : callbacks(callbacks) {}
-        INLINE void on_participant_discovery(
-            DomainParticipant *participant,
+        void on_participant_discovery(
+            DomainParticipant * _Nullable participant,
             eprosima::fastdds::rtps::ParticipantDiscoveryStatus reason,
             const eprosima::fastdds::dds::ParticipantBuiltinTopicData &info,
             bool &should_be_ignored
-        ) {
-            callbacks->participantDiscovered(participant, &reason, &info);
-        }
+        ) override;
+
+    private:
+        _FastDDSHelpers::ParticipantCallbacks * _Nonnull callbacks;
     };
 
-    Listener listener;
-    DomainParticipant *participant;
+    DomainParticipant * _Nonnull participant;
+    std::unique_ptr<Listener> listener;
 
-    static INLINE DomainParticipantFactory *getFactory() {
-        return DomainParticipantFactory::get_instance();
-    }
-};
+    bool destroyed = false;
+
+    friend class Publisher;
+    friend class Subscriber;
+    friend class Topic;
+} SWIFT_NONCOPYABLE;

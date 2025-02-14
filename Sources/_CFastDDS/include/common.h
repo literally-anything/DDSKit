@@ -8,10 +8,14 @@
 #pragma once
 
 #ifndef __cplusplus 
-#error "_CFastDDS needs to be compiled in cxx compatibility mode, this probably means that some higher up package doesn't have the flag set"
+# error "DDSKit needs to be compiled in cxx compatibility mode, this probably means that some higher up package doesn't have the .interoperabilityMode(.cxx) flag set."
 #endif 
 
-#define INLINE inline __attribute__((__always_inline__))
+#ifdef DEBUG
+# define INLINE
+#else
+# define INLINE inline __attribute__((__always_inline__))
+#endif
 
 #define SWIFT_ATTR(attr) __attribute__((swift_attr(attr)))
 #define SENDABLE SWIFT_ATTR("@Sendable")

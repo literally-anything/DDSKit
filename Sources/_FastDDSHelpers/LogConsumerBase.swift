@@ -7,10 +7,8 @@
  */
 public import Logging
 
-@_exported public import CoreFoundation
-
 public struct LogConsumerBase {
-    public let logger = Logger(label: "")
+    public let logger = Logger(label: "eprosima.FastDDS")
 
     @inlinable
     @inline(__always)

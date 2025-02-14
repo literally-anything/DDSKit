@@ -12,10 +12,10 @@
  * Created by Hunter Baker on 8/19/2024
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-public import enum _CFastDDS.fastdds
-import CxxStdlib
-import _FastDDSHelpers
-import Synchronization
+public import _CFastDDS
+internal import CxxStdlib
+internal import _FastDDSHelpers
+internal import Synchronization
 
 /// Groups Publishers and Subscribers into a single working unit.
 public final class DomainParticipantOld: @unchecked Sendable {
@@ -53,7 +53,9 @@ public final class DomainParticipantOld: @unchecked Sendable {
         }
         try self.init(from: participantPtr!)
     }
-    public init(from participantPtr: OpaquePointer) throws {
+    private init(from participantPtr: OpaquePointer) throws {
+        fastDDS_initLogging()
+
         raw = participantPtr
 
         listener = withUnsafePointer(to: &callbacks) { ptr in
