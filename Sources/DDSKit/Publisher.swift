@@ -10,9 +10,9 @@ internal import _FastDDSHelpers
 
 // extension DataWriter: DestroyableEntity {}
 
-public final class DDSPublisher<T: CDRCodable>: @unchecked Sendable {
+public final class DDSPublisher<T: CDRCodable> : @unchecked Sendable {
     public let topic: DDSTopic<T>
-    internal var raw: DataWriter
+    internal var raw: FastDDS.DataWriter
     private var callbacks = WriterCallbacks()
 
     public init(topic: DDSTopic<T>) throws(DDSError) {
@@ -20,9 +20,9 @@ public final class DDSPublisher<T: CDRCodable>: @unchecked Sendable {
 
         var success = false
         raw = withUnsafeMutablePointer(to: &callbacks) { callbacksPtr in
-            DataWriter(
+            FastDDS.DataWriter(
                 topic: topic.raw, publisher: topic.participant.rawPublisher,
-                profile: DataWriter.getDefaultQos(publisher: topic.participant.rawPublisher),
+                profile: FastDDS.DataWriter.getDefaultQos(publisher: topic.participant.rawPublisher),
                 callbacks: .init(callbacksPtr), statusMask: [],
                 success: &success
             )
@@ -31,13 +31,21 @@ public final class DDSPublisher<T: CDRCodable>: @unchecked Sendable {
             throw DDSError.initializationError(from: .dataWriter)
         }
     }
+}
 
-    public func publish(_ message: borrowing T) throws(DDSError) {
-        let retcode = withUnsafePointer(to: message) { messagePtr in
-            raw.write(data: messagePtr, params: .init())
-        }
+extension DDSPublisher {
+    @usableFromInline
+    internal func publishRaw(data: UnsafeRawPointer) throws(DDSError) {
+        let retcode = raw.write(data: data, params: .init())
         if let error = FastDDSErrorCode.check(retcode) {
             throw DDSError.publishError(error)
+        }
+    }
+
+    @inlinable
+    public func publish(_ message: borrowing T) throws(DDSError) {
+        try withUnsafePointer(to: message) { messagePtr throws(DDSError) in
+            try publishRaw(data: messagePtr)
         }
     }
 }

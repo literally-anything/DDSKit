@@ -10,9 +10,9 @@ internal import _FastDDSHelpers
 
 // extension Topic: DestroyableEntity {}
 
-public final class DDSTopic<T: CDRCodable>: @unchecked Sendable {
+public final class DDSTopic<T: CDRCodable> : @unchecked Sendable {
     public let participant: DDSParticipant
-    internal var raw: Topic
+    internal var raw: FastDDS.Topic
     private var callbacks = TopicCallbacks()
 
     public init(participant: DDSParticipant, topic: String) throws(DDSError) {
@@ -26,10 +26,10 @@ public final class DDSTopic<T: CDRCodable>: @unchecked Sendable {
 
         var success = false
         raw = withUnsafeMutablePointer(to: &callbacks) { callbacksPtr in
-            Topic(
+            FastDDS.Topic(
                 participant: participant.raw,
                 topic: .init(topic), typeSupport: T.ddsTopicType.typeSupport,
-                profile: Topic.getDefaultQos(participant: participant.raw),
+                profile: FastDDS.Topic.getDefaultQos(participant: participant.raw),
                 callbacks: .init(callbacksPtr), statusMask: [],
                 success: &success
             )

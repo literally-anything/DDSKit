@@ -10,9 +10,9 @@ internal import _FastDDSHelpers
 
 // extension DataReader: DestroyableEntity {}
 
-public final class DDSSubscriber<T: CDRCodable>: @unchecked Sendable {
+public final class DDSSubscriber<T: CDRCodable> : @unchecked Sendable {
     public let topic: DDSTopic<T>
-    internal var raw: DataReader
+    internal var raw: FastDDS.DataReader
     private var callbacks = ReaderCallbacks()
 
     public init(topic: DDSTopic<T>) throws(DDSError) {
@@ -20,9 +20,9 @@ public final class DDSSubscriber<T: CDRCodable>: @unchecked Sendable {
 
         var success = false
         raw = withUnsafeMutablePointer(to: &callbacks) { callbacksPtr in
-            DataReader(
+            FastDDS.DataReader(
                 topic: topic.raw, subscriber: topic.participant.rawSubscriber,
-                profile: DataReader.getDefaultQos(subscriber: topic.participant.rawSubscriber),
+                profile: FastDDS.DataReader.getDefaultQos(subscriber: topic.participant.rawSubscriber),
                 callbacks: .init(callbacksPtr), statusMask: [],
                 success: &success
             )

@@ -54,7 +54,7 @@ public final class DomainParticipantOld: @unchecked Sendable {
         try self.init(from: participantPtr!)
     }
     private init(from participantPtr: OpaquePointer) throws {
-        fastDDS_initLogging()
+        FastDDS.initLogging()
 
         raw = participantPtr
 

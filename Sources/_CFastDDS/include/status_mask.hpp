@@ -13,18 +13,22 @@
 
 #include <fastdds/dds/core/status/StatusMask.hpp>
 
-namespace StatusMaskHelpers {
+namespace FastDDS {
+
     using eprosima::fastdds::dds::StatusMask;
 
-    INLINE uint32_t getRawValue(const StatusMask &mask) {
-        return mask.to_ulong();
+    namespace StatusMaskHelpers {
+        INLINE uint32_t getRawValue(const StatusMask &mask) {
+            return mask.to_ulong();
+        }
+
+        INLINE void add(StatusMask &mask, const StatusMask &addedMask) {
+            mask << addedMask;
+        }
+
+        INLINE void remove(StatusMask &mask, const StatusMask &removedMask) {
+            mask >> removedMask;
+        }
     }
 
-    INLINE void add(StatusMask &mask, const StatusMask &addedMask) {
-        mask << addedMask;
-    }
-
-    INLINE void remove(StatusMask &mask, const StatusMask &removedMask) {
-        mask >> removedMask;
-    }
 }

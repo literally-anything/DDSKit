@@ -7,11 +7,15 @@
  */
 #include "participant.hpp"
 
-void Participant::Listener::on_participant_discovery(
-    DomainParticipant *participant,
-    eprosima::fastdds::rtps::ParticipantDiscoveryStatus reason,
-    const eprosima::fastdds::dds::ParticipantBuiltinTopicData &info,
-    bool &should_be_ignored
-) {
-    callbacks->participantDiscovered(participant, &reason, &info);
+namespace FastDDS {
+
+    void Participant::Listener::on_participant_discovery(
+        DomainParticipant *participant,
+        eprosima::fastdds::rtps::ParticipantDiscoveryStatus reason,
+        const eprosima::fastdds::dds::ParticipantBuiltinTopicData &info,
+        bool &should_be_ignored
+    ) {
+        callbacks->participantDiscovered(participant, &reason, &info);
+    }
+
 }

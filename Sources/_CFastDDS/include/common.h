@@ -9,10 +9,10 @@
 
 #ifndef __cplusplus 
 # error "DDSKit needs to be compiled in cxx compatibility mode, this probably means that some higher up package doesn't have the .interoperabilityMode(.cxx) flag set."
-#endif 
+#endif
 
 #ifdef DEBUG
-# define INLINE
+# define INLINE inline
 #else
 # define INLINE inline __attribute__((__always_inline__))
 #endif

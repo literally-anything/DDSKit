@@ -5,6 +5,8 @@
  * Created by Hunter Baker on 8/08/2024
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+internal import _CFastDDS
+
 @available(*, deprecated)
 public enum DDSKitError: Error {
     case SynchronizationError
@@ -56,17 +58,20 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
     case noData = 10
     case illegalOperation = 11
 
-    @inlinable
+    @usableFromInline
     internal static func check(_ code: Int32) -> FastDDSErrorCode? {
-        let error = FastDDSErrorCode(rawValue: code)
-        assert(
-            ![.unsupported, .badParameter, .notEnabled, .immutablePolicy, .inconsistentPolicy, .illegalOperation].contains(error),
-            "\(String(describing: error)) occurred. This is probably a DDSKit library bug."
-        )
-        return error
+        guard code == eprosima.fastdds.dds.RETCODE_OK else {
+            let error = FastDDSErrorCode(rawValue: code) ?? .unknown
+            assert(
+                ![.unsupported, .badParameter, .notEnabled, .immutablePolicy, .inconsistentPolicy, .illegalOperation].contains(error),
+                "\(error) occurred. This is probably a DDSKit library bug."
+            )
+            return error
+        }
+        return nil
     }
 
-    @inlinable
+    @usableFromInline
     internal static func checkThrow(_ code: Int32) throws(FastDDSErrorCode) {
         let error = check(code)
         if let error {

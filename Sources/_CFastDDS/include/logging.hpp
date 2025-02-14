@@ -7,21 +7,8 @@
  */
 #pragma once
 
-#include <swift/bridging>
+namespace FastDDS {
 
-#include "swift_helpers.hpp"
+    void initLogging();
 
-#include <fastdds/dds/log/Log.hpp>
-
-class SwiftLogConsumer final : public eprosima::fastdds::dds::LogConsumer {
-public:
-    SwiftLogConsumer();
-    ~SwiftLogConsumer() override;
-
-    void Consume(const eprosima::fastdds::dds::Log::Entry &entry) override;
-
-private:
-    _FastDDSHelpers::LogConsumerBase base;
-};
-
-void fastDDS_initLogging();
+}

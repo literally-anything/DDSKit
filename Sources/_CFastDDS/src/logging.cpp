@@ -7,10 +7,16 @@
  */
 #include "logging.hpp"
 
-SwiftLogConsumer::SwiftLogConsumer() : base(_FastDDSHelpers::LogConsumerBase::init()), LogConsumer() {}
-SwiftLogConsumer::~SwiftLogConsumer() {}
+#include "swift_helpers.hpp"
 
-void SwiftLogConsumer::Consume(const eprosima::fastdds::dds::Log::Entry &entry) {
+#include <fastdds/dds/log/Log.hpp>
+
+class SwiftLogConsumer final : public eprosima::fastdds::dds::LogConsumer {
+public:
+    SwiftLogConsumer() : base(_FastDDSHelpers::LogConsumerBase::init()), LogConsumer() {}
+    ~SwiftLogConsumer() override {}
+
+    void Consume(const eprosima::fastdds::dds::Log::Entry &entry) override {
         switch (entry.kind) {
             case eprosima::fastdds::dds::Log::Kind::Info:
                 base.info(
@@ -41,16 +47,24 @@ void SwiftLogConsumer::Consume(const eprosima::fastdds::dds::Log::Entry &entry) 
         }
     }
 
-void fastDDS_initLogging() {
-    using eprosima::fastdds::dds::Log;
+private:
+    _FastDDSHelpers::LogConsumerBase base;
+};
 
-    static bool initialized = false;
-    if (!initialized) {
-        Log::ClearConsumers();
+namespace FastDDS {
 
-        Log::RegisterConsumer(std::make_unique<SwiftLogConsumer>());
+    void initLogging() {
+        using eprosima::fastdds::dds::Log;
+
+        static bool initialized = false;
+        if (!initialized) {
+            Log::ClearConsumers();
+
+            Log::RegisterConsumer(std::make_unique<SwiftLogConsumer>());
+        }
+
+        // Use the lowest verbosity level so that all messages are passed through and log levels can be handled by swift-log
+        Log::SetVerbosity(Log::Kind::Info);
     }
 
-    // Use the lowest verbosity level so that all messages are passed through and log levels can be handled by swift-log
-    Log::SetVerbosity(Log::Kind::Info);
 }

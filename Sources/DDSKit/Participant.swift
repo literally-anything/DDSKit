@@ -15,17 +15,17 @@ internal import _FastDDSHelpers
 public final class DDSParticipant: @unchecked Sendable {
     /// A wrapper around the underlying FastDDS DomainParticipant.
     /// The wrapper is needed because the FastDDS DomainParticipant is mostly virtual and fails to import into swift.
-    internal var raw: Participant
+    internal var raw: FastDDS.Participant
 
     /// A wrapper around the underlying FastDDS Publisher.
     /// This is not a DDSPublisher! It is a FastDDS Publisher which allows you to allocate DataWriters.
     /// The wrapper is needed because the FastDDS Publisher is mostly virtual and fails to import into swift.
-    internal var rawPublisher: Publisher
+    internal var rawPublisher: FastDDS.Publisher
 
     /// A wrapper around the underlying FastDDS Subscriber.
     /// This is not a DDSSubscriber! It is a FastDDS Subscriber which allows you to allocate DataReaders.
     /// The wrapper is needed because the FastDDS Subscriber is mostly virtual and fails to import into swift.
-    internal var rawSubscriber: Subscriber
+    internal var rawSubscriber: FastDDS.Subscriber
 
     /// The callbacks for the FastDDS DomainParticipant.
     /// This allows swift functions to be called from the DomainParticipantListener while keeping context and not using @convention(c).
@@ -36,14 +36,14 @@ public final class DDSParticipant: @unchecked Sendable {
     /// - Parameter domain: The domain id for the participant. Only other participants in the same domain can communicate with each other. Defaults to 0.
     /// - Throws: DDSError if the participant fails to initialize.
     public init(domain: UInt32 = 0) throws(DDSError) {
-        fastDDS_initLogging()
+        FastDDS.initLogging()
 
         var success = false
 
         raw = withUnsafePointer(to: callbacks) { callbacksPtr in
-            Participant(
+            FastDDS.Participant(
                 domain: domain,
-                profile: Participant.getDefaultQos(),
+                profile: FastDDS.Participant.getDefaultQos(),
                 callbacks: .init(callbacksPtr), statusMask: [],
                 success: &success
             )
@@ -52,18 +52,18 @@ public final class DDSParticipant: @unchecked Sendable {
             throw DDSError.initializationError(from: .participant)
         }
 
-        rawPublisher = Publisher(
+        rawPublisher = FastDDS.Publisher(
             participant: raw, 
-            profile: Publisher.getDefaultQos(participant: raw),
+            profile: FastDDS.Publisher.getDefaultQos(participant: raw),
             success: &success
         )
         guard success else {
             throw DDSError.initializationError(from: .publisher)
         }
 
-        rawSubscriber = Subscriber(
+        rawSubscriber = FastDDS.Subscriber(
             participant: raw,
-            profile: Subscriber.getDefaultQos(participant: raw),
+            profile: FastDDS.Subscriber.getDefaultQos(participant: raw),
             success: &success
         )
         guard success else {
@@ -91,11 +91,13 @@ public final class DDSParticipant: @unchecked Sendable {
 }
 
 extension DDSParticipant {
+    @inlinable
     public func publish<T: CDRCodable>(to topic: DDSTopic<T>) throws(DDSError) -> DDSPublisher<T> {
         try DDSPublisher(topic: topic)
     }
 
-    public func publish<T: CDRCodable>(to topicName: String) throws(DDSError) -> DDSPublisher<T> {
+    @inlinable
+    public func publish<T: CDRCodable>(to topicName: String, type: T.Type) throws(DDSError) -> DDSPublisher<T> {
         try publish(
             to: DDSTopic<T>(participant: self, topic: topicName)
         )
@@ -103,11 +105,13 @@ extension DDSParticipant {
 }
 
 extension DDSParticipant {
+    @inlinable
     public func subscribe<T: CDRCodable>(to topic: DDSTopic<T>) throws(DDSError) -> DDSSubscriber<T> {
         try DDSSubscriber(topic: topic)
     }
 
-    public func subscribe<T: CDRCodable>(to topicName: String) throws(DDSError) -> DDSSubscriber<T> {
+    @inlinable
+    public func subscribe<T: CDRCodable>(to topicName: String, type: T.Type) throws(DDSError) -> DDSSubscriber<T> {
         try subscribe(
             to: DDSTopic<T>(participant: self, topic: topicName)
         )
@@ -120,18 +124,19 @@ extension DDSParticipant {
     /// - Parameter type: The type to register.
     /// - Throws: DDSTypeError if the type fails to register.
     internal func registerType<T: CDRCodable>(_ type: T.Type) throws(DDSTypeError) {
-        let ret = raw.registerType(typeSupport: type.ddsTopicType)
-        switch ret {
-            case eprosima.fastdds.dds.RETCODE_OK:
-                break
-            // Returned when the type name is size 0
-            case eprosima.fastdds.dds.RETCODE_BAD_PARAMETER:
-                throw .invalidName
-            // Returned when the type name is already registered
-            case eprosima.fastdds.dds.RETCODE_PRECONDITION_NOT_MET:
-                throw .alreadyRegistered
-            default:
-                assertionFailure("Got unexpected return code when registering FastDDS type: \(ret)")
+        let error = FastDDSErrorCode.check(raw.registerType(typeSupport: type.ddsTopicType))
+        
+        if let error {
+            switch error {
+                // Returned when the type name is size 0
+                case .badParameter:
+                    throw .invalidName
+                // Returned when the type name is already registered
+                case .preconditionFailed:
+                    throw .alreadyRegistered
+                default:
+                    assertionFailure("Got unexpected return code when registering FastDDS type: \(error)")
+            }
         }
     }
 }
