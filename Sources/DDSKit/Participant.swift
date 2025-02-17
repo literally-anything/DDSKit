@@ -61,6 +61,13 @@ public final class DDSParticipant: @unchecked Sendable {
             qos.nameMutating(.init(cString))
         }
 
+        for setting in settings {
+            switch setting {
+                case .ignoreLocalEndpoints(let ignore):
+                    FastDDS.QOSHelpers.PropertyPolicy.addProperty(to: &qos, name: "fastdds.ignore_local_endpoints", value: ignore ? "true" : "false")
+            }
+        }
+
         var success = false
 
         raw = FastDDS.Participant(
@@ -228,5 +235,9 @@ extension DDSParticipant: CustomStringConvertible {
 
 extension DDSParticipant {
     /// A setting for the participant.
-    public enum Setting {}
+    public enum Setting {
+        /// Sets whether to ingnore DataReaders and DataWriters that are created from the same participant.
+        /// Defaults to false.
+        case ignoreLocalEndpoints(Bool)
+    }
 }

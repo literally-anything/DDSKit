@@ -38,6 +38,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(topic:subscriber:profile:callbacks:statusMask:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber), listener(std::make_unique<Listener>(callbacks)) {
             dataReader = subscriber->create_datareader_with_profile(topic, profileName, listener.get(), statusMask);
             success = dataReader != nullptr;
+            destroyed = !success;
         }
 
         INLINE DataReader(
@@ -47,6 +48,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(topic:subscriber:profile:callbacks:statusMask:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber), listener(std::make_unique<Listener>(callbacks)) {
             dataReader = subscriber->create_datareader(topic, qos, listener.get(), statusMask);
             success = dataReader != nullptr;
+            destroyed = !success;
         }
 
         INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {

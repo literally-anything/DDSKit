@@ -51,6 +51,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(domain:profile:success:)) {
             participant = getFactory()->create_participant_with_profile(domainId, profileName, nullptr, StatusMask::none());
             success = participant != nullptr;
+            destroyed = !success;
         }
 
         INLINE Participant(
@@ -58,6 +59,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(domain:profile:success:)) {
             participant = getFactory()->create_participant(domainId, qos, nullptr, StatusMask::none());
             success = participant != nullptr;
+            destroyed = !success;
         }
 
         INLINE void enable() {

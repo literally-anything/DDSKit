@@ -49,6 +49,7 @@ namespace FastDDS {
                 nullptr, StatusMask::none()
             );
             success = topic != nullptr;
+            destroyed = !success;
         }
 
         INLINE Topic(
@@ -62,6 +63,11 @@ namespace FastDDS {
                 nullptr, StatusMask::none()
             );
             success = topic != nullptr;
+            destroyed = !success;
+        }
+
+        INLINE void enable() {
+            topic->enable();
         }
 
         INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {

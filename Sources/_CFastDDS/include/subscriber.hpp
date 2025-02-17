@@ -37,6 +37,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
             subscriber = participant->create_subscriber_with_profile(profileName, nullptr, StatusMask::none());
             success = subscriber != nullptr;
+            destroyed = !success;
         }
 
         INLINE Subscriber(
@@ -44,6 +45,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
             subscriber = participant->create_subscriber(qos, nullptr, StatusMask::none());
             success = subscriber != nullptr;
+            destroyed = !success;
         }
 
         INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {

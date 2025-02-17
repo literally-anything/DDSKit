@@ -41,6 +41,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(topic:publisher:profile:callbacks:statusMask:success:)) : topic(topicWrapper.topic), publisher(publisherWrapper.publisher), listener(std::make_unique<Listener>(callbacks)) {
             dataWriter = publisher->create_datawriter_with_profile(topic, profileName, listener.get(), statusMask);
             success = dataWriter != nullptr;
+            destroyed = !success;
         }
 
         INLINE DataWriter(
@@ -52,6 +53,7 @@ namespace FastDDS {
 
             dataWriter = publisher->create_datawriter(topic, qos, listener.get(), statusMask);
             success = dataWriter != nullptr;
+            destroyed = !success;
         }
 
         INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {

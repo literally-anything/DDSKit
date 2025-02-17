@@ -37,6 +37,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
             publisher = participant->create_publisher_with_profile(profileName, nullptr, StatusMask::none());
             success = publisher != nullptr;
+            destroyed = !success;
         }
 
         INLINE Publisher(
@@ -44,6 +45,7 @@ namespace FastDDS {
         ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
             publisher = participant->create_publisher(qos, nullptr, StatusMask::none());
             success = publisher != nullptr;
+            destroyed = !success;
         }
 
         INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
