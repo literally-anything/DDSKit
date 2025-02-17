@@ -38,7 +38,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
+        // .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0")
     ],
     targets: [
@@ -79,14 +79,14 @@ let package = Package(
                     "-emit-clang-header-path", ".compatibility-headers/_FastDDSHelpers-Swift.h"
                 ])
             ]
-        ),
-        .macro(
-            name: "DDSKitMacros",
-            dependencies: [
-                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
-            ]
         )
+        // .macro(
+        //     name: "DDSKitMacros",
+        //     dependencies: [
+        //         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        //         .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+        //     ]
+        // )
     ],
     cxxLanguageStandard: .cxx14
 )
