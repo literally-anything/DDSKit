@@ -14,6 +14,7 @@ import FoundationEssentials
 var cSettings: [CSetting] = []
 var cxxSettings: [CXXSetting] = []
 
+#if !os(macOS)
 let swift_cxx_flags_path = "./swift_cxx_flags"
 if FileManager.default.fileExists(atPath: swift_cxx_flags_path) {
     let flags = try? String(contentsOfFile: swift_cxx_flags_path, encoding: .utf8).split(whereSeparator: \.isNewline)
@@ -23,6 +24,7 @@ if FileManager.default.fileExists(atPath: swift_cxx_flags_path) {
         cxxSettings.append(.unsafeFlags(stringFlags))
     }
 }
+#endif
 
 let swiftSettings: [SwiftSetting] = [
     .interoperabilityMode(.Cxx),
