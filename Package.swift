@@ -9,13 +9,21 @@
 
 import PackageDescription
 import CompilerPluginSupport
+import FoundationEssentials
 
-let cSettings: [CSetting] = [
-    .unsafeFlags(["-I/home/hbaker/.local/share/swiftly/toolchains/6.0.3/usr/include/"])
-]
-let cxxSettings: [CXXSetting] = [
-    .unsafeFlags(["-I/home/hbaker/.local/share/swiftly/toolchains/6.0.3/usr/include/"])
-]
+var cSettings: [CSetting] = []
+var cxxSettings: [CXXSetting] = []
+
+let swift_cxx_flags_path = "./swift_cxx_flags"
+if FileManager.default.fileExists(atPath: swift_cxx_flags_path) {
+    let flags = try? String(contentsOfFile: swift_cxx_flags_path, encoding: .utf8).split(whereSeparator: \.isNewline)
+    if let flags {
+        let stringFlags = flags.map { String($0) }
+        cSettings.append(.unsafeFlags(stringFlags))
+        cxxSettings.append(.unsafeFlags(stringFlags))
+    }
+}
+
 let swiftSettings: [SwiftSetting] = [
     .interoperabilityMode(.Cxx),
     .enableUpcomingFeature("InternalImportsByDefault")

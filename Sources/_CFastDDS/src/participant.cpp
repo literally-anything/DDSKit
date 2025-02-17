@@ -7,15 +7,43 @@
  */
 #include "participant.hpp"
 
+#include <../lib/swift/Block/Block.h>
+
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/rtps/participant/ParticipantDiscoveryInfo.hpp>
+#include <fastdds/dds/builtin/topic/ParticipantBuiltinTopicData.hpp>
+
+using namespace eprosima::fastdds::dds;
+using namespace eprosima::fastdds::rtps;
+
 namespace FastDDS {
+
+    Participant::Listener::Listener(const Callbacks &callbacks) {
+        participant_discovery_callback = Block_copy(callbacks.participantDiscovered);
+    }
+
+    Participant::Listener::~Listener() {
+        Block_release(participant_discovery_callback);
+    }
 
     void Participant::Listener::on_participant_discovery(
         DomainParticipant *participant,
-        eprosima::fastdds::rtps::ParticipantDiscoveryStatus reason,
-        const eprosima::fastdds::dds::ParticipantBuiltinTopicData &info,
+        ParticipantDiscoveryStatus reason,
+        const ParticipantBuiltinTopicData &info,
         bool &should_be_ignored
     ) {
-        callbacks->participantDiscovered(participant, &reason, &info);
+        if (participant->guid() != info.guid) {
+            if (reason == ParticipantDiscoveryStatus::DISCOVERED_PARTICIPANT) {
+                participant_discovery_callback(info.participant_name.c_str());
+            }
+        }
     }
+
+#ifdef HAVE_SECURITY
+    void Participant::Listener::onParticipantAuthentication(
+        DomainParticipant *participant,
+        ParticipantAuthenticationInfo &&info
+    ) {}
+#endif
 
 }

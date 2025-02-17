@@ -1,3 +1,6 @@
+# Arbitrary cxx flags needed because it wont search for c++ headers in the toolchain's include folder
+swift_cxx_flags
+
 # Swift -> C++ compatibility headers (hopefully temporary)
 .compatibility-headers
 
