@@ -9,7 +9,6 @@
 
 #include <../lib/swift/Block/Block.h>
 
-#include <fastdds/dds/log/Log.hpp>
 #include <fastdds/rtps/participant/ParticipantDiscoveryInfo.hpp>
 #include <fastdds/dds/builtin/topic/ParticipantBuiltinTopicData.hpp>
 
@@ -19,11 +18,11 @@ using namespace eprosima::fastdds::rtps;
 namespace FastDDS {
 
     Participant::Listener::Listener(const Callbacks &callbacks) {
-        participant_discovery_callback = Block_copy(callbacks.participantDiscovered);
+        participantDiscoveryCallback = Block_copy(callbacks.participantDiscoveryCallback);
     }
 
     Participant::Listener::~Listener() {
-        Block_release(participant_discovery_callback);
+        Block_release(participantDiscoveryCallback);
     }
 
     void Participant::Listener::on_participant_discovery(
@@ -34,7 +33,7 @@ namespace FastDDS {
     ) {
         if (participant->guid() != info.guid) {
             if (reason == ParticipantDiscoveryStatus::DISCOVERED_PARTICIPANT) {
-                participant_discovery_callback(info.participant_name.c_str());
+                participantDiscoveryCallback(info.participant_name.c_str());
             }
         }
     }

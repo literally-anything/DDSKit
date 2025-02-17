@@ -6,14 +6,12 @@
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 internal import _CFastDDS
-internal import _FastDDSHelpers
 
 // extension Topic: DestroyableEntity {}
 
 public final class DDSTopic<T: CDRCodable> : @unchecked Sendable {
     public let participant: DDSParticipant
     internal var raw: FastDDS.Topic
-    private var callbacks = TopicCallbacks()
 
     public init(participant: DDSParticipant, topic: String) throws(DDSError) {
         self.participant = participant
@@ -25,15 +23,12 @@ public final class DDSTopic<T: CDRCodable> : @unchecked Sendable {
         }
 
         var success = false
-        raw = withUnsafeMutablePointer(to: &callbacks) { callbacksPtr in
-            FastDDS.Topic(
-                participant: participant.raw,
-                topic: .init(topic), typeSupport: T.ddsTopicType.typeSupport,
-                profile: FastDDS.Topic.getDefaultQos(participant: participant.raw),
-                callbacks: .init(callbacksPtr), statusMask: [],
-                success: &success
-            )
-        }
+        raw = FastDDS.Topic(
+            participant: participant.raw,
+            topic: .init(topic), typeSupport: T.ddsTopicType.typeSupport,
+            profile: FastDDS.Topic.getDefaultQos(participant: participant.raw),
+            success: &success
+        )
         if !success {
             throw DDSError.initializationError(from: .topic)
         }
@@ -50,10 +45,12 @@ public final class DDSTopic<T: CDRCodable> : @unchecked Sendable {
         }
     }
 
+    /// The name of the topic.
     public var name: String {
         .init(raw.name)
     }
 
+    /// The type name of the topic.
     public var typeName: String {
         .init(raw.typeName)
     }

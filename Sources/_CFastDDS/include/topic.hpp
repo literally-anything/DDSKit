@@ -11,7 +11,6 @@
 
 #include "common.h"
 #include "participant.hpp"
-#include "swift_helpers.hpp"
 
 #include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/topic/Topic.hpp>
@@ -30,6 +29,11 @@ namespace FastDDS {
         using StatusMask = eprosima::fastdds::dds::StatusMask;
         using TypeSupport = eprosima::fastdds::dds::TypeSupport;
 
+        using onInconsistentTopic_t = void (^ SENDABLE _Nonnull)();
+        struct Callbacks {
+            onInconsistentTopic_t inconsitentTopicCallback;
+        };
+
         static INLINE TopicQos getDefaultQos(const Participant &participantWrapper) SWIFT_NAME(getDefaultQos(participant:)) {
             return participantWrapper.participant->get_default_topic_qos();
         }
@@ -37,13 +41,12 @@ namespace FastDDS {
         INLINE Topic(
             const Participant &participantWrapper, const std::string &topicName, TypeSupport typeSupport,
             const std::string &profileName,
-            _FastDDSHelpers::TopicCallbacks * _Nonnull callbacks, const StatusMask &statusMask,
             bool &success
-        ) SWIFT_NAME(init(participant:topic:typeSupport:profile:callbacks:statusMask:success:)) : participant(participantWrapper.participant), listener(std::make_unique<Listener>(callbacks)) {
+        ) SWIFT_NAME(init(participant:topic:typeSupport:profile:success:)) : participant(participantWrapper.participant) {
             topic = participant->create_topic_with_profile(
                 topicName, typeSupport.get_type_name(),
                 profileName,
-                listener.get(), statusMask
+                nullptr, StatusMask::none()
             );
             success = topic != nullptr;
         }
@@ -51,13 +54,12 @@ namespace FastDDS {
         INLINE Topic(
             const Participant &participantWrapper, const std::string &topicName, TypeSupport typeSupport,
             const TopicQos &qos,
-            _FastDDSHelpers::TopicCallbacks * _Nonnull callbacks, const StatusMask &statusMask,
             bool &success
-        ) SWIFT_NAME(init(participant:topic:typeSupport:profile:callbacks:statusMask:success:)) : participant(participantWrapper.participant), listener(std::make_unique<Listener>(callbacks)) {
+        ) SWIFT_NAME(init(participant:topic:typeSupport:profile:success:)) : participant(participantWrapper.participant) {
             topic = participant->create_topic(
                 topicName, typeSupport.get_type_name(),
                 qos,
-                listener.get(), statusMask
+                nullptr, StatusMask::none()
             );
             success = topic != nullptr;
         }
@@ -85,13 +87,6 @@ namespace FastDDS {
             return topic->get_type_name();
         }
 
-        INLINE StatusMask getStatusMask() const SWIFT_COMPUTED_PROPERTY {
-            return topic->get_status_mask();
-        }
-        INLINE void setStatusMask(const StatusMask &mask) SWIFT_COMPUTED_PROPERTY {
-            topic->set_listener(listener.get(), mask);
-        }
-
         INLINE TopicQos getQos() const SWIFT_COMPUTED_PROPERTY {
             return topic->get_qos();
         }
@@ -101,12 +96,25 @@ namespace FastDDS {
             }
         }
 
+        INLINE void setCallbacks(const Callbacks &callbacks) {
+            listener = std::make_unique<Listener>(callbacks);
+            topic->set_listener(listener.get(), StatusMask::inconsistent_topic());
+        }
+
     private:
         class Listener final : public eprosima::fastdds::dds::TopicListener {
         public:
-            _FastDDSHelpers::TopicCallbacks * _Nonnull callbacks;
+            explicit Listener(const Callbacks &callbacks);
+            ~Listener() override;
 
-            INLINE explicit Listener(_FastDDSHelpers::TopicCallbacks * _Nonnull callbacks) : callbacks(callbacks) {}
+            // Non-copyable because it would deallocate the blocks
+            Listener( const Listener& ) = delete;
+            Listener& operator=( const Listener& ) = delete;
+
+            void on_inconsistent_topic(_Topic * _Nullable topic, eprosima::fastdds::dds::InconsistentTopicStatus status) override;
+        
+        private:
+            onInconsistentTopic_t inconsitentTopicCallback;
         };
 
         _Topic * _Nonnull topic;

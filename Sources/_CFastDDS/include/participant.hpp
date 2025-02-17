@@ -13,7 +13,6 @@
 
 #include "common.h"
 #include "GenericTopicType.hpp"
-#include "swift_helpers.hpp"
 
 #include <fastdds/dds/log/Log.hpp>
 #include <fastdds/rtps/common/Guid.hpp>
@@ -40,7 +39,7 @@ namespace FastDDS {
 
         using onParticipantDiscovery_t = void (^ SENDABLE _Nonnull)(const char * _Nonnull participantName);
         struct Callbacks {
-            onParticipantDiscovery_t participantDiscovered;
+            onParticipantDiscovery_t participantDiscoveryCallback;
         };
 
         static INLINE DomainParticipantQos getDefaultQos() SWIFT_COMPUTED_PROPERTY {
@@ -143,7 +142,7 @@ namespace FastDDS {
             ) override;
 #endif
         private:
-            onParticipantDiscovery_t participant_discovery_callback;
+            onParticipantDiscovery_t participantDiscoveryCallback;
         };
 
         DomainParticipant * _Nonnull participant;

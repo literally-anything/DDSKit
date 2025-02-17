@@ -47,7 +47,7 @@ let package = Package(
         .target(
             name: "DDSKit",
             dependencies: [
-                "DDSKitMacros",
+                // "DDSKitMacros",
                 "_CFastDDS",
                 "_FastDDSHelpers",
                 .product(name: "Logging", package: "swift-log")

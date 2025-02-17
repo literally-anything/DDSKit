@@ -8,8 +8,6 @@
 module _CFastDDS {
     requires cplusplus14
 
-    header "old/fastdds.hpp"
-
     header "common.h"
     header "logging.hpp"
 
@@ -25,7 +23,9 @@ module _CFastDDS {
     header "fastdds.hpp"
     header "type_representation.hpp"
     header "cdr_size.hpp"
-    header "GenericTopicType.hpp" 
+    header "GenericTopicType.hpp"
+
+    header "old/fastdds.hpp"
 
     link "fastdds"
     link "fastcdr"
