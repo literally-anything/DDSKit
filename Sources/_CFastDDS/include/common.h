@@ -16,6 +16,7 @@
 #else
 # define INLINE inline __attribute__((always_inline))
 #endif
+#define NODISCARD [[nodiscard("This return value needs to be checked")]]
 
 #define SWIFT_ATTR(attr) __attribute__((swift_attr(attr)))
 #define SENDABLE SWIFT_ATTR("@Sendable")

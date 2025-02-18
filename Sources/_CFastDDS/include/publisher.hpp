@@ -41,14 +41,20 @@ namespace FastDDS {
         }
 
         INLINE Publisher(
-            const Participant &participantWrapper, const PublisherQos &qos, bool &success
+            const Participant &participantWrapper, PublisherQos qos, bool &success
         ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
+            qos.entity_factory().autoenable_created_entities = false;
+
             publisher = participant->create_publisher(qos, nullptr, StatusMask::none());
             success = publisher != nullptr;
             destroyed = !success;
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
+            return publisher->enable();
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
                 auto ret = publisher->delete_contained_entities();
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }

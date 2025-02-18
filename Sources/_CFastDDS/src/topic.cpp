@@ -23,7 +23,7 @@ namespace FastDDS {
         Block_release(inconsitentTopicCallback);
     }
 
-    void Topic::Listener::on_inconsistent_topic(Topic::_Topic *topic, InconsistentTopicStatus status) {
+    void Topic::Listener::on_inconsistent_topic(_Topic *topic, InconsistentTopicStatus status) {
         inconsitentTopicCallback(); // This is temporary. This will pass more data and be more useful, but this callback isn't even supported in FastDDS yet.
     }
 

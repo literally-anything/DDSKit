@@ -51,6 +51,10 @@ namespace FastDDS {
             destroyed = !success;
         }
 
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
+            return dataReader->enable();
+        }
+
         INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
                 auto ret = subscriber->delete_datareader(dataReader);

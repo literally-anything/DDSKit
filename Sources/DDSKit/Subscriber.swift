@@ -30,6 +30,8 @@ public final class DDSSubscriber<T: CDRCodable> : @unchecked Sendable {
         if !success {
             throw DDSError.initializationError(from: .dataReader)
         }
+
+        raw.enable()
     }
 }
 

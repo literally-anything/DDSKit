@@ -54,7 +54,7 @@ namespace FastDDS {
 
         INLINE Topic(
             const Participant &participantWrapper, const std::string &topicName, TypeSupport typeSupport,
-            const TopicQos &qos,
+            TopicQos qos,
             bool &success
         ) SWIFT_NAME(init(participant:topic:typeSupport:profile:success:)) : participant(participantWrapper.participant) {
             topic = participant->create_topic(
@@ -66,11 +66,16 @@ namespace FastDDS {
             destroyed = !success;
         }
 
-        INLINE void enable() {
-            topic->enable();
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
+            return topic->enable();
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t setCallbacks(const Callbacks &callbacks) {
+            listener = std::make_unique<Listener>(callbacks);
+            return topic->set_listener(listener.get(), StatusMask::inconsistent_topic());
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
                 topic->close();
 
@@ -100,11 +105,6 @@ namespace FastDDS {
             if (topic->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
                 EPROSIMA_LOG_WARNING(Topic, "Failed to set QoS");
             }
-        }
-
-        INLINE void setCallbacks(const Callbacks &callbacks) {
-            listener = std::make_unique<Listener>(callbacks);
-            topic->set_listener(listener.get(), StatusMask::inconsistent_topic());
         }
 
     private:

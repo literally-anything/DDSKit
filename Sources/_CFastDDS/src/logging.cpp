@@ -7,18 +7,23 @@
  */
 #include "logging.hpp"
 
+#include <mutex>
+#include <memory>
+
 #include "swift_helpers.hpp"
 
 #include <fastdds/dds/log/Log.hpp>
 
-class SwiftLogConsumer final : public eprosima::fastdds::dds::LogConsumer {
+using namespace eprosima::fastdds::dds;
+
+class SwiftLogConsumer final : public LogConsumer {
 public:
     SwiftLogConsumer() : base(_FastDDSHelpers::LogConsumerBase::init()), LogConsumer() {}
     ~SwiftLogConsumer() override {}
 
-    void Consume(const eprosima::fastdds::dds::Log::Entry &entry) override {
+    void Consume(const Log::Entry &entry) override {
         switch (entry.kind) {
-            case eprosima::fastdds::dds::Log::Kind::Info:
+            case Log::Kind::Info:
                 base.info(
                     entry.message,
                     entry.context.category,
@@ -27,7 +32,7 @@ public:
                     entry.context.line
                 );
                 break;
-            case eprosima::fastdds::dds::Log::Kind::Warning:
+            case Log::Kind::Warning:
                 base.warning(
                     entry.message,
                     entry.context.category,
@@ -36,7 +41,7 @@ public:
                     entry.context.line
                 );
                 break;
-            case eprosima::fastdds::dds::Log::Kind::Error:
+            case Log::Kind::Error:
                 base.error(
                     entry.message,
                     entry.context.category,
@@ -54,17 +59,18 @@ private:
 namespace FastDDS {
 
     void initLogging() {
-        using eprosima::fastdds::dds::Log;
+        static std::mutex mutex;
+        std::lock_guard<std::mutex> lock(mutex);
 
         static bool initialized = false;
         if (!initialized) {
             Log::ClearConsumers();
 
             Log::RegisterConsumer(std::make_unique<SwiftLogConsumer>());
-        }
 
-        // Use the lowest verbosity level so that all messages are passed through and log levels can be handled by swift-log
-        Log::SetVerbosity(Log::Kind::Info);
+            // Use the lowest verbosity level so that all messages are passed through and log levels can be handled by swift-log
+            Log::SetVerbosity(Log::Kind::Info);
+        }
     }
 
 }

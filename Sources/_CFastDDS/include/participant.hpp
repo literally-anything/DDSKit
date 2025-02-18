@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <mutex>
 #include <memory>
 #include <string>
 #include <swift/bridging>
@@ -19,6 +20,7 @@
 #include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+#include <fastdds/dds/domain/qos/DomainParticipantFactoryQos.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
 #include <fastcdr/cdr/fixed_size_string.hpp>
@@ -54,19 +56,24 @@ namespace FastDDS {
             destroyed = !success;
         }
 
-        INLINE Participant(
-            DomainID domainId, const DomainParticipantQos &qos, bool &success
-        ) SWIFT_NAME(init(domain:profile:success:)) {
+        INLINE Participant(DomainID domainId, DomainParticipantQos qos, bool &success) SWIFT_NAME(init(domain:profile:success:)) {
+            qos.entity_factory().autoenable_created_entities = false;
+
             participant = getFactory()->create_participant(domainId, qos, nullptr, StatusMask::none());
             success = participant != nullptr;
             destroyed = !success;
         }
 
-        INLINE void enable() {
-            participant->enable();
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
+            return participant->enable();
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t setCallbacks(const Callbacks &callbacks) {
+            listener = std::make_unique<Listener>(callbacks);
+            return participant->set_listener(listener.get(), StatusMask::none());
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
                 auto ret = participant->delete_contained_entities();
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
@@ -99,25 +106,37 @@ namespace FastDDS {
             }
         }
 
-        INLINE void setCallbacks(const Callbacks &callbacks) {
-            listener = std::make_unique<Listener>(callbacks);
-            participant->set_listener(listener.get(), StatusMask::none());
-        }
-
         INLINE std::vector<std::string> getParticipants() const SWIFT_COMPUTED_PROPERTY {
             return participant->get_participant_names();
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t registerDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(registerType(typeSupport:)) {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t registerDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(registerType(typeSupport:)) {
             return participant->register_type(typeSupportWrapper.typeSupport);
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t unregisterDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(unregisterType(typeSupport:)) {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t unregisterDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(unregisterType(typeSupport:)) {
             return participant->unregister_type(typeSupportWrapper.typeSupport.get_type_name());
         }
 
     private:
         static INLINE DomainParticipantFactory * _Nonnull getFactory() {
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+
+            static bool qos_done = false;
+            if (!qos_done) {
+                eprosima::fastdds::dds::DomainParticipantFactoryQos qos;
+                DomainParticipantFactory::get_instance()->get_qos(qos);
+
+                qos.entity_factory().autoenable_created_entities = false;
+
+                if (DomainParticipantFactory::get_instance()->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
+                    EPROSIMA_LOG_WARNING(Participant, "Failed to set participant factory QoS");
+                }
+
+                qos_done = true;
+            }
+
             return DomainParticipantFactory::get_instance();
         }
 

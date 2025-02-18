@@ -30,13 +30,14 @@ public final class DDSParticipant: @unchecked Sendable {
 
     /// A list of callbacks to call when a new participant is detected.
     /// The callback is passed the name of the detected participant.
-    /// The callback will be automatically removed if it returns true. (This is needed because callbacks are not Equatable
+    /// The callback will be automatically removed if it returns true. (This is needed because callbacks are not Equatable)
     private let detectionCallbacks: Mutex<[(String) -> Bool]> = Mutex([])
 
     /// Initializes a new DDSParticipant.
-    /// - Parameter domain: The domain id for the participant. Only other participants in the same domain can communicate with each other. Defaults to 0.
-    /// - Parameter name: The user-defined name for the participant. Defaults to the name of the function that intialized the participant.
-    /// - Parameter settings: An optional list of settings for the participant.
+    /// - Parameters:
+    ///   - domain: The domain id for the participant. Only other participants in the same domain can communicate with each other. Defaults to 0.
+    ///   - name: The user-defined name for the participant. Defaults to the name of the function that intialized the participant.
+    ///   - settings: An optional list of settings for the participant.
     /// - Throws: DDSError if the participant fails to initialize.
     public init(domain: UInt32 = 0, name: String = #function, settings: [Setting] = []) throws(DDSError) {
         /// In C++, this is represented as a fixed-size string, so it must be less than 256 characters.
@@ -49,13 +50,6 @@ public final class DDSParticipant: @unchecked Sendable {
         FastDDS.initLogging()
 
         var qos = FastDDS.Participant.getDefaultQos()
-
-        // Don't auto enable the participant (enable is called after setup is done)
-        qos.entity_factoryMutating(
-            .init(
-                /* autoenable: */ false
-            )
-        )
 
         name.withCString { cString in
             qos.nameMutating(.init(cString))
@@ -97,26 +91,31 @@ public final class DDSParticipant: @unchecked Sendable {
             throw DDSError.initializationError(from: .subscriber)
         }
 
-        raw.setCallbacks(.init { [unowned self] participantNameC in
-            // Called when new participant is discovered
-            detectionCallbacks.withLock { callbacks in
-                guard !callbacks.isEmpty else {
-                    return
-                }
+        try FastDDSErrorCode.checkThrowInternal(
+            raw.setCallbacks(.init { [unowned self] participantNameC in
+                // Called when new participant is discovered
+                detectionCallbacks.withLock { callbacks in
+                    guard !callbacks.isEmpty else {
+                        return
+                    }
 
-                let name = String(cString: participantNameC)
+                    let name = String(cString: participantNameC)
 
-                // This is reversed so that we can remove elements from the array while iterating
-                for (index, callback) in callbacks.enumerated().reversed() {
-                    // Remove the callback if it returns true
-                    if callback(name) {
-                        callbacks.remove(at: index)
+                    // This is reversed so that we can remove elements from the array while iterating
+                    for (index, callback) in callbacks.enumerated().reversed() {
+                        // Remove the callback if it returns true
+                        if callback(name) {
+                            callbacks.remove(at: index)
+                        }
                     }
                 }
-            }
-        })
+            }),
+            from: .participant
+        )
 
-        raw.enable()
+        try FastDDSErrorCode.checkThrow(raw.enable(), from: .participant)
+        try FastDDSErrorCode.checkThrow(rawPublisher.enable(), from: .publisher)
+        try FastDDSErrorCode.checkThrow(rawSubscriber.enable(), from: .subscriber)
     }
 
     deinit {
@@ -158,7 +157,7 @@ extension DDSParticipant {
         assert(name != self.name, "Cannot wait for self")
 
         // Check if the participant is already in the domain
-        if participants.contains(name) {
+        guard !participants.contains(name) else {
             return
         }
 

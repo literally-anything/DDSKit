@@ -41,14 +41,20 @@ namespace FastDDS {
         }
 
         INLINE Subscriber(
-            const Participant &participantWrapper, const SubscriberQos &qos, bool &success
+            const Participant &participantWrapper, SubscriberQos qos, bool &success
         ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
+            qos.entity_factory().autoenable_created_entities = false;
+
             subscriber = participant->create_subscriber(qos, nullptr, StatusMask::none());
             success = subscriber != nullptr;
             destroyed = !success;
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
+            return subscriber->enable();
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
                 auto ret = subscriber->delete_contained_entities();
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }

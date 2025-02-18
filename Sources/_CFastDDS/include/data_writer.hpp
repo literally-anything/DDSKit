@@ -7,15 +7,14 @@
  */
 #pragma once
 
-#include <fastdds/dds/log/Log.hpp>
+#include <cstdint>
 #include <swift/bridging>
 
 #include "common.h"
 #include "topic.hpp"
 #include "publisher.hpp"
-#include "swift_helpers.hpp"
 
-#include <fastdds/rtps/writer/RTPSWriter.hpp>
+#include <fastdds/dds/log/Log.hpp>
 #include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/DataWriterListener.hpp>
@@ -29,34 +28,68 @@ namespace FastDDS {
         using DataWriterQos = eprosima::fastdds::dds::DataWriterQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
 
-        static INLINE DataWriterQos getDefaultQos(const Publisher &publisherWrapper) SWIFT_NAME(getDefaultQos(publisher:)) {
-            return publisherWrapper.publisher->get_default_datawriter_qos();
-        }
+
+        using onPublicationMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
+        struct Callbacks {
+            onPublicationMatched_t publicationMatchedCallback;
+        };
+
+
+        class Qos final {
+        public:
+            INLINE Qos(const Publisher &publisherWrapper) SWIFT_NAME(init(publisher:)) {
+                qos = publisherWrapper.publisher->get_default_datawriter_qos();
+            }
+
+            INLINE void setOperatingMode(bool push) SWIFT_NAME(setOperatingMode(push:)) {
+                qos.properties().properties().emplace_back("fastdds.push_mode", push ? "true" : "false");
+            }
+            INLINE void setDataSharingModeOn(const char * _Nonnull dir) SWIFT_NAME(setDataSharingMode(dir:)) {
+                qos.data_sharing().on(dir);
+            }
+            INLINE void setDataSharingModeOff() {
+                qos.data_sharing().off();
+            }
+
+            INLINE const DataWriterQos &get() const {
+                return qos;
+            }
+
+        private:
+            DataWriterQos qos;
+        };
+
 
         INLINE DataWriter(
             const Topic &topicWrapper, const Publisher &publisherWrapper,
             const std::string &profileName,
-            _FastDDSHelpers::WriterCallbacks * _Nonnull callbacks, const StatusMask &statusMask,
             bool &success
-        ) SWIFT_NAME(init(topic:publisher:profile:callbacks:statusMask:success:)) : topic(topicWrapper.topic), publisher(publisherWrapper.publisher), listener(std::make_unique<Listener>(callbacks)) {
-            dataWriter = publisher->create_datawriter_with_profile(topic, profileName, listener.get(), statusMask);
+        ) SWIFT_NAME(init(topic:publisher:profile:success:)) : topic(topicWrapper.topic), publisher(publisherWrapper.publisher) {
+            dataWriter = publisher->create_datawriter_with_profile(topic, profileName, nullptr, StatusMask::none());
             success = dataWriter != nullptr;
             destroyed = !success;
         }
 
         INLINE DataWriter(
             const Topic &topicWrapper, const Publisher &publisherWrapper,
-            const DataWriterQos &qos,
-            _FastDDSHelpers::WriterCallbacks * _Nonnull callbacks, const StatusMask &statusMask,
+            const Qos &qos,
             bool &success
-        ) SWIFT_NAME(init(topic:publisher:profile:callbacks:statusMask:success:)) : topic(topicWrapper.topic), publisher(publisherWrapper.publisher), listener(std::make_unique<Listener>(callbacks)) {
-
-            dataWriter = publisher->create_datawriter(topic, qos, listener.get(), statusMask);
+        ) SWIFT_NAME(init(topic:publisher:profile:success:)) : topic(topicWrapper.topic), publisher(publisherWrapper.publisher) {
+            dataWriter = publisher->create_datawriter(topic, qos.get(), nullptr, StatusMask::none());
             success = dataWriter != nullptr;
             destroyed = !success;
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
+            return dataWriter->enable();
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t setCallbacks(const Callbacks &callbacks) {
+            listener = std::make_unique<Listener>(callbacks);
+            return dataWriter->set_listener(listener.get(), StatusMask::publication_matched());
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
                 auto ret = publisher->delete_datawriter(dataWriter);
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
@@ -69,6 +102,7 @@ namespace FastDDS {
             return destroyed;
         }
 
+
         INLINE std::string getTopic() const SWIFT_COMPUTED_PROPERTY {
             return topic->get_name();
         }
@@ -77,39 +111,62 @@ namespace FastDDS {
             return topic->get_type_name();
         }
 
-        INLINE StatusMask getStatusMask() const SWIFT_COMPUTED_PROPERTY {
-            return dataWriter->get_status_mask();
-        }
-        INLINE void setStatusMask(const StatusMask &mask) SWIFT_COMPUTED_PROPERTY {
-            dataWriter->set_listener(listener.get(), mask);
-        }
-
-        INLINE DataWriterQos getQos() const SWIFT_COMPUTED_PROPERTY {
-            return dataWriter->get_qos();
-        }
-        INLINE void setQos(const DataWriterQos &qos) SWIFT_COMPUTED_PROPERTY {
-            if (dataWriter->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
-                EPROSIMA_LOG_WARNING(DataWriter, "Failed to set QoS");
-            }
+        INLINE int32_t getMatchedCount() const SWIFT_COMPUTED_PROPERTY {
+            eprosima::fastdds::dds::PublicationMatchedStatus status;
+            dataWriter->get_publication_matched_status(status);
+            return status.current_count;
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t write(
-            const void *const data, const eprosima::fastdds::rtps::WriteParams &params
-        ) SWIFT_NAME(write(data:params:)) {
-            return dataWriter->write(data, const_cast<eprosima::fastdds::rtps::WriteParams &>(params));
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t write(const void * _Nonnull const data) SWIFT_NAME(write(data:)) {
+            return dataWriter->write(data);
+        }
+
+        static INLINE int getLoanInitKindNone() {
+            return static_cast<std::underlying_type_t<_DataWriter::LoanInitializationKind>>(
+                _DataWriter::LoanInitializationKind::NO_LOAN_INITIALIZATION
+            );
+        }
+        static INLINE int getLoanInitKindZero() {
+            return static_cast<std::underlying_type_t<_DataWriter::LoanInitializationKind>>(
+                _DataWriter::LoanInitializationKind::ZERO_LOAN_INITIALIZATION
+            );
+        }
+        static INLINE int getLoanInitKindConstructed() {
+            return static_cast<std::underlying_type_t<_DataWriter::LoanInitializationKind>>(
+                _DataWriter::LoanInitializationKind::CONSTRUCTED_LOAN_INITIALIZATION
+            );
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t loan(
+            void * _Nullable &data, int initKind
+        ) SWIFT_NAME(loan(dataPtr:initKind:)) {
+            return dataWriter->loan_sample(data, static_cast<_DataWriter::LoanInitializationKind>(initKind));
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t discardLoan(void * _Nonnull &data) SWIFT_NAME(discardLoan(dataPtr:)) {
+            return dataWriter->discard_loan(data);
         }
 
     private:
         class Listener final : public eprosima::fastdds::dds::DataWriterListener {
         public:
-            _FastDDSHelpers::WriterCallbacks *callbacks;
+            explicit Listener(const Callbacks &callbacks);
+            ~Listener() override;
 
-            INLINE explicit Listener(_FastDDSHelpers::WriterCallbacks *callbacks) : callbacks(callbacks) {}
+            // Non-copyable because it would deallocate the blocks
+            Listener( const Listener& ) = delete;
+            Listener& operator=( const Listener& ) = delete;
+
+            void on_publication_matched(_DataWriter * _Nonnull writer, const eprosima::fastdds::dds::PublicationMatchedStatus &info) override;
+
+        private:
+            onPublicationMatched_t publicationMatchedCallback;
         };
 
-        Topic::_Topic *topic;
-        Publisher::_Publisher *publisher;
-        _DataWriter *dataWriter;
+        Topic::_Topic * _Nonnull topic;
+        Publisher::_Publisher * _Nonnull publisher;
+        _DataWriter * _Nonnull dataWriter;
         std::unique_ptr<Listener> listener;
 
         bool destroyed = false;
