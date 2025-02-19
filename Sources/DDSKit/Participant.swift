@@ -73,6 +73,9 @@ public final class DDSParticipant: @unchecked Sendable {
             throw DDSError.initializationError(from: .participant)
         }
 
+        // If this isn't enabled before creating the publisher and subscriber, it segfaults when creating a reader or witer.
+        try FastDDSErrorCode.checkThrow(raw.enable(), from: .participant)
+
         rawPublisher = FastDDS.Publisher(
             participant: raw, 
             profile: FastDDS.Publisher.getDefaultQos(participant: raw),
@@ -113,7 +116,6 @@ public final class DDSParticipant: @unchecked Sendable {
             from: .participant
         )
 
-        try FastDDSErrorCode.checkThrow(raw.enable(), from: .participant)
         try FastDDSErrorCode.checkThrow(rawPublisher.enable(), from: .publisher)
         try FastDDSErrorCode.checkThrow(rawSubscriber.enable(), from: .subscriber)
     }
