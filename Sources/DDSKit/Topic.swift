@@ -26,7 +26,7 @@ public final class DDSTopic<T: CDRCodable> : @unchecked Sendable {
         raw = FastDDS.Topic(
             participant: participant.raw,
             topic: .init(topic), typeSupport: T.ddsTopicType.typeSupport,
-            profile: FastDDS.Topic.getDefaultQos(participant: participant.raw),
+            // profile: FastDDS.Topic.Qos(participant: participant.raw),
             success: &success
         )
         if !success {

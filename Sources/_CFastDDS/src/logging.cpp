@@ -7,9 +7,6 @@
  */
 #include "logging.hpp"
 
-#include <mutex>
-#include <memory>
-
 #include "swift_helpers.hpp"
 
 #include <fastdds/dds/log/Log.hpp>
@@ -59,18 +56,12 @@ private:
 namespace FastDDS {
 
     void initLogging() {
-        static std::mutex mutex;
-        std::lock_guard<std::mutex> lock(mutex);
+        Log::ClearConsumers();
 
-        static bool initialized = false;
-        if (!initialized) {
-            Log::ClearConsumers();
+        Log::RegisterConsumer(std::make_unique<SwiftLogConsumer>());
 
-            Log::RegisterConsumer(std::make_unique<SwiftLogConsumer>());
-
-            // Use the lowest verbosity level so that all messages are passed through and log levels can be handled by swift-log
-            Log::SetVerbosity(Log::Kind::Info);
-        }
+        // Use the lowest verbosity level so that all messages are passed through and log levels can be handled by swift-log
+        Log::SetVerbosity(Log::Kind::Info);
     }
 
 }

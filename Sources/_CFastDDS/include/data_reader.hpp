@@ -12,9 +12,7 @@
 #include "common.h"
 #include "topic.hpp"
 #include "subscriber.hpp"
-#include "swift_helpers.hpp"
 
-#include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
@@ -27,26 +25,53 @@ namespace FastDDS {
         using DataReaderQos = eprosima::fastdds::dds::DataReaderQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
 
-        static INLINE DataReaderQos getDefaultQos(const Subscriber &subscriberWrapper) SWIFT_NAME(getDefaultQos(subscriber:)) {
-            return subscriberWrapper.subscriber->get_default_datareader_qos();
-        }
+        
+        using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
+        using onData_t = void (^ SENDABLE _Nonnull)(const void * _Nonnull const data);
+        struct Callbacks {
+            onSubscriptionMatched_t subscriptionMatchedCallback;
+            onData_t onDataCallback;
+        };
+
+
+        class Qos final {
+        public:
+            INLINE Qos(const Subscriber &subscriberWrapper) SWIFT_NAME(init(subscriber:)) {
+                qos = subscriberWrapper.subscriber->get_default_datareader_qos();
+            }
+
+            INLINE void setDataSharingModeOn(const char * _Nonnull dir) SWIFT_NAME(setDataSharingMode(dir:)) {
+                qos.data_sharing().on(dir);
+            }
+            INLINE void setDataSharingModeOff() {
+                qos.data_sharing().off();
+            }
+
+            INLINE const DataReaderQos &get() const {
+                return qos;
+            }
+
+        private:
+            DataReaderQos qos;
+        };
+
 
         INLINE DataReader(
             const Topic &topicWrapper, const Subscriber &subscriberWrapper,
             const std::string &profileName,
-            _FastDDSHelpers::ReaderCallbacks * _Nonnull callbacks, const StatusMask &statusMask, bool &success
-        ) SWIFT_NAME(init(topic:subscriber:profile:callbacks:statusMask:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber), listener(std::make_unique<Listener>(callbacks)) {
-            dataReader = subscriber->create_datareader_with_profile(topic, profileName, listener.get(), statusMask);
+            bool &success
+        ) SWIFT_NAME(init(topic:subscriber:profile:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber) {
+            dataReader = subscriber->create_datareader_with_profile(topic, profileName, nullptr, StatusMask::none());
             success = dataReader != nullptr;
             destroyed = !success;
         }
 
         INLINE DataReader(
             const Topic &topicWrapper, const Subscriber &subscriberWrapper,
-            const DataReaderQos &qos,
-            _FastDDSHelpers::ReaderCallbacks * _Nonnull callbacks, const StatusMask &statusMask, bool &success
-        ) SWIFT_NAME(init(topic:subscriber:profile:callbacks:statusMask:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber), listener(std::make_unique<Listener>(callbacks)) {
-            dataReader = subscriber->create_datareader(topic, qos, listener.get(), statusMask);
+            const Qos &qos,
+            bool &success
+        ) SWIFT_NAME(init(topic:subscriber:profile:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber) {
+            dataReader = subscriber->create_datareader(topic, qos.get(), nullptr, StatusMask::none());
             success = dataReader != nullptr;
             destroyed = !success;
         }
@@ -55,7 +80,12 @@ namespace FastDDS {
             return dataReader->enable();
         }
 
-        INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t setCallbacks(const Callbacks &callbacks) {
+            listener = std::make_unique<Listener>(callbacks);
+            return dataReader->set_listener(listener.get(), StatusMask::subscription_matched());
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
                 auto ret = subscriber->delete_datareader(dataReader);
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
@@ -68,36 +98,29 @@ namespace FastDDS {
             return destroyed;
         }
 
-        INLINE std::string getTopic() const SWIFT_COMPUTED_PROPERTY {
-            return topic->get_name();
-        }
 
-        INLINE std::string getTypeName() const SWIFT_COMPUTED_PROPERTY {
-            return topic->get_type_name();
-        }
-
-        INLINE StatusMask getStatusMask() const SWIFT_COMPUTED_PROPERTY {
-            return dataReader->get_status_mask();
-        }
-        INLINE void setStatusMask(const StatusMask &mask) SWIFT_COMPUTED_PROPERTY {
-            dataReader->set_listener(listener.get(), mask);
-        }
-
-        INLINE DataReaderQos getQos() const SWIFT_COMPUTED_PROPERTY {
-            return dataReader->get_qos();
-        }
-        INLINE void setQos(const DataReaderQos &qos) SWIFT_COMPUTED_PROPERTY {
-            if (dataReader->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
-                EPROSIMA_LOG_WARNING(DataReader, "Failed to set QoS");
-            }
+        INLINE int32_t getMatchedCount() const SWIFT_COMPUTED_PROPERTY {
+            eprosima::fastdds::dds::SubscriptionMatchedStatus status;
+            dataReader->get_subscription_matched_status(status);
+            return status.current_count;
         }
 
     private:
         class Listener final : public eprosima::fastdds::dds::DataReaderListener {
         public:
-            _FastDDSHelpers::ReaderCallbacks * _Nonnull callbacks;
+            explicit Listener(const Callbacks &callbacks);
+            ~Listener() override;
 
-            INLINE explicit Listener(_FastDDSHelpers::ReaderCallbacks * _Nonnull callbacks) : callbacks(callbacks) {}
+            // Non-copyable because it would deallocate the blocks
+            Listener( const Listener& ) = delete;
+            Listener& operator=( const Listener& ) = delete;
+
+            void on_subscription_matched(_DataReader * _Nonnull reader, const eprosima::fastdds::dds::SubscriptionMatchedStatus &info) override;
+            void on_data_available(_DataReader * _Nonnull reader) override;
+
+        private:
+            onSubscriptionMatched_t subscriptionMatchedCallback;
+            onData_t onDataCallback;
         };
 
         Topic::_Topic * _Nonnull topic;

@@ -112,7 +112,14 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
     ) throws(DDSError) {
         let error = check(code)
         if let error {
-            throw .internalError(code: error, from: entity, file: file, function: function, line: line, column: column)
+            switch error {
+                case .outOfResources:
+                    throw .outOfMemory
+                case .timeout:
+                    throw .timeout
+                default:
+                    throw .internalError(code: error, from: entity, file: file, function: function, line: line, column: column)
+            }
         }
     }
 }

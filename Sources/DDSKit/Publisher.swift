@@ -56,7 +56,7 @@ public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
             throw DDSError.initializationError(from: .dataWriter)
         }
 
-        try FastDDSErrorCode.checkThrow(
+        try FastDDSErrorCode.checkThrowInternal(
             raw.setCallbacks(
                 .init { [unowned self] subscriptionCount, countChange in
                     // Called when the number of subscriptions changes
@@ -101,6 +101,29 @@ extension DDSPublisher {
     public func publish(_ message: borrowing Message) throws(DDSError) {
         try withUnsafePointer(to: message) { messagePtr throws(DDSError) in
             try publishRaw(messagePtr)
+        }
+    }
+}
+
+extension DDSPublisher {
+    /// The current number of subscribers to the topic.
+    public var subscriberCount: Int {
+        Int(raw.matchedCount)
+    }
+
+    /// Waits for a subscriber to subscribe to the topic.
+    /// Returns immediately if there is already a subscriber.
+    public func waitForSubscriber() async {
+        guard raw.matchedCount >= 0 else {
+            return
+        }
+
+        await withUnsafeContinuation { continuation in
+            matchCallbacks.withLock { callbacks in
+                callbacks.append {
+                    continuation.resume()
+                }
+            }
         }
     }
 }
@@ -173,29 +196,6 @@ extension DDSPublisher {
         case zero
         /// This will call the default initializer for the type to initialize the memory.
         case constructed
-    }
-}
-
-extension DDSPublisher {
-    /// The current number of subscribers to the topic.
-    public var subscriberCount: Int {
-        Int(raw.matchedCount)
-    }
-
-    /// Waits for a subscriber to subscribe to the topic.
-    /// Returns immediately if there is already a subscriber.
-    public func waitForSubscriber() async {
-        guard raw.matchedCount <= 0 else {
-            return
-        }
-
-        await withUnsafeContinuation { continuation in
-            matchCallbacks.withLock { callbacks in
-                callbacks.append {
-                    continuation.resume()
-                }
-            }
-        }
     }
 }
 

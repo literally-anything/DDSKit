@@ -12,7 +12,6 @@
 #include "common.h"
 #include "participant.hpp"
 
-#include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/topic/Topic.hpp>
 #include <fastdds/dds/topic/TopicListener.hpp>
 #include <fastdds/dds/topic/qos/TopicQos.hpp>
@@ -34,9 +33,19 @@ namespace FastDDS {
             onInconsistentTopic_t inconsitentTopicCallback;
         };
 
-        static INLINE TopicQos getDefaultQos(const Participant &participantWrapper) SWIFT_NAME(getDefaultQos(participant:)) {
-            return participantWrapper.participant->get_default_topic_qos();
-        }
+        // class Qos final {
+        // public:
+        //     INLINE Qos(const Participant &participantWrapper) SWIFT_NAME(init(participant:)) {
+        //         qos = participantWrapper.participant->get_default_topic_qos();
+        //     }
+
+        //     INLINE const TopicQos &get() const {
+        //         return qos;
+        //     }
+
+        // private:
+        //     TopicQos qos;
+        // };
 
         INLINE Topic(
             const Participant &participantWrapper, const std::string &topicName, TypeSupport typeSupport,
@@ -54,12 +63,12 @@ namespace FastDDS {
 
         INLINE Topic(
             const Participant &participantWrapper, const std::string &topicName, TypeSupport typeSupport,
-            TopicQos qos,
+            // const Qos &qos,
             bool &success
-        ) SWIFT_NAME(init(participant:topic:typeSupport:profile:success:)) : participant(participantWrapper.participant) {
+        ) SWIFT_NAME(init(participant:topic:typeSupport:success:)) : participant(participantWrapper.participant) {
             topic = participant->create_topic(
                 topicName, typeSupport.get_type_name(),
-                qos,
+                participant->get_default_topic_qos(),
                 nullptr, StatusMask::none()
             );
             success = topic != nullptr;

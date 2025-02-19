@@ -9,8 +9,6 @@
 
 #include <../lib/swift/Block/Block.h>
 
-#include <fastdds/dds/core/status/PublicationMatchedStatus.hpp>
-
 using namespace eprosima::fastdds::dds;
 
 namespace FastDDS {

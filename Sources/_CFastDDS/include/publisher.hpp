@@ -11,10 +11,7 @@
 
 #include "common.h"
 #include "participant.hpp"
-#include "swift_helpers.hpp"
 
-#include <fastdds/dds/log/Log.hpp>
-#include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/publisher/qos/PublisherQos.hpp>
 
@@ -28,9 +25,19 @@ namespace FastDDS {
         using PublisherQos = eprosima::fastdds::dds::PublisherQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
 
-        static INLINE PublisherQos getDefaultQos(const Participant &participantWrapper) SWIFT_NAME(getDefaultQos(participant:)) {
-            return participantWrapper.participant->get_default_publisher_qos();
-        }
+        // class Qos final {
+        // public:
+        //     INLINE Qos(const Participant &participantWrapper) SWIFT_NAME(init(participant:)) {
+        //         qos = participantWrapper.participant->get_default_publisher_qos();
+        //     }
+
+        //     INLINE const PublisherQos &get() const {
+        //         return qos;
+        //     }
+
+        // private:
+        //     PublisherQos qos;
+        // };
 
         INLINE Publisher(
             const Participant &participantWrapper, const std::string &profileName, bool &success
@@ -41,11 +48,11 @@ namespace FastDDS {
         }
 
         INLINE Publisher(
-            const Participant &participantWrapper, PublisherQos qos, bool &success
-        ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
-            qos.entity_factory().autoenable_created_entities = false;
-
-            publisher = participant->create_publisher(qos, nullptr, StatusMask::none());
+            const Participant &participantWrapper,
+            // const Qos &qos,
+            bool &success
+        ) SWIFT_NAME(init(participant:success:)) : participant(participantWrapper.participant) {
+            publisher = participant->create_publisher(participant->get_default_publisher_qos(), nullptr, StatusMask::none());
             success = publisher != nullptr;
             destroyed = !success;
         }

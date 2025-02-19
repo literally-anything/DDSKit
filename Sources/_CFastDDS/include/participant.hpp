@@ -7,23 +7,14 @@
  */
 #pragma once
 
-#include <mutex>
-#include <memory>
-#include <string>
 #include <swift/bridging>
 
 #include "common.h"
 #include "GenericTopicType.hpp"
 
-#include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/common/Guid.hpp>
-#include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
-#include <fastdds/dds/domain/qos/DomainParticipantFactoryQos.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
-#include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
-#include <fastcdr/cdr/fixed_size_string.hpp>
 
 class Publisher;
 class Subscriber;
@@ -44,24 +35,47 @@ namespace FastDDS {
             onParticipantDiscovery_t participantDiscoveryCallback;
         };
 
-        static INLINE DomainParticipantQos getDefaultQos() SWIFT_COMPUTED_PROPERTY {
-            return DomainParticipantFactory::get_instance()->get_default_participant_qos();
-        }
+        class Qos final {
+        public:
+            INLINE Qos() {
+                qos = DomainParticipantFactory::get_instance()->get_default_participant_qos();
+            }
 
-        INLINE Participant(
-            DomainID domainId, const std::string &profileName, bool &success
-        ) SWIFT_NAME(init(domain:profile:success:)) {
-            participant = getFactory()->create_participant_with_profile(domainId, profileName, nullptr, StatusMask::none());
+            INLINE void setName(const char * _Nonnull name) {
+                qos.name(eprosima::fastcdr::string_255(name));
+            }
+            INLINE void setIgnoreLocalEndpoints(bool ignore) {
+                qos.properties().properties().emplace_back("fastdds.ignore_local_endpoints", ignore ? "true" : "false");
+            }
+
+            INLINE const DomainParticipantQos &get() const {
+                return qos;
+            }
+
+        private:
+            DomainParticipantQos qos;
+        };
+
+        INLINE Participant(DomainID domainId, const Qos &qos, bool &success) SWIFT_NAME(init(domain:profile:success:)) {
+            participant = getFactory()->create_participant(domainId, qos.get(), nullptr, StatusMask::none());
             success = participant != nullptr;
             destroyed = !success;
-        }
 
-        INLINE Participant(DomainID domainId, DomainParticipantQos qos, bool &success) SWIFT_NAME(init(domain:profile:success:)) {
-            qos.entity_factory().autoenable_created_entities = false;
+            auto publisherQos = participant->get_default_subscriber_qos();
+            publisherQos.entity_factory().autoenable_created_entities = false;
+            if (participant->set_default_subscriber_qos(publisherQos) != eprosima::fastdds::dds::RETCODE_OK) {
+                EPROSIMA_LOG_WARNING(Participant, "Failed to set publisher QoS");
+                success = false;
+                destroy();
+            }
 
-            participant = getFactory()->create_participant(domainId, qos, nullptr, StatusMask::none());
-            success = participant != nullptr;
-            destroyed = !success;
+            auto subscriberQos = participant->get_default_subscriber_qos();
+            subscriberQos.entity_factory().autoenable_created_entities = false;
+            if (participant->set_default_subscriber_qos(subscriberQos) != eprosima::fastdds::dds::RETCODE_OK) {
+                EPROSIMA_LOG_WARNING(Participant, "Failed to set publisher QoS");
+                success = false;
+                destroy();
+            }
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
@@ -120,23 +134,6 @@ namespace FastDDS {
 
     private:
         static INLINE DomainParticipantFactory * _Nonnull getFactory() {
-            static std::mutex mutex;
-            std::lock_guard<std::mutex> lock(mutex);
-
-            static bool qos_done = false;
-            if (!qos_done) {
-                eprosima::fastdds::dds::DomainParticipantFactoryQos qos;
-                DomainParticipantFactory::get_instance()->get_qos(qos);
-
-                qos.entity_factory().autoenable_created_entities = false;
-
-                if (DomainParticipantFactory::get_instance()->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
-                    EPROSIMA_LOG_WARNING(Participant, "Failed to set participant factory QoS");
-                }
-
-                qos_done = true;
-            }
-
             return DomainParticipantFactory::get_instance();
         }
 

@@ -14,8 +14,6 @@
 #include "topic.hpp"
 #include "publisher.hpp"
 
-#include <fastdds/dds/log/Log.hpp>
-#include <fastdds/dds/core/status/StatusMask.hpp>
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/DataWriterListener.hpp>
 #include <fastdds/dds/publisher/qos/DataWriterQos.hpp>
@@ -103,20 +101,11 @@ namespace FastDDS {
         }
 
 
-        INLINE std::string getTopic() const SWIFT_COMPUTED_PROPERTY {
-            return topic->get_name();
-        }
-
-        INLINE std::string getTypeName() const SWIFT_COMPUTED_PROPERTY {
-            return topic->get_type_name();
-        }
-
         INLINE int32_t getMatchedCount() const SWIFT_COMPUTED_PROPERTY {
             eprosima::fastdds::dds::PublicationMatchedStatus status;
             dataWriter->get_publication_matched_status(status);
             return status.current_count;
         }
-
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t write(const void * _Nonnull const data) SWIFT_NAME(write(data:)) {
             return dataWriter->write(data);

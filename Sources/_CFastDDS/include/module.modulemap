@@ -9,10 +9,9 @@ module _CFastDDS {
     requires cplusplus14
 
     header "common.h"
-    header "logging.hpp"
+    header "setup.hpp"
 
-    header "qos.hpp"
-    header "status_mask.hpp"
+    // header "status_mask.hpp"
 
     header "participant.hpp"
     header "topic.hpp"
@@ -27,10 +26,6 @@ module _CFastDDS {
     header "GenericTopicType.hpp"
 
     header "old/fastdds.hpp"
-
-    link "fastdds"
-    link "fastcdr"
-    link "BlocksRuntime"
 
     export *
 }

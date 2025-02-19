@@ -46,19 +46,19 @@ public final class DDSParticipant: @unchecked Sendable {
             _ = name.dropLast(name.count - 256)
         }
 
-        // Setup swift-log with FastDDS. (Only happens on the first call)
-        FastDDS.initLogging()
+        // Setup the library wrapper. (Only happens on the first successful call)
+        try FastDDSErrorCode.checkThrowInternal(FastDDS.setup())
 
-        var qos = FastDDS.Participant.getDefaultQos()
+        var qos = FastDDS.Participant.Qos()
 
         name.withCString { cString in
-            qos.nameMutating(.init(cString))
+            qos.setName(cString)
         }
 
         for setting in settings {
             switch setting {
                 case .ignoreLocalEndpoints(let ignore):
-                    FastDDS.QOSHelpers.PropertyPolicy.addProperty(to: &qos, name: "fastdds.ignore_local_endpoints", value: ignore ? "true" : "false")
+                    qos.setIgnoreLocalEndpoints(ignore)
             }
         }
 
@@ -78,7 +78,7 @@ public final class DDSParticipant: @unchecked Sendable {
 
         rawPublisher = FastDDS.Publisher(
             participant: raw, 
-            profile: FastDDS.Publisher.getDefaultQos(participant: raw),
+            // profile: FastDDS.Publisher.Qos(participant: raw),
             success: &success
         )
         guard success else {
@@ -87,7 +87,7 @@ public final class DDSParticipant: @unchecked Sendable {
 
         rawSubscriber = FastDDS.Subscriber(
             participant: raw,
-            profile: FastDDS.Subscriber.getDefaultQos(participant: raw),
+            // profile: FastDDS.Subscriber.Qos(participant: raw),
             success: &success
         )
         guard success else {
