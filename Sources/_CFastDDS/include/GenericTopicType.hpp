@@ -21,18 +21,6 @@
 
 #include <fastdds/dds/xtypes/type_representation/TypeObjectUtils.hpp>
 
-class TypeSupportWrapper final {
-public:
-    INLINE TypeSupportWrapper(eprosima::fastdds::dds::TypeSupport &&typeSupport) : typeSupport(typeSupport) {}
-    INLINE TypeSupportWrapper(const eprosima::fastdds::dds::TypeSupport &typeSupport) : typeSupport(typeSupport) {}
-
-    INLINE std::string getName() const {
-        return typeSupport.get_type_name();
-    }
-
-    eprosima::fastdds::dds::TypeSupport typeSupport;
-};
-
 class GenericTopicType final : public eprosima::fastdds::dds::TopicDataType {
 public:
     using registerTypeCallback_t = void (^ SENDABLE _Nonnull)(eprosima::fastdds::dds::xtypes::TypeIdentifierPair &identifiers);
@@ -110,13 +98,13 @@ public:
         }
     }
 
-    INLINE static TypeSupportWrapper getTypeSupport(const GenericTopicType &type) {
-        return TypeSupportWrapper(
-            eprosima::fastdds::dds::TypeSupport(
-                new GenericTopicType(type)
-            )
-        );
-    }
+    // INLINE static TypeSupportWrapper getTypeSupport(const GenericTopicType &type) {
+    //     return TypeSupportWrapper(
+    //         eprosima::fastdds::dds::TypeSupport(
+    //             new GenericTopicType(type)
+    //         )
+    //     );
+    // }
 
     INLINE void register_type_object_representation() override {
         registerTypeCallback(type_identifiers_);

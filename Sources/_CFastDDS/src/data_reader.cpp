@@ -11,6 +11,9 @@
 
 #include "loaning_sequence.hpp"
 
+#include <fastdds/dds/core/detail/DDSReturnCode.hpp>
+#include <fastdds/dds/log/Log.hpp>
+
 using namespace eprosima::fastdds::dds;
 
 namespace FastDDS {
@@ -18,11 +21,13 @@ namespace FastDDS {
     DataReader::Listener::Listener(const Callbacks &callbacks) {
         subscriptionMatchedCallback = Block_copy(callbacks.subscriptionMatchedCallback);
         onDataCallback = Block_copy(callbacks.onDataCallback);
+        onErrorCallback = Block_copy(callbacks.onErrorCallback);
     }
 
     DataReader::Listener::~Listener() {
         Block_release(subscriptionMatchedCallback);
         Block_release(onDataCallback);
+        Block_release(onErrorCallback);
     }
 
     void DataReader::Listener::on_subscription_matched(_DataReader *writer, const SubscriptionMatchedStatus &info) {
@@ -30,12 +35,11 @@ namespace FastDDS {
     }
 
     void DataReader::Listener::on_data_available(_DataReader *reader) {
-
         LoaningSequence data;
         SampleInfoSeq infos;
         // Loan a sequence of messages
-        while (RETCODE_OK == reader->take(data, infos))
-        {
+        ReturnCode_t ret = reader->take(data, infos);
+        while (ret == RETCODE_OK) {
             // Iterate over each message
             for (LoanableCollection::size_type i = 0; i < infos.length(); ++i)
             {
@@ -48,6 +52,14 @@ namespace FastDDS {
 
             // Return the loan so the dataWriter can reuse the memory
             reader->return_loan(data, infos);
+
+            // Try to take another sequence
+            ret = reader->take(data, infos);
+        }
+
+        if (ret != RETCODE_NO_DATA) {
+            EPROSIMA_LOG_INFO(DataReader::Listener, "Error while taking data: " << ret);
+            onErrorCallback(ret);
         }
     }
 

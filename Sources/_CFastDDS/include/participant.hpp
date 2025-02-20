@@ -10,7 +10,7 @@
 #include <swift/bridging>
 
 #include "common.h"
-#include "GenericTopicType.hpp"
+#include "type_support.hpp"
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
@@ -66,7 +66,7 @@ namespace FastDDS {
             if (participant->set_default_subscriber_qos(publisherQos) != eprosima::fastdds::dds::RETCODE_OK) {
                 EPROSIMA_LOG_WARNING(Participant, "Failed to set publisher QoS");
                 success = false;
-                destroy();
+                static_cast<void>(destroy());
             }
 
             auto subscriberQos = participant->get_default_subscriber_qos();
@@ -74,7 +74,7 @@ namespace FastDDS {
             if (participant->set_default_subscriber_qos(subscriberQos) != eprosima::fastdds::dds::RETCODE_OK) {
                 EPROSIMA_LOG_WARNING(Participant, "Failed to set publisher QoS");
                 success = false;
-                destroy();
+                static_cast<void>(destroy());
             }
         }
 

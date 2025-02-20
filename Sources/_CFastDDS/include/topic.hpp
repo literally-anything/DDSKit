@@ -11,10 +11,11 @@
 
 #include "common.h"
 #include "participant.hpp"
+#include "type_support.hpp"
 
 #include <fastdds/dds/topic/Topic.hpp>
-#include <fastdds/dds/topic/TopicListener.hpp>
-#include <fastdds/dds/topic/qos/TopicQos.hpp>
+
+#define MAX_TOPIC_SEARCH_SECONDS 2
 
 class DataWriter;
 class DataReader;
@@ -27,11 +28,6 @@ namespace FastDDS {
         using TopicQos = eprosima::fastdds::dds::TopicQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
         using TypeSupport = eprosima::fastdds::dds::TypeSupport;
-
-        using onInconsistentTopic_t = void (^ SENDABLE _Nonnull)();
-        struct Callbacks {
-            onInconsistentTopic_t inconsitentTopicCallback;
-        };
 
         // class Qos final {
         // public:
@@ -48,40 +44,24 @@ namespace FastDDS {
         // };
 
         INLINE Topic(
-            const Participant &participantWrapper, const std::string &topicName, TypeSupport typeSupport,
-            const std::string &profileName,
-            bool &success
-        ) SWIFT_NAME(init(participant:topic:typeSupport:profile:success:)) : participant(participantWrapper.participant) {
-            topic = participant->create_topic_with_profile(
-                topicName, typeSupport.get_type_name(),
-                profileName,
-                nullptr, StatusMask::none()
-            );
-            success = topic != nullptr;
-            destroyed = !success;
-        }
-
-        INLINE Topic(
-            const Participant &participantWrapper, const std::string &topicName, TypeSupport typeSupport,
+            const Participant &participantWrapper, const std::string &topicName, const TypeSupportWrapper &typeSupport,
             // const Qos &qos,
             bool &success
         ) SWIFT_NAME(init(participant:topic:typeSupport:success:)) : participant(participantWrapper.participant) {
-            topic = participant->create_topic(
-                topicName, typeSupport.get_type_name(),
-                participant->get_default_topic_qos(),
-                nullptr, StatusMask::none()
-            );
+            topic = participant->find_topic(topicName, eprosima::fastdds::dds::Duration_t(MAX_TOPIC_SEARCH_SECONDS));
+            if (topic == nullptr) {
+                topic = participant->create_topic(
+                    topicName, typeSupport.typeSupport.get_type_name(),
+                    participant->get_default_topic_qos(),
+                    nullptr, StatusMask::none()
+                );
+            }
             success = topic != nullptr;
             destroyed = !success;
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
             return topic->enable();
-        }
-
-        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t setCallbacks(const Callbacks &callbacks) {
-            listener = std::make_unique<Listener>(callbacks);
-            return topic->set_listener(listener.get(), StatusMask::inconsistent_topic());
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
@@ -107,34 +87,9 @@ namespace FastDDS {
             return topic->get_type_name();
         }
 
-        INLINE TopicQos getQos() const SWIFT_COMPUTED_PROPERTY {
-            return topic->get_qos();
-        }
-        INLINE void setQos(const TopicQos &qos) SWIFT_COMPUTED_PROPERTY {
-            if (topic->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
-                EPROSIMA_LOG_WARNING(Topic, "Failed to set QoS");
-            }
-        }
-
     private:
-        class Listener final : public eprosima::fastdds::dds::TopicListener {
-        public:
-            explicit Listener(const Callbacks &callbacks);
-            ~Listener() override;
-
-            // Non-copyable because it would deallocate the blocks
-            Listener( const Listener& ) = delete;
-            Listener& operator=( const Listener& ) = delete;
-
-            void on_inconsistent_topic(_Topic * _Nullable topic, eprosima::fastdds::dds::InconsistentTopicStatus status) override;
-        
-        private:
-            onInconsistentTopic_t inconsitentTopicCallback;
-        };
-
         _Topic * _Nonnull topic;
         Participant::DomainParticipant * _Nonnull participant;
-        std::unique_ptr<Listener> listener;
 
         bool destroyed = false;
 

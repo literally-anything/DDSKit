@@ -7,11 +7,6 @@
  */
 internal import _CFastDDS
 
-@available(*, deprecated)
-public enum DDSKitError: Error {
-    case SynchronizationError
-}
-
 /// An error in DDSKit
 public enum DDSError: Error {
     /// Thrown when an operation fails because the system is out of memory.

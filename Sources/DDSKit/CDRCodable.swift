@@ -5,10 +5,10 @@
  * Created by Hunter Baker on 1/23/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-public import _CFastDDS
+internal import _CFastDDS
 
-public protocol CDRCodable {
-    static var ddsTopicType: TypeSupportWrapper { get }
+public protocol CDRCodable: Sendable {
+    static var ddsTopicType: DynamicTypeDescription { get }
 }
 
 // public struct CDREncodingInfo<T: CDRCodable> {

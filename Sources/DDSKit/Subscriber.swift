@@ -10,23 +10,26 @@ internal import _CFastDDS
 
 // extension DataReader: DestroyableEntity {}
 
-public final class DDSSubscriber<T: CDRCodable> : @unchecked Sendable {
+public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
     /// The topic that this subscriber is subscribed to.
-    public let topic: DDSTopic<T>
+    public let topic: DDSTopic<Message>
     /// A wrapper around the underlying FastDDS DataReader.
     /// The wrapper is needed because the FastDDS DataReader is mostly virtual and fails to import into swift.
     internal var raw: FastDDS.DataReader
 
     /// A list of callbacks to call when a the publisher count goes above 0.
     /// This list is cleared after every time the callbacks are run.
-    private let matchCallbacks: Mutex<[() -> Void]> = Mutex([])
-
+    private let matchCallbacks: Mutex<[@Sendable () -> Void]> = Mutex([])
     /// A list of callbacks to call when a message arrives.
     /// If a callback returns true, it will be removed from the list.
     @usableFromInline
-    internal let dataCallbacks: Mutex<[(UnsafeRawPointer) -> Bool]> = Mutex([])
+    internal let dataCallbacks: Mutex<[@Sendable (UnsafeRawPointer) -> Bool]> = Mutex([])
+    /// A list of callbacks to call when an error occurs while loaning messages.
+    /// If a callback returns true, it will be removed from the list.
+    @usableFromInline
+    internal let errorCallbacks: Mutex<[@Sendable (Int32) -> Bool]> = Mutex([])
 
-    public init(topic: DDSTopic<T>, settings: [Setting] = []) throws(DDSError) {
+    public init(topic: DDSTopic<Message>, settings: [Setting] = []) throws(DDSError) {
         self.topic = topic
 
         var qos = FastDDS.DataReader.Qos(subscriber: topic.participant.rawSubscriber)
@@ -54,7 +57,7 @@ public final class DDSSubscriber<T: CDRCodable> : @unchecked Sendable {
         }
 
         try FastDDSErrorCode.checkThrowInternal(
-                raw.setCallbacks(
+            raw.setCallbacks(
                 .init { [unowned self] publisherCount, countChange in
                     // Called when the number of publishers changes
                     if publisherCount > 0 {
@@ -85,12 +88,39 @@ public final class DDSSubscriber<T: CDRCodable> : @unchecked Sendable {
                             index -= 1
                         }
                     }
+                } onErrorCallback: { [unowned self] errorCode in
+                    // Called when an unexpexted error is encountered while loaning messages
+                    errorCallbacks.withLock { callbacks in
+                        guard !callbacks.isEmpty else {
+                            return
+                        }
+
+                        var index = callbacks.count - 1
+                        let reversedCallbacks: ReversedCollection<_> = callbacks.reversed()
+                        for callback in reversedCallbacks {
+                            if callback(errorCode) {
+                                callbacks.remove(at: index)
+                            }
+                            index -= 1
+                        }
+                    }
                 }
             ),
             from: .dataReader
         )
 
         try FastDDSErrorCode.checkThrow(raw.enable())
+    }
+
+    deinit {
+        let ret = FastDDSErrorCode.check(raw.destroy())
+        if let ret {
+            let error = DDSError.destructionError(
+                from: .dataReader,
+                ret
+            )
+            fatalError("\(error)")
+        }
     }
 }
 
@@ -103,8 +133,7 @@ extension DDSSubscriber {
     /// Waits for a publisher to be created on the topic.
     /// Returns immediately if there is already a publisher.
     public func waitForPublisher() async {
-        print(raw.matchedCount)
-        guard raw.matchedCount >= 0 else {
+        if raw.matchedCount > 0 {
             return
         }
 
@@ -119,19 +148,51 @@ extension DDSSubscriber {
 }
 
 extension DDSSubscriber {
+    /// A single error that can be thrown in a message callback to unregister the callback.
+    public enum UnregisterCallbackError: Error {
+        /// Unregisters the callback when thrown from a subscriber message callback.
+        case unregister
+    }
+
     @inlinable
-    public var messages: AsyncStream<T> {
-        AsyncStream { continuation in
+    public func registerMessageCallback(_ callback: @Sendable @escaping (borrowing Message) throws(UnregisterCallbackError) -> Void) {
+        dataCallbacks.withLock { callbacks in
+            callbacks.append { dataPtr in
+                do throws(UnregisterCallbackError) {
+                    try callback(dataPtr.assumingMemoryBound(to: Message.self).pointee)
+                } catch {
+                    return true
+                }
+                return false
+            }
+        }
+    }
+}
+
+extension DDSSubscriber {
+    @inlinable
+    public var messages: AsyncThrowingStream<Message, Error> {
+        AsyncThrowingStream(bufferingPolicy: .unbounded) { continuation in
             let end = Atomic(false)
             dataCallbacks.withLock { @Sendable callbacks in
                 callbacks.append { dataPtr in
                     guard !end.load(ordering: .relaxed) else {
                         return true
                     }
-                    guard case .enqueued(_) = continuation.yield(dataPtr.assumingMemoryBound(to: T.self).pointee) else {
+                    guard case .enqueued(_) = continuation.yield(dataPtr.assumingMemoryBound(to: Message.self).pointee) else {
                         return true
                     }
                     return false
+                }
+            }
+            errorCallbacks.withLock { @Sendable callbacks in
+                callbacks.append { errorCode in
+                    do {
+                        try FastDDSErrorCode.checkThrowInternal(errorCode, from: .dataReader)
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
+                    return true
                 }
             }
             continuation.onTermination = { @Sendable _ in

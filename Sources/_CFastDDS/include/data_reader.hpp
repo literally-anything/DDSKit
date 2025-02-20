@@ -28,9 +28,11 @@ namespace FastDDS {
         
         using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
         using onData_t = void (^ SENDABLE _Nonnull)(const void * _Nonnull const data);
+        using onError_t = void (^ SENDABLE _Nonnull)(const eprosima::fastdds::dds::ReturnCode_t error);
         struct Callbacks {
             onSubscriptionMatched_t subscriptionMatchedCallback;
             onData_t onDataCallback;
+            onError_t onErrorCallback;
         };
 
 
@@ -82,7 +84,7 @@ namespace FastDDS {
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t setCallbacks(const Callbacks &callbacks) {
             listener = std::make_unique<Listener>(callbacks);
-            return dataReader->set_listener(listener.get(), StatusMask::subscription_matched());
+            return dataReader->set_listener(listener.get(), StatusMask::subscription_matched() << StatusMask::data_available());
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
@@ -121,6 +123,7 @@ namespace FastDDS {
         private:
             onSubscriptionMatched_t subscriptionMatchedCallback;
             onData_t onDataCallback;
+            onError_t onErrorCallback;
         };
 
         Topic::_Topic * _Nonnull topic;

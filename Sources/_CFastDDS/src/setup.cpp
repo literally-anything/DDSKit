@@ -7,14 +7,15 @@
  */
 #include "setup.hpp"
 
-#include <fastdds/dds/core/detail/DDSReturnCode.hpp>
 #include <mutex>
 
 #include "logging.hpp"
 
+#include <fastdds/LibrarySettings.hpp>
 #include <fastdds/dds/core/ReturnCode.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 
+using eprosima::fastdds::LibrarySettings;
 using namespace eprosima::fastdds::dds;
 
 namespace FastDDS {
@@ -46,6 +47,12 @@ namespace FastDDS {
                 EPROSIMA_LOG_WARNING(Participant, "Failed to set default participant QoS");
                 return setDefaultQosRet;
             }
+
+            // Default to intraprocess delivery enabled
+            LibrarySettings library_settings;
+            DomainParticipantFactory::get_instance()->get_library_settings(library_settings);
+            library_settings.intraprocess_delivery = eprosima::fastdds::INTRAPROCESS_FULL;
+            DomainParticipantFactory::get_instance()->set_library_settings(library_settings);
 
             setup_done = true;
         }

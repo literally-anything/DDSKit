@@ -20,7 +20,7 @@ public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
 
     /// A list of callbacks to call when a the subscriber count goes above 0.
     /// This list is cleared after every time the callbacks are run.
-    private let matchCallbacks: Mutex<[() -> Void]> = Mutex([])
+    private let matchCallbacks: Mutex<[@Sendable () -> Void]> = Mutex([])
 
     /// Initializes a new DDSPublisher on the given topic and with the given settings.
     /// - Parameters:
@@ -79,6 +79,17 @@ public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
 
         try FastDDSErrorCode.checkThrow(raw.enable())
     }
+
+    deinit {
+        let ret = FastDDSErrorCode.check(raw.destroy())
+        if let ret {
+            let error = DDSError.destructionError(
+                from: .dataWriter,
+                ret
+            )
+            fatalError("\(error)")
+        }
+    }
 }
 
 extension DDSPublisher {
@@ -114,7 +125,7 @@ extension DDSPublisher {
     /// Waits for a subscriber to subscribe to the topic.
     /// Returns immediately if there is already a subscriber.
     public func waitForSubscriber() async {
-        guard raw.matchedCount >= 0 else {
+        if raw.matchedCount > 0 {
             return
         }
 
@@ -137,7 +148,7 @@ extension DDSPublisher {
     /// - Throws: DDSError if the loan fails.
     @usableFromInline
     internal func loan(initializationMode: LoanInitializationMode) throws(DDSError) -> UnsafeMutableRawPointer {
-        precondition(Message.ddsTopicType.typeSupport.is_bounded(), "Loan is only supported for plain and bounded types.")
+        precondition(Message.ddsTopicType.typeSupport.typeSupport.is_bounded(), "Loan is only supported for plain and bounded types.")
 
         // The LoanInitiationKind enum isn't bridged to swift. This is a painful workaround.
         let initKind: CInt = switch initializationMode {
@@ -150,7 +161,10 @@ extension DDSPublisher {
         }
 
         var sample: UnsafeMutableRawPointer?
-        raw.loan(dataPtr: &sample, initKind: initKind)
+        let retcode = raw.loan(dataPtr: &sample, initKind: initKind)
+        if let error = FastDDSErrorCode.check(retcode) {
+            throw DDSError.publishError(error)
+        }
         return sample!
     }
     /// Discards a loaned previously message.
@@ -160,7 +174,10 @@ extension DDSPublisher {
     /// - Throws: DDSError if the loan fails.
     @usableFromInline
     internal func discardLoan(_ sample: consuming UnsafeMutableRawPointer) throws(DDSError) {
-        raw.discardLoan(dataPtr: &sample)
+        let retcode = raw.discardLoan(dataPtr: &sample)
+        if let error = FastDDSErrorCode.check(retcode) {
+            throw DDSError.publishError(error)
+        }
     }
 
     /// Publishes a message to the without any copies.

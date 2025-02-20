@@ -31,7 +31,7 @@ public final class DDSParticipant: @unchecked Sendable {
     /// A list of callbacks to call when a new participant is detected.
     /// The callback is passed the name of the detected participant.
     /// The callback will be automatically removed if it returns true. (This is needed because callbacks are not Equatable)
-    private let detectionCallbacks: Mutex<[(String) -> Bool]> = Mutex([])
+    private let detectionCallbacks: Mutex<[@Sendable (String) -> Bool]> = Mutex([])
 
     /// Initializes a new DDSParticipant.
     /// - Parameters:
@@ -42,9 +42,6 @@ public final class DDSParticipant: @unchecked Sendable {
     public init(domain: UInt32 = 0, name: String = #function, settings: [Setting] = []) throws(DDSError) {
         /// In C++, this is represented as a fixed-size string, so it must be less than 256 characters.
         assert(name.count < 256, "Name must be less than 256 characters")
-        if name.count >= 256 {
-            _ = name.dropLast(name.count - 256)
-        }
 
         // Setup the library wrapper. (Only happens on the first successful call)
         try FastDDSErrorCode.checkThrowInternal(FastDDS.setup())
@@ -211,7 +208,7 @@ extension DDSParticipant {
     /// - Parameter type: The type to register.
     /// - Throws: DDSTypeError if the type fails to register.
     internal func registerType<T: CDRCodable>(_ type: T.Type) throws(DDSTypeError) {
-        let error = FastDDSErrorCode.check(raw.registerType(typeSupport: type.ddsTopicType))
+        let error = FastDDSErrorCode.check(raw.registerType(typeSupport: type.ddsTopicType.typeSupport))
         
         if let error {
             switch error {

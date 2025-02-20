@@ -11,21 +11,20 @@ module _CFastDDS {
     header "common.h"
     header "setup.hpp"
 
-    // header "status_mask.hpp"
-
     header "participant.hpp"
     header "topic.hpp"
     header "publisher.hpp"
-    header "data_writer.hpp"
     header "subscriber.hpp"
+    header "data_writer.hpp"
     header "data_reader.hpp"
 
-    header "fastdds.hpp"
-    header "type_representation.hpp"
-    header "cdr_size.hpp"
-    header "GenericTopicType.hpp"
+    header "type_support.hpp"
+    header "DynamicTypes.hpp"
 
-    header "old/fastdds.hpp"
+    // header "fastdds.hpp"
+    // header "type_representation.hpp"
+    // header "cdr_size.hpp"
+    // header "GenericTopicType.hpp"
 
     export *
 }
