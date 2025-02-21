@@ -68,26 +68,21 @@ public final class DDSTopic<Message: CDRCodable> : @unchecked Sendable {
     }
 }
 
-extension DDSTopic {
-    /// Creates a new publisher on this topic.
-    /// - Parameter settings: A list of settings to apply to the publisher.
-    /// - Throws: If the publisher cannot be created.
-    /// - Returns: The new publisher.
-    public func publish(settings: [DDSPublisher<Message>.Setting] = []) throws(DDSError) -> DDSPublisher<Message> {
-        try DDSPublisher(topic: self, settings: settings)
-    }
-
-    /// Creates a new subscriber on this topic.
-    /// - Parameter settings: A list of settings to apply to the subscriber.
-    /// - Throws: If the subscriber cannot be created.
-    /// - Returns: The new subscriber.
-    public func subscribe(settings: [DDSSubscriber<Message>.Setting] = []) throws(DDSError) -> DDSSubscriber<Message> {
-        try DDSSubscriber(topic: self, settings: settings)
-    }
-}
-
 extension DDSTopic: CustomStringConvertible {
     public var description: String {
         "DDSTopic(name: \(name), type: \(typeName))"
+    }
+}
+
+extension DDSParticipant {
+    /// Creates a new topic.
+    /// - Parameters:
+    ///   - name: The name of the topic.
+    ///   - type: The message data type of the topic.
+    /// - Throws: If the topic cannot be created.
+    /// - Returns: The new topic.
+    @inlinable
+    public func getTopic<T: CDRCodable>(named name: String, type: T.Type) throws(DDSError) -> DDSTopic<T> {
+        try DDSTopic<T>(participant: self, topic: name)
     }
 }

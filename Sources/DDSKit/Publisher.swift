@@ -257,3 +257,43 @@ extension DDSPublisher: CustomStringConvertible {
         "DDSPublisher(topic: \(topic))"
     }
 }
+
+extension DDSParticipant {
+    /// Creates a new publisher on this participant.
+    /// - Parameters:
+    ///   - topic: The topic to publish to.
+    ///   - settings: A list of settings to apply to the publisher.
+    /// - Throws: If the publisher cannot be created.
+    /// - Returns: The new publisher.
+    @inlinable
+    public func publish<T: CDRCodable>(to topic: DDSTopic<T>, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
+        try DDSPublisher(topic: topic, settings: settings)
+    }
+
+    /// Creates a new publisher on this participant.
+    /// This is a convenience function that creates a topic from the name and type and uses that to create a Publisher.
+    /// - Parameters:
+    ///   - topicName: The name of the topic to publish to.
+    ///   - type: The message data type of the topic.
+    ///   - settings: A list of settings to apply to the publisher.
+    /// - Throws: If the publisher cannot be created.
+    @inlinable
+    public func publish<T: CDRCodable>(to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
+        try DDSPublisher(
+            topic: DDSTopic<T>(participant: self, topic: topicName),
+            settings: settings
+        )
+    }
+}
+
+extension DDSTopic {
+    /// Creates a new publisher on this topic.
+    /// - Parameter settings: A list of settings to apply to the publisher.
+    /// - Throws: If the publisher cannot be created.
+    /// - Returns: The new publisher.
+    public func publish(settings: [DDSPublisher<Message>.Setting] = []) throws(DDSError) -> DDSPublisher<Message> {
+        try DDSPublisher(topic: self, settings: settings)
+    }
+}
+
+
