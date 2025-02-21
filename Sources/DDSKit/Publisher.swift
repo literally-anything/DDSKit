@@ -10,7 +10,6 @@ internal import _CFastDDS
 
 // extension DataWriter: DestroyableEntity {}
 
-
 public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
     /// The topic that this publisher is publishing on.
     public let topic: DDSTopic<Message>
@@ -216,12 +215,6 @@ extension DDSPublisher {
     }
 }
 
-extension DDSPublisher: CustomStringConvertible {
-    public var description: String {
-        "DDSPublisher(topic: \(topic))"
-    }
-}
-
 extension DDSPublisher {
     /// A setting for the publisher.
     public enum Setting {
@@ -253,5 +246,11 @@ extension DDSPublisher {
             /// The publisher will directly share it's history with subscribers with shared memory.
             static var on: DataSharingMode { .on() }
         }
+    }
+}
+
+extension DDSPublisher: CustomStringConvertible {
+    public var description: String {
+        "DDSPublisher(topic: \(topic))"
     }
 }

@@ -175,29 +175,70 @@ extension DDSParticipant {
 }
 
 extension DDSParticipant {
+    /// Creates a new topic.
+    /// - Parameters:
+    ///   - name: The name of the topic.
+    ///   - type: The message data type of the topic.
+    /// - Throws: If the topic cannot be created.
+    /// - Returns: The new topic.
     @inlinable
-    public func publish<T: CDRCodable>(to topic: DDSTopic<T>) throws(DDSError) -> DDSPublisher<T> {
-        try DDSPublisher(topic: topic)
+    public func getTopic<T: CDRCodable>(named name: String, type: T.Type) throws(DDSError) -> DDSTopic<T> {
+        try DDSTopic<T>(participant: self, topic: name)
+    }
+}
+
+extension DDSParticipant {
+    /// Creates a new publisher on this participant.
+    /// - Parameters:
+    ///   - topic: The topic to publish to.
+    ///   - settings: A list of settings to apply to the publisher.
+    /// - Throws: If the publisher cannot be created.
+    /// - Returns: The new publisher.
+    @inlinable
+    public func publish<T: CDRCodable>(to topic: DDSTopic<T>, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
+        try DDSPublisher(topic: topic, settings: settings)
     }
 
+    /// Creates a new publisher on this participant.
+    /// This is a convenience function that creates a topic from the name and type and uses that to create a Publisher.
+    /// - Parameters:
+    ///   - topicName: The name of the topic to publish to.
+    ///   - type: The message data type of the topic.
+    ///   - settings: A list of settings to apply to the publisher.
+    /// - Throws: If the publisher cannot be created.
     @inlinable
-    public func publish<T: CDRCodable>(to topicName: String, type: T.Type) throws(DDSError) -> DDSPublisher<T> {
-        try publish(
-            to: DDSTopic<T>(participant: self, topic: topicName)
+    public func publish<T: CDRCodable>(to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
+        try DDSPublisher(
+            topic: DDSTopic<T>(participant: self, topic: topicName),
+            settings: settings
         )
     }
 }
 
 extension DDSParticipant {
+    /// Creates a new subscriber on this participant.
+    /// - Parameters:
+    ///   - topic: The topic to subscribe to.
+    ///   - settings: A list of settings to apply to the subscriber.
+    /// - Throws: If the subscriber cannot be created.
+    /// - Returns: The new subscriber.
     @inlinable
-    public func subscribe<T: CDRCodable>(to topic: DDSTopic<T>) throws(DDSError) -> DDSSubscriber<T> {
-        try DDSSubscriber(topic: topic)
+    public func subscribe<T: CDRCodable>(to topic: DDSTopic<T>, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
+        try DDSSubscriber(topic: topic, settings: settings)
     }
 
+    /// Creates a new subscriber on this participant.
+    /// This is a convenience function that creates a topic from the name and type and uses that to create a Subscriber.
+    /// - Parameters:
+    ///   - topicName: The name of the topic to subscribe to.
+    ///   - type: The message data type of the topic.
+    ///   - settings: A list of settings to apply to the subscriber.
+    /// - Throws: If the subscriber cannot be created.
     @inlinable
-    public func subscribe<T: CDRCodable>(to topicName: String, type: T.Type) throws(DDSError) -> DDSSubscriber<T> {
-        try subscribe(
-            to: DDSTopic<T>(participant: self, topic: topicName)
+    public func subscribe<T: CDRCodable>(to topicName: String, type: T.Type, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
+        try DDSSubscriber(
+            topic: DDSTopic<T>(participant: self, topic: topicName),
+            settings: settings
         )
     }
 }
@@ -225,17 +266,17 @@ extension DDSParticipant {
     }
 }
 
-extension DDSParticipant: CustomStringConvertible {
-    public var description: String {
-        "DDSParticipant(domain: \(domain), name: \(name))"
-    }
-}
-
 extension DDSParticipant {
     /// A setting for the participant.
     public enum Setting {
         /// Sets whether to ingnore DataReaders and DataWriters that are created from the same participant.
         /// Defaults to false.
         case ignoreLocalEndpoints(Bool)
+    }
+}
+
+extension DDSParticipant: CustomStringConvertible {
+    public var description: String {
+        "DDSParticipant(domain: \(domain), name: \(name))"
     }
 }

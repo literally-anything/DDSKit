@@ -202,12 +202,6 @@ extension DDSSubscriber {
     }
 }
 
-extension DDSSubscriber: CustomStringConvertible {
-    public var description: String {
-        "DDSSubscriber(topic: \(topic))"
-    }
-}
-
 extension DDSSubscriber {
     /// A setting for the subscriber.
     public enum Setting {
@@ -229,5 +223,11 @@ extension DDSSubscriber {
             /// The subscriber will directly share it's history with subscribers with shared memory.
             static var on: DataSharingMode { .on() }
         }
+    }
+}
+
+extension DDSSubscriber: CustomStringConvertible {
+    public var description: String {
+        "DDSSubscriber(topic: \(topic))"
     }
 }
