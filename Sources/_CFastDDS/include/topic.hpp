@@ -29,6 +29,7 @@ namespace FastDDS {
         using StatusMask = eprosima::fastdds::dds::StatusMask;
         using TypeSupport = eprosima::fastdds::dds::TypeSupport;
 
+
         // class Qos final {
         // public:
         //     INLINE Qos(const Participant &participantWrapper) SWIFT_NAME(init(participant:)) {
@@ -42,6 +43,7 @@ namespace FastDDS {
         // private:
         //     TopicQos qos;
         // };
+
 
         INLINE Topic(
             const Participant &participantWrapper, const std::string &topicName, const TypeSupportWrapper &typeSupport,

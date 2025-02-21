@@ -111,15 +111,6 @@ namespace FastDDS {
             return participant->get_qos().name().c_str();
         }
 
-        INLINE DomainParticipantQos getQos() const SWIFT_COMPUTED_PROPERTY {
-            return participant->get_qos();
-        }
-        INLINE void setQos(const DomainParticipantQos &qos) SWIFT_COMPUTED_PROPERTY {
-            if (participant->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
-                EPROSIMA_LOG_WARNING(Participant, "Failed to set QoS");
-            }
-        }
-
         INLINE std::vector<std::string> getParticipants() const SWIFT_COMPUTED_PROPERTY {
             return participant->get_participant_names();
         }
@@ -128,9 +119,9 @@ namespace FastDDS {
             return participant->register_type(typeSupportWrapper.typeSupport);
         }
 
-        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t unregisterDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(unregisterType(typeSupport:)) {
-            return participant->unregister_type(typeSupportWrapper.typeSupport.get_type_name());
-        }
+        // NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t unregisterDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(unregisterType(typeSupport:)) {
+        //     return participant->unregister_type(typeSupportWrapper.typeSupport.get_type_name());
+        // }
 
     private:
         static INLINE DomainParticipantFactory * _Nonnull getFactory() {

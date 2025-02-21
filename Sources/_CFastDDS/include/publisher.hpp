@@ -25,6 +25,7 @@ namespace FastDDS {
         using PublisherQos = eprosima::fastdds::dds::PublisherQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
 
+
         // class Qos final {
         // public:
         //     INLINE Qos(const Participant &participantWrapper) SWIFT_NAME(init(participant:)) {
@@ -39,13 +40,6 @@ namespace FastDDS {
         //     PublisherQos qos;
         // };
 
-        INLINE Publisher(
-            const Participant &participantWrapper, const std::string &profileName, bool &success
-        ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
-            publisher = participant->create_publisher_with_profile(profileName, nullptr, StatusMask::none());
-            success = publisher != nullptr;
-            destroyed = !success;
-        }
 
         INLINE Publisher(
             const Participant &participantWrapper,
@@ -75,15 +69,6 @@ namespace FastDDS {
         }
         INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
             return destroyed;
-        }
-
-        INLINE PublisherQos getQos() const SWIFT_COMPUTED_PROPERTY {
-            return publisher->get_qos();
-        }
-        INLINE void setQos(const PublisherQos &qos) SWIFT_COMPUTED_PROPERTY {
-            if (publisher->set_qos(qos) != eprosima::fastdds::dds::RETCODE_OK) {
-                EPROSIMA_LOG_WARNING(Publisher, "Failed to set QoS");
-            }
         }
 
     private:

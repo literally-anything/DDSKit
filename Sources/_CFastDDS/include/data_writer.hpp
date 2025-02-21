@@ -60,16 +60,6 @@ namespace FastDDS {
 
         INLINE DataWriter(
             const Topic &topicWrapper, const Publisher &publisherWrapper,
-            const std::string &profileName,
-            bool &success
-        ) SWIFT_NAME(init(topic:publisher:profile:success:)) : topic(topicWrapper.topic), publisher(publisherWrapper.publisher) {
-            dataWriter = publisher->create_datawriter_with_profile(topic, profileName, nullptr, StatusMask::none());
-            success = dataWriter != nullptr;
-            destroyed = !success;
-        }
-
-        INLINE DataWriter(
-            const Topic &topicWrapper, const Publisher &publisherWrapper,
             const Qos &qos,
             bool &success
         ) SWIFT_NAME(init(topic:publisher:profile:success:)) : topic(topicWrapper.topic), publisher(publisherWrapper.publisher) {

@@ -60,16 +60,6 @@ namespace FastDDS {
 
         INLINE DataReader(
             const Topic &topicWrapper, const Subscriber &subscriberWrapper,
-            const std::string &profileName,
-            bool &success
-        ) SWIFT_NAME(init(topic:subscriber:profile:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber) {
-            dataReader = subscriber->create_datareader_with_profile(topic, profileName, nullptr, StatusMask::none());
-            success = dataReader != nullptr;
-            destroyed = !success;
-        }
-
-        INLINE DataReader(
-            const Topic &topicWrapper, const Subscriber &subscriberWrapper,
             const Qos &qos,
             bool &success
         ) SWIFT_NAME(init(topic:subscriber:profile:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber) {

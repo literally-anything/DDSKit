@@ -25,6 +25,7 @@ namespace FastDDS {
         using SubscriberQos = eprosima::fastdds::dds::SubscriberQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
 
+
         // class Qos final {
         // public:
         //     INLINE Qos(const Participant &participantWrapper) SWIFT_NAME(init(participant:)) {
@@ -39,13 +40,6 @@ namespace FastDDS {
         //     SubscriberQos qos;
         // };
 
-        INLINE Subscriber(
-            const Participant &participantWrapper, const std::string &profileName, bool &success
-        ) SWIFT_NAME(init(participant:profile:success:)) : participant(participantWrapper.participant) {
-            subscriber = participant->create_subscriber_with_profile(profileName, nullptr, StatusMask::none());
-            success = subscriber != nullptr;
-            destroyed = !success;
-        }
 
         INLINE Subscriber(
             const Participant &participantWrapper,
