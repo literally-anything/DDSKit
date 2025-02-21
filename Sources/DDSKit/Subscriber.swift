@@ -237,17 +237,6 @@ extension DDSSubscriber: CustomStringConvertible {
 
 extension DDSParticipant {
     /// Creates a new subscriber on this participant.
-    /// - Parameters:
-    ///   - topic: The topic to subscribe to.
-    ///   - settings: A list of settings to apply to the subscriber.
-    /// - Throws: If the subscriber cannot be created.
-    /// - Returns: The new subscriber.
-    @inlinable
-    public func subscribe<T: CDRCodable>(to topic: DDSTopic<T>, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
-        try DDSSubscriber(topic: topic, settings: settings)
-    }
-
-    /// Creates a new subscriber on this participant.
     /// This is a convenience function that creates a topic from the name and type and uses that to create a Subscriber.
     /// - Parameters:
     ///   - topicName: The name of the topic to subscribe to.
