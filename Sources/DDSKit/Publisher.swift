@@ -10,6 +10,9 @@ internal import _CFastDDS
 
 // extension DataWriter: DestroyableEntity {}
 
+/// A publisher for a DDS topic.
+/// 
+/// A publisher is used to publish messages to a topic.
 public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
     /// The topic that this publisher is publishing on.
     public let topic: DDSTopic<Message>

@@ -10,6 +10,9 @@ internal import _CFastDDS
 
 // extension DataReader: DestroyableEntity {}
 
+/// A subscriber for a topic.
+/// 
+/// A subscriber is used to receive messages from a topic.
 public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
     /// The topic that this subscriber is subscribed to.
     public let topic: DDSTopic<Message>

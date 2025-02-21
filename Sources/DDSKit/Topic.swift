@@ -9,6 +9,10 @@ internal import _CFastDDS
 
 // extension Topic: DestroyableEntity {}
 
+/// A topic for a message.
+/// 
+/// A topic represents the abstract idea of the single data flow from a Publisher to a Subscriber.
+/// Topics have a name and a type, and they only match with other topics that have the same name and type.
 public final class DDSTopic<Message: CDRCodable> : @unchecked Sendable {
     /// The participant that this topic is associated with.
     public let participant: DDSParticipant

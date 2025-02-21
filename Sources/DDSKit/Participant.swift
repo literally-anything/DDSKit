@@ -13,6 +13,11 @@ internal import _FastDDSHelpers
 // extension Publisher: DestroyableEntity {}
 // extension Subscriber: DestroyableEntity {}
 
+/// A participant in the DDS network.
+///
+/// A participant is the main entry point for all DDS communication.
+/// Particiants are linked to a specific domain and can only communicate with other participants in the same domain.
+/// Participants can create topics with publishers and subscribers which send and receive messages.
 public final class DDSParticipant: @unchecked Sendable {
     /// A wrapper around the underlying FastDDS DomainParticipant.
     /// The wrapper is needed because the FastDDS DomainParticipant is mostly virtual and fails to import into swift.
