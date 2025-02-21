@@ -95,6 +95,29 @@ public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
 }
 
 extension DDSPublisher {
+    /// The current number of subscribers to the topic.
+    public var subscriberCount: Int {
+        Int(raw.matchedCount)
+    }
+
+    /// Waits for a subscriber to subscribe to the topic.
+    /// Returns immediately if there is already a subscriber.
+    public func waitForSubscriber() async {
+        if raw.matchedCount > 0 {
+            return
+        }
+
+        await withUnsafeContinuation { continuation in
+            matchCallbacks.withLock { callbacks in
+                callbacks.append {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+}
+
+extension DDSPublisher {
     /// Publishes raw data to the topic.
     /// This is separated from `publish` because it is private, and to allow `publish` to be @inlinable and generalized in another module.
     /// - Parameter data: The raw data to publish.
@@ -119,37 +142,14 @@ extension DDSPublisher {
 }
 
 extension DDSPublisher {
-    /// The current number of subscribers to the topic.
-    public var subscriberCount: Int {
-        Int(raw.matchedCount)
-    }
-
-    /// Waits for a subscriber to subscribe to the topic.
-    /// Returns immediately if there is already a subscriber.
-    public func waitForSubscriber() async {
-        if raw.matchedCount > 0 {
-            return
-        }
-
-        await withUnsafeContinuation { continuation in
-            matchCallbacks.withLock { callbacks in
-                callbacks.append {
-                    continuation.resume()
-                }
-            }
-        }
-    }
-}
-
-extension DDSPublisher {
     /// Loans a message from the publisher.
     /// This is only supported for plain and bounded types.
     /// This is separated from `publish` because it is private, and to allow `publish` to be @inlinable and generalized in another module.
-    /// - Parameter initializationMode: How to initialize the memory in the sample.
+    /// - Parameter initializationMode: How to initialize the memory in the sample. Defaults to zero.
     /// - Returns: A pointer to the loaned message.
     /// - Throws: DDSError if the loan fails.
     @usableFromInline
-    internal func loan(initializationMode: LoanInitializationMode) throws(DDSError) -> UnsafeMutableRawPointer {
+    internal func loan(initializationMode: LoanInitializationMode = .zero) throws(DDSError) -> UnsafeMutableRawPointer {
         precondition(Message.ddsTopicType.typeSupport.typeSupport.is_bounded(), "Loan is only supported for plain and bounded types.")
 
         // The LoanInitiationKind enum isn't bridged to swift. This is a painful workaround.
