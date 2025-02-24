@@ -7,9 +7,11 @@
  */
 internal import _CFastDDS
 
-public protocol CDRCodable: Sendable {
+public protocol DDSCodable: Sendable {
     static var ddsTopicType: DynamicTypeDescription { get }
 }
+
+public protocol DDSLoaningCodable: Sendable, DDSCodable {}
 
 // public struct CDREncodingInfo<T: CDRCodable> {
 //     internal let data: UnsafePointer<T>

@@ -13,7 +13,7 @@ internal import _CFastDDS
 /// 
 /// A topic represents the abstract idea of the single data flow from a Publisher to a Subscriber.
 /// Topics have a name and a type, and they only match with other topics that have the same name and type.
-public final class DDSTopic<Message: CDRCodable> : @unchecked Sendable {
+public final class DDSTopic<Message: DDSCodable> : @unchecked Sendable {
     /// The participant that this topic is associated with.
     public let participant: DDSParticipant
     /// A wrapper around the underlying FastDDS Topic.
@@ -68,6 +68,22 @@ public final class DDSTopic<Message: CDRCodable> : @unchecked Sendable {
     }
 }
 
+extension DDSTopic {
+    /// Whether the data type supports loaning.
+    /// - Note: This is always true if `Message` confroms to `DDSLoanable` and always false otherwise.
+    public static var isLoaningCompatible: Bool {
+        false
+    }
+}
+
+extension DDSTopic where Message: DDSLoaningCodable {
+    /// Whether the data type supports loaning.
+    /// - Note: This is always true if `Message` confroms to `DDSLoanable` and always false otherwise.
+    public static var isLoaningCompatible: Bool {
+        true
+    }
+}
+
 extension DDSTopic: CustomStringConvertible {
     public var description: String {
         "DDSTopic(name: \(name), type: \(typeName))"
@@ -82,7 +98,7 @@ extension DDSParticipant {
     /// - Throws: If the topic cannot be created.
     /// - Returns: The new topic.
     @inlinable
-    public func getTopic<T: CDRCodable>(named name: String, type: T.Type) throws(DDSError) -> DDSTopic<T> {
+    public func getTopic<T: DDSCodable>(named name: String, type: T.Type) throws(DDSError) -> DDSTopic<T> {
         try DDSTopic<T>(participant: self, topic: name)
     }
 }

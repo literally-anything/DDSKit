@@ -24,6 +24,10 @@ namespace FastDDS {
             return typeSupport.get_type_name();
         }
 
+        INLINE bool isPlain() const SWIFT_COMPUTED_PROPERTY {
+            return typeSupport.is_plain(eprosima::fastdds::dds::DataRepresentationId_t::XCDR2_DATA_REPRESENTATION);
+        }
+
         eprosima::fastdds::dds::TypeSupport typeSupport;
     };
 

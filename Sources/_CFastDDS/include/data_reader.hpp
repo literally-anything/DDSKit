@@ -12,6 +12,7 @@
 #include "common.h"
 #include "topic.hpp"
 #include "subscriber.hpp"
+#include "sample_identity.hpp"
 
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
@@ -27,7 +28,10 @@ namespace FastDDS {
 
         
         using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
-        using onData_t = void (^ SENDABLE _Nonnull)(const void * _Nonnull const data);
+        using onData_t = void (^ SENDABLE _Nonnull)(
+            const void * _Nonnull const data,
+            const SampleIdentity * _Nonnull const identity, const SampleIdentity * _Nonnull const related
+        );
         using onError_t = void (^ SENDABLE _Nonnull)(const eprosima::fastdds::dds::ReturnCode_t error);
         struct Callbacks {
             onSubscriptionMatched_t subscriptionMatchedCallback;
@@ -60,9 +64,9 @@ namespace FastDDS {
 
         INLINE DataReader(
             const Topic &topicWrapper, const Subscriber &subscriberWrapper,
-            const Qos &qos,
+            const Qos &qos, bool loanable,
             bool &success
-        ) SWIFT_NAME(init(topic:subscriber:profile:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber) {
+        ) SWIFT_NAME(init(topic:subscriber:profile:loanable:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber), loanable(loanable) {
             dataReader = subscriber->create_datareader(topic, qos.get(), nullptr, StatusMask::none());
             success = dataReader != nullptr;
             destroyed = !success;
@@ -73,18 +77,20 @@ namespace FastDDS {
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t setCallbacks(const Callbacks &callbacks) {
-            listener = std::make_unique<Listener>(callbacks);
+            listener = std::make_unique<Listener>(callbacks, loanable);
             return dataReader->set_listener(listener.get(), StatusMask::subscription_matched() << StatusMask::data_available());
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+            auto listenerRet = dataReader->set_listener(nullptr, StatusMask::none());
             if (!destroyed) {
                 auto ret = subscriber->delete_datareader(dataReader);
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
 
                 destroyed = true;
             }
-            return eprosima::fastdds::dds::RETCODE_OK;
+            listener = nullptr;
+            return listenerRet;
         }
         INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
             return destroyed;
@@ -100,7 +106,7 @@ namespace FastDDS {
     private:
         class Listener final : public eprosima::fastdds::dds::DataReaderListener {
         public:
-            explicit Listener(const Callbacks &callbacks);
+            explicit Listener(const Callbacks &callbacks, bool loanable);
             ~Listener() override;
 
             // Non-copyable because it would deallocate the blocks
@@ -111,10 +117,14 @@ namespace FastDDS {
             void on_data_available(_DataReader * _Nonnull reader) override;
 
         private:
+            const bool loanable;
+
             onSubscriptionMatched_t subscriptionMatchedCallback;
             onData_t onDataCallback;
             onError_t onErrorCallback;
         };
+
+        const bool loanable;
 
         Topic::_Topic * _Nonnull topic;
         Subscriber::_Subscriber * _Nonnull subscriber;

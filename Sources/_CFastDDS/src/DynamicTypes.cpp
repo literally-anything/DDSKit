@@ -16,23 +16,18 @@ namespace FastDDS {
     namespace DynamicTypes {
         typedef epfastdds::MemberDescriptor::_ref_type MemberDescriptor;
 
-        inline DynamicData buildData(const DynamicTypeContainer &type) {
-            return epfastdds::DynamicDataFactory::get_instance()->create_data(type.type);
-        }
-        inline ReturnCode_t deleteData(DynamicData &data) {
-            return epfastdds::DynamicDataFactory::get_instance()->delete_data(data);
-        }
         DynamicDataContainer::DynamicDataContainer(const DynamicTypeContainer &type) {
-            data = buildData(type);
-        }
-        DynamicDataContainer::~DynamicDataContainer() {
-            deleteData(data);
+            data = epfastdds::DynamicDataFactory::get_instance()->create_data(type.type);
         }
         DynamicDataContainer::DynamicDataContainer(const DynamicDataContainer &other) {
-            data = other.data->clone();
+            // data = other.data->clone();
+            data = other.data;
         }
         bool DynamicDataContainer::equals(const DynamicDataContainer &other) const {
             return data->equals(other.data);
+        }
+        DynamicDataContainer::DynamicDataContainer(const DynamicData &data) {
+            this->data = data;
         }
 
         inline MemberDescriptor createMemberDescriptor() {

@@ -13,7 +13,7 @@ internal import _CFastDDS
 /// A publisher for a DDS topic.
 /// 
 /// A publisher is used to publish messages to a topic.
-public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
+public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
     /// The topic that this publisher is publishing on.
     public let topic: DDSTopic<Message>
     /// A wrapper around the underlying FastDDS DataWriter.
@@ -45,6 +45,8 @@ public final class DDSPublisher<Message: CDRCodable> : @unchecked Sendable {
                         case .off:
                             qos.setDataSharingModeOff()
                     }
+                case .publishMode(let mode):
+                    qos.setPublishMode(async: mode == .async)
             }
         }
 
@@ -123,7 +125,7 @@ extension DDSPublisher {
     /// - Parameter data: The raw data to publish.
     /// - Throws: DDSError if the data fails to publish.
     @usableFromInline
-    internal func publishRaw(_ sample: consuming UnsafeRawPointer) throws(DDSError) {
+    internal func publishRaw(_ sample: borrowing UnsafeRawPointer) throws(DDSError) {
         let retcode = raw.write(data: sample)
         if let error = FastDDSErrorCode.check(retcode) {
             throw DDSError.publishError(error)
@@ -141,7 +143,7 @@ extension DDSPublisher {
     }
 }
 
-extension DDSPublisher {
+extension DDSPublisher where Message: DDSLoaningCodable {
     /// Loans a message from the publisher.
     /// This is only supported for plain and bounded types.
     /// This is separated from `publish` because it is private, and to allow `publish` to be @inlinable and generalized in another module.
@@ -150,7 +152,7 @@ extension DDSPublisher {
     /// - Throws: DDSError if the loan fails.
     @usableFromInline
     internal func loan(initializationMode: LoanInitializationMode = .zero) throws(DDSError) -> UnsafeMutableRawPointer {
-        precondition(Message.ddsTopicType.typeSupport.typeSupport.is_bounded(), "Loan is only supported for plain and bounded types.")
+        precondition(Message.ddsTopicType.typeSupport.isPlain(), "Loan is only supported for plain and bounded types.")
 
         // The LoanInitiationKind enum isn't bridged to swift. This is a painful workaround.
         let initKind: CInt = switch initializationMode {
@@ -191,7 +193,7 @@ extension DDSPublisher {
     /// - Throws: DDSError if the message fails to publish.
     /// - Throws: E if the body throws.
     @inlinable
-    public func publish<E: Error>(initializationMode: LoanInitializationMode = .zero, body: (inout Message) throws(E) -> Void) throws {
+    public func publish<E: Error>(initializationMode: LoanInitializationMode = .zero, _ body: (inout Message) throws(E) -> Void) throws {
         let sample = try loan(initializationMode: initializationMode)
 
         do throws(E) {
@@ -226,6 +228,9 @@ extension DDSPublisher {
         /// Sets the data sharing mode of the publisher. Defaults to automatically pick based on whether it is supported with this config and data type.
         /// If set to on and it is not supported, an error will be thrown when initializing the publisher.
         case dataSharing(DataSharingMode)
+        /// Sets whether to publish synchronously or asynchronously.
+        /// Whether publish calls should block.
+        case publishMode(PublishMode)
 
         /// The operating mode of the publisher.
         public enum OperatingMode {
@@ -249,6 +254,31 @@ extension DDSPublisher {
             /// The publisher will directly share it's history with subscribers with shared memory.
             static var on: DataSharingMode { .on() }
         }
+
+        /// The publish mode of the publisher.
+        /// Whether publish calls should block.
+        public enum PublishMode {
+            /// Publish calls will block until the data is sent.
+            case sync
+            /// Publish calls will return immediately and the data will be sent in the background.
+            case async
+        }
+    }
+}
+
+extension DDSPublisher {
+    /// Whether the data type supports loaning.
+    /// - Note: This is always true if `Message` confroms to `DDSLoanable` and always false otherwise.
+    @inlinable
+    public static var isLoaningCompatible: Bool {
+        DDSTopic<Message>.isLoaningCompatible
+    }
+
+    /// Whether the data type supports loaning.
+    /// - Note: This is always true if `Message` confroms to `DDSLoanable` and always false otherwise.
+    @inlinable
+    public var isLoaningCompatible: Bool {
+        Self.isLoaningCompatible
     }
 }
 
@@ -266,8 +296,7 @@ extension DDSParticipant {
     ///   - type: The message data type of the topic.
     ///   - settings: A list of settings to apply to the publisher.
     /// - Throws: If the publisher cannot be created.
-    @inlinable
-    public func publish<T: CDRCodable>(to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
+    public func publish<T: DDSCodable>(to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
         try DDSPublisher(
             topic: DDSTopic<T>(participant: self, topic: topicName),
             settings: settings

@@ -44,8 +44,8 @@ namespace FastDDS {
             DynamicData data;
 
             DynamicDataContainer(const DynamicTypeContainer &type);
-            ~DynamicDataContainer();
             DynamicDataContainer(const DynamicDataContainer &other);
+            DynamicDataContainer(const DynamicData &data);
 
             bool equals(const DynamicDataContainer &other) const;
         };

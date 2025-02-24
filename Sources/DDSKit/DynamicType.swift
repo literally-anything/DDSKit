@@ -91,6 +91,10 @@ public struct DynamicData: Sendable, Equatable {
         raw = FastDDS.DynamicTypes.DynamicDataContainer(type.type)
     }
 
+    internal init(data: borrowing FastDDS.DynamicTypes.DynamicData) {
+        raw = FastDDS.DynamicTypes.DynamicDataContainer(data)
+    }
+
     public static func == (lhs: borrowing DynamicData, rhs: borrowing DynamicData) -> Bool { // The compiler breaks when using Equatable
     // public static func equals (lhs: borrowing DynamicData, rhs: borrowing DynamicData) -> Bool {
         lhs.raw.equals(rhs.raw)

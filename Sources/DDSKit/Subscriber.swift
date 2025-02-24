@@ -13,7 +13,7 @@ internal import _CFastDDS
 /// A subscriber for a topic.
 /// 
 /// A subscriber is used to receive messages from a topic.
-public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
+public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
     /// The topic that this subscriber is subscribed to.
     public let topic: DDSTopic<Message>
     /// A wrapper around the underlying FastDDS DataReader.
@@ -26,7 +26,7 @@ public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
     /// A list of callbacks to call when a message arrives.
     /// If a callback returns true, it will be removed from the list.
     @usableFromInline
-    internal let dataCallbacks: Mutex<[@Sendable (UnsafeRawPointer) -> Bool]> = Mutex([])
+    internal let dataCallbacks: Mutex<[@Sendable (UnsafeRawPointer, borrowing (identifier: MessageIdentifier, related: MessageIdentifier?)) -> Bool]> = Mutex([])
     /// A list of callbacks to call when an error occurs while loaning messages.
     /// If a callback returns true, it will be removed from the list.
     @usableFromInline
@@ -53,6 +53,7 @@ public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
         raw = FastDDS.DataReader(
             topic: topic.raw, subscriber: topic.participant.rawSubscriber,
             profile: qos,
+            loanable: Self.isLoaningCompatible,
             success: &success
         )
         if !success {
@@ -61,7 +62,7 @@ public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
 
         try FastDDSErrorCode.checkThrowInternal(
             raw.setCallbacks(
-                .init { [unowned self] publisherCount, countChange in
+                .init { @Sendable [unowned self] publisherCount, countChange in
                     // Called when the number of publishers changes
                     if publisherCount > 0 {
                         matchCallbacks.withLock { callbacks in
@@ -75,7 +76,7 @@ public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
                             callbacks.removeAll()
                         }
                     }
-                } onDataCallback: { [unowned self] dataPtr in
+                } onDataCallback: { @Sendable [unowned self] dataPtr, identity, related in
                     // Called when a new message is received
                     dataCallbacks.withLock { callbacks in
                         guard !callbacks.isEmpty else {
@@ -85,13 +86,13 @@ public final class DDSSubscriber<Message: CDRCodable> : @unchecked Sendable {
                         var index = callbacks.count - 1
                         let reversedCallbacks: ReversedCollection<_> = callbacks.reversed()
                         for callback in reversedCallbacks {
-                            if callback(dataPtr) {
+                            if callback(dataPtr, (MessageIdentifier(identity.pointee)!, MessageIdentifier(related.pointee))) {
                                 callbacks.remove(at: index)
                             }
                             index -= 1
                         }
                     }
-                } onErrorCallback: { [unowned self] errorCode in
+                } onErrorCallback: { @Sendable [unowned self] errorCode in
                     // Called when an unexpexted error is encountered while loaning messages
                     errorCallbacks.withLock { callbacks in
                         guard !callbacks.isEmpty else {
@@ -160,9 +161,24 @@ extension DDSSubscriber {
     @inlinable
     public func registerMessageCallback(_ callback: @Sendable @escaping (borrowing Message) throws(UnregisterCallbackError) -> Void) {
         dataCallbacks.withLock { callbacks in
-            callbacks.append { dataPtr in
+            callbacks.append { dataPtr, _ in
                 do throws(UnregisterCallbackError) {
                     try callback(dataPtr.assumingMemoryBound(to: Message.self).pointee)
+                } catch {
+                    return true
+                }
+                return false
+            }
+        }
+    }
+
+    internal func registerMessageCallback(
+        _ callback: @Sendable @escaping (borrowing Message, borrowing (identifier: MessageIdentifier, related: MessageIdentifier?)) throws(UnregisterCallbackError) -> Void
+    ) {
+        dataCallbacks.withLock { callbacks in
+            callbacks.append { dataPtr, identifiers in
+                do throws(UnregisterCallbackError) {
+                    try callback(dataPtr.assumingMemoryBound(to: Message.self).pointee, identifiers)
                 } catch {
                     return true
                 }
@@ -178,14 +194,15 @@ extension DDSSubscriber {
         AsyncThrowingStream(bufferingPolicy: .unbounded) { continuation in
             let end = Atomic(false)
             dataCallbacks.withLock { @Sendable callbacks in
-                callbacks.append { dataPtr in
+                callbacks.append { dataPtr, _ in
                     guard !end.load(ordering: .relaxed) else {
                         return true
                     }
-                    guard case .enqueued(_) = continuation.yield(dataPtr.assumingMemoryBound(to: Message.self).pointee) else {
-                        return true
+                    if case .enqueued(_) = continuation.yield(dataPtr.assumingMemoryBound(to: Message.self).pointee) {
+                        return false
                     }
-                    return false
+                    end.store(true, ordering: .sequentiallyConsistent)
+                    return true
                 }
             }
             errorCallbacks.withLock { @Sendable callbacks in
@@ -229,6 +246,22 @@ extension DDSSubscriber {
     }
 }
 
+extension DDSSubscriber {
+    /// Whether the data type supports loaning.
+    /// - Note: This is always true if `Message` confroms to `DDSLoanable` and always false otherwise.
+    @inlinable
+    public static var isLoaningCompatible: Bool {
+        DDSTopic<Message>.isLoaningCompatible
+    }
+
+    /// Whether the data type supports loaning.
+    /// - Note: This is always true if `Message` confroms to `DDSLoanable` and always false otherwise.
+    @inlinable
+    public var isLoaningCompatible: Bool {
+        Self.isLoaningCompatible
+    }
+}
+
 extension DDSSubscriber: CustomStringConvertible {
     public var description: String {
         "DDSSubscriber(topic: \(topic))"
@@ -243,8 +276,7 @@ extension DDSParticipant {
     ///   - type: The message data type of the topic.
     ///   - settings: A list of settings to apply to the subscriber.
     /// - Throws: If the subscriber cannot be created.
-    @inlinable
-    public func subscribe<T: CDRCodable>(to topicName: String, type: T.Type, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
+    public func subscribe<T: DDSCodable>(to topicName: String, type: T.Type, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
         try DDSSubscriber(
             topic: DDSTopic<T>(participant: self, topic: topicName),
             settings: settings

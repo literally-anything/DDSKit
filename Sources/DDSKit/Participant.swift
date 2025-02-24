@@ -184,7 +184,7 @@ extension DDSParticipant {
     /// This shouldn't be called directly. Instead, DDSTopic should call it in it's initializer.
     /// - Parameter type: The type to register.
     /// - Throws: DDSTypeError if the type fails to register.
-    internal func registerType<T: CDRCodable>(_ type: T.Type) throws(DDSTypeError) {
+    internal func registerType<T: DDSCodable>(_ type: T.Type) throws(DDSTypeError) {
         let error = FastDDSErrorCode.check(raw.registerType(typeSupport: type.ddsTopicType.typeSupport))
         
         if let error {

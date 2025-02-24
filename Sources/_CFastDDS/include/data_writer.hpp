@@ -13,10 +13,11 @@
 #include "common.h"
 #include "topic.hpp"
 #include "publisher.hpp"
+#include "sample_identity.hpp"
 
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/DataWriterListener.hpp>
-#include <fastdds/dds/publisher/qos/DataWriterQos.hpp>
+#include <fastdds/rtps/common/WriteParams.hpp>
 
 namespace FastDDS {
 
@@ -48,6 +49,9 @@ namespace FastDDS {
             INLINE void setDataSharingModeOff() {
                 qos.data_sharing().off();
             }
+            INLINE void setPublishMode(bool async) SWIFT_NAME(setPublishMode(async:)) {
+                qos.publish_mode().kind = async ? eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE : eprosima::fastdds::dds::SYNCHRONOUS_PUBLISH_MODE;
+            }
 
             INLINE const DataWriterQos &get() const {
                 return qos;
@@ -78,13 +82,15 @@ namespace FastDDS {
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+            auto listenerRet = dataWriter->set_listener(nullptr, StatusMask::none());
             if (!destroyed) {
                 auto ret = publisher->delete_datawriter(dataWriter);
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
 
                 destroyed = true;
             }
-            return eprosima::fastdds::dds::RETCODE_OK;
+            listener = nullptr;
+            return listenerRet;
         }
         INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
             return destroyed;
@@ -99,6 +105,20 @@ namespace FastDDS {
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t write(const void * _Nonnull const data) SWIFT_NAME(write(data:)) {
             return dataWriter->write(data);
+        }
+
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t write(
+            const void * _Nonnull const data,
+            const SampleIdentity &relatedIdentity,
+            SampleIdentity &thisIdentity
+        ) SWIFT_NAME(write(data:related:this:)) {
+            auto params = eprosima::fastdds::rtps::WriteParams::write_params_default();
+            params.related_sample_identity(relatedIdentity.sampleIdentity);
+
+            auto ret = dataWriter->write(data, params);
+            thisIdentity = params.sample_identity();
+
+            return ret;
         }
 
         static INLINE int getLoanInitKindNone() {

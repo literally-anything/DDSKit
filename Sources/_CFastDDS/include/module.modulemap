@@ -11,6 +11,8 @@ module _CFastDDS {
     header "common.h"
     header "setup.hpp"
 
+    header "sample_identity.hpp"
+
     header "participant.hpp"
     header "topic.hpp"
     header "publisher.hpp"

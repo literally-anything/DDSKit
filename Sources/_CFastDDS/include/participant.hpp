@@ -88,6 +88,7 @@ namespace FastDDS {
         }
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
+            auto listenerRet = participant->set_listener(nullptr, StatusMask::none());
             if (!destroyed) {
                 auto ret = participant->delete_contained_entities();
                 if (ret != eprosima::fastdds::dds::RETCODE_OK) { return ret; }
@@ -97,7 +98,8 @@ namespace FastDDS {
 
                 destroyed = true;
             }
-            return eprosima::fastdds::dds::RETCODE_OK;
+            listener = nullptr;
+            return listenerRet;
         }
         INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
             return destroyed;
