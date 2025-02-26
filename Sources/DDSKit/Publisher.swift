@@ -285,50 +285,53 @@ extension DDSPublisher where Message: DDSLoaningCodable {
     }
 }
 
-extension DDSPublisher {
-    /// A setting for the publisher.
-    public enum Setting {
-        /// Sets the operating mode of the publisher. Defaults to `.push`.
-        case operatingMode(OperatingMode)
-        /// Sets the data sharing mode of the publisher. Defaults to automatically pick based on whether it is supported with this config and data type.
-        /// If set to on and it is not supported, an error will be thrown when initializing the publisher.
-        case dataSharing(DataSharingMode)
-        /// Sets whether to publish synchronously or asynchronously.
-        /// Whether publish calls should block.
-        case publishMode(PublishMode)
+/// Settings for a `DDSPublisher`.
+public enum DDSPublisherSetting {
+    /// Sets the operating mode of the publisher. Defaults to `.push`.
+    case operatingMode(OperatingMode)
+    /// Sets the data sharing mode of the publisher. Defaults to automatically pick based on whether it is supported with this config and data type.
+    /// If set to on and it is not supported, an error will be thrown when initializing the publisher.
+    case dataSharing(DataSharingMode)
+    /// Sets whether to publish synchronously or asynchronously.
+    /// Whether publish calls should block.
+    case publishMode(PublishMode)
 
-        /// The operating mode of the publisher.
-        public enum OperatingMode {
-            /// Immediately send data do subscribers. This is the default.
-            case push
-            /// Waits for the subsriber to request the data. (This happens under the hood).
-            case pull
-        }
-
-        /// The data sharing mode of the publisher.
-        /// When this is on, the publisher will share it's history with subscribers through shared memory.
-        /// This defualts to automatically picks based on whether it is supported with this config and data type.
-        /// If set to on and it is not supported, an error will be thrown when initializing the publisher.
-        public enum DataSharingMode {
-            /// The publisher will directly share it's history with subscribers with shared memory.
-            /// - Parameter dir: The path to the directory to use for memory-mapped files. Nil to use the default.
-            case on(dir: String? = nil)
-            /// The publisher will send data to subscribers as normal.
-            case off
-
-            /// The publisher will directly share it's history with subscribers with shared memory.
-            static var on: DataSharingMode { .on() }
-        }
-
-        /// The publish mode of the publisher.
-        /// Whether publish calls should block.
-        public enum PublishMode {
-            /// Publish calls will block until the data is sent.
-            case sync
-            /// Publish calls will return immediately and the data will be sent in the background.
-            case async
-        }
+    /// The operating mode of the publisher.
+    public enum OperatingMode {
+        /// Immediately send data do subscribers. This is the default.
+        case push
+        /// Waits for the subsriber to request the data. (This happens under the hood).
+        case pull
     }
+
+    /// The data sharing mode of the publisher.
+    /// When this is on, the publisher will share it's history with subscribers through shared memory.
+    /// This defualts to automatically picks based on whether it is supported with this config and data type.
+    /// If set to on and it is not supported, an error will be thrown when initializing the publisher.
+    public enum DataSharingMode {
+        /// The publisher will directly share it's history with subscribers with shared memory.
+        /// - Parameter dir: The path to the directory to use for memory-mapped files. Nil to use the default.
+        case on(dir: String? = nil)
+        /// The publisher will send data to subscribers as normal.
+        case off
+
+        /// The publisher will directly share it's history with subscribers with shared memory.
+        static var on: DataSharingMode { .on() }
+    }
+
+    /// The publish mode of the publisher.
+    /// Whether publish calls should block.
+    public enum PublishMode {
+        /// Publish calls will block until the data is sent.
+        case sync
+        /// Publish calls will return immediately and the data will be sent in the background.
+        case async
+    }
+}
+
+extension DDSPublisher {
+    /// Settings for the publisher.
+    public typealias Setting = DDSPublisherSetting
 }
 
 extension DDSPublisher {

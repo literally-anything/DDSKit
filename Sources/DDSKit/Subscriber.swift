@@ -252,28 +252,31 @@ extension DDSSubscriber {
     }
 }
 
-extension DDSSubscriber {
-    /// A setting for the subscriber.
-    public enum Setting {
-        /// Sets the data sharing mode of the subscriber. Defaults to automatically pick based on whether it is supported with this config and data type.
-        /// If set to on and it is not supported, an error will be thrown when initializing the subscriber.
-        case dataSharing(DataSharingMode)
+/// Settings for a `DDSSubscriber`.
+public enum DDSSubscriberSettings {
+    /// Sets the data sharing mode of the subscriber. Defaults to automatically pick based on whether it is supported with this config and data type.
+    /// If set to on and it is not supported, an error will be thrown when initializing the subscriber.
+    case dataSharing(DataSharingMode)
 
-        /// The data sharing mode of the subscriber.
-        /// When this is on, the subscriber will share it's history with publisher through shared memory.
-        /// This defualts to automatically picks based on whether it is supported with this config and data type.
-        /// If set to on and it is not supported, an error will be thrown when initializing the subscriber.
-        public enum DataSharingMode {
-            /// The subscriber will directly share it's history with publishers with shared memory.
-            /// - Parameter dir: The path to the directory to use for memory-mapped files. Nil to use the default.
-            case on(dir: String? = nil)
-            /// The subscriber will get data from publishers as normal.
-            case off
+    /// The data sharing mode of the subscriber.
+    /// When this is on, the subscriber will share it's history with publisher through shared memory.
+    /// This defualts to automatically picks based on whether it is supported with this config and data type.
+    /// If set to on and it is not supported, an error will be thrown when initializing the subscriber.
+    public enum DataSharingMode {
+        /// The subscriber will directly share it's history with publishers with shared memory.
+        /// - Parameter dir: The path to the directory to use for memory-mapped files. Nil to use the default.
+        case on(dir: String? = nil)
+        /// The subscriber will get data from publishers as normal.
+        case off
 
-            /// The subscriber will directly share it's history with subscribers with shared memory.
-            static var on: DataSharingMode { .on() }
-        }
+        /// The subscriber will directly share it's history with subscribers with shared memory.
+        static var on: DataSharingMode { .on() }
     }
+}
+
+extension DDSSubscriber {
+    /// Settings for the subscriber.
+    public typealias Setting = DDSSubscriberSettings
 }
 
 extension DDSSubscriber {
