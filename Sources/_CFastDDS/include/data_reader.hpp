@@ -12,11 +12,11 @@
 #include "common.h"
 #include "topic.hpp"
 #include "subscriber.hpp"
-#include "sample_identity.hpp"
 
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
+#include <fastdds/dds/subscriber/SampleInfo.hpp>
 
 namespace FastDDS {
 
@@ -25,12 +25,13 @@ namespace FastDDS {
         using _DataReader = eprosima::fastdds::dds::DataReader;
         using DataReaderQos = eprosima::fastdds::dds::DataReaderQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
+        using SampleInfo = eprosima::fastdds::dds::SampleInfo;
 
         
         using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
         using onData_t = void (^ SENDABLE _Nonnull)(
             const void * _Nonnull const data,
-            const SampleIdentity * _Nonnull const identity, const SampleIdentity * _Nonnull const related
+            const SampleInfo * _Nonnull const info
         );
         using onError_t = void (^ SENDABLE _Nonnull)(const eprosima::fastdds::dds::ReturnCode_t error);
         struct Callbacks {

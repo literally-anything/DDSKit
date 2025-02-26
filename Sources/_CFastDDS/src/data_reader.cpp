@@ -51,7 +51,7 @@ namespace FastDDS {
                     {
                         SampleIdentity identity = infos[i].sample_identity;
                         SampleIdentity related = infos[i].related_sample_identity;
-                        onDataCallback(data.get(i), &identity, &related);
+                        onDataCallback(data.get(i), &infos[i]);
                     }
                 }
 
@@ -72,9 +72,7 @@ namespace FastDDS {
 
             ReturnCode_t ret = reader->take_next_sample(data, &info);
             while (ret == RETCODE_OK) {
-                SampleIdentity identity = info.sample_identity;
-                SampleIdentity related = info.related_sample_identity;
-                onDataCallback(data, &identity, &related);
+                onDataCallback(data, &info);
 
                 // Try to take another sequence
                 ret = reader->take_next_sample(data, &info);

@@ -12,7 +12,7 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
     private let logger: Logger
     private let publisher: DDSPublisher<Request>
     private let subscriber: DDSSubscriber<Reply>
-    private let activeActions: Mutex<[MessageIdentifier: UnsafeContinuation<Reply, Never>]> = Mutex([:])
+    private let activeActions: Mutex<[DDSMessageIdentifier: UnsafeContinuation<Reply, Never>]> = Mutex([:])
 
     public convenience init(
         participant: DDSParticipant, name actionName: String,
@@ -43,9 +43,9 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
         publisher = requestPublisher
         subscriber = replySubscriber
 
-        subscriber.registerMessageCallback { [unowned self] message, indentifiers in
+        subscriber.registerMessageCallback { [unowned self] message, metadata in
             activeActions.withLock { [unowned self] actions in
-                guard let related = indentifiers.related else {
+                guard let related = metadata.relatedIdentifier else {
                     logger.warning("A message was recieved with no realated message identifier")
                     return
                 }
@@ -69,7 +69,7 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
 
 extension DDSActionClient {
     public func send(request: borrowing Request) async throws(DDSError) -> Reply {
-        let identifier = try publisher.publishWithIdentifiers(request, related: nil)
+        let identifier = try publisher.publishWithMetadata(request)
 
         let reply = await withTaskCancellationHandler {
             await withUnsafeContinuation { continuation in

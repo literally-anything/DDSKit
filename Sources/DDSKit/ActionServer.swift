@@ -21,13 +21,11 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
     private let logger: Logger
     private let subscriber: DDSSubscriber<Request>
     private let publisher: DDSPublisher<Reply>
-    private let resignOnCancel: Bool
     internal let requestHandler: RequestHandler
 
     public convenience init(
         participant: DDSParticipant, name actionName: String,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
-        resignOnCancel: Bool = true,
         handler: @escaping RequestHandler
     ) throws(DDSError) {
         let (requestTopic, replyTopic) = getActionTopicNames(base: actionName)
@@ -35,7 +33,6 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
         self.init(
             requestSubscriber: try participant.subscribe(to: requestTopic, type: Request.self, settings: subscriberSettings),
             replyPublisher: try participant.publish(to: replyTopic, type: Reply.self, settings: publisherSettings),
-            resignOnCancel: resignOnCancel,
             handler: handler
         )
     }
@@ -43,20 +40,17 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
     public convenience init(
         requestTopic: DDSTopic<Request>, replyTopic: DDSTopic<Reply>,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
-        resignOnCancel: Bool = true,
         handler: @escaping RequestHandler
     ) throws(DDSError) {
         self.init(
             requestSubscriber: try requestTopic.subscribe(settings: subscriberSettings),
             replyPublisher: try replyTopic.publish(settings: publisherSettings),
-            resignOnCancel: resignOnCancel,
             handler: handler
         )
     }
 
     public init(
         requestSubscriber: DDSSubscriber<Request>, replyPublisher: DDSPublisher<Reply>,
-        resignOnCancel: Bool = true,
         handler: @escaping RequestHandler
     ) {
         logger = Logger(label: "DDSActionServer(\(requestSubscriber.topic.name), \(replyPublisher.topic.name))")
@@ -64,17 +58,12 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
         subscriber = requestSubscriber
         publisher = replyPublisher
 
-        self.resignOnCancel = resignOnCancel
-
         requestHandler = handler
 
-        requestSubscriber.registerMessageCallback { [unowned self] message, indentifiers in
-            if (resignOnCancel) {
-
-            }
+        requestSubscriber.registerMessageCallback { [unowned self] message, metadata in
             let reply = requestHandler(message)
             do throws(DDSError) {
-                try publisher.publishWithIdentifiers(reply, related: indentifiers.identifier)
+                try publisher.publishWithMetadata(reply, metadata: .init(relatedIdentifier: metadata.identifier))
             } catch {
                 logger.error("Error while publishing reply: \(error)")
             }

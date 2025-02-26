@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <swift/bridging>
 
@@ -26,6 +27,7 @@ namespace FastDDS {
         using _DataWriter = eprosima::fastdds::dds::DataWriter;
         using DataWriterQos = eprosima::fastdds::dds::DataWriterQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
+        using WriteParams = eprosima::fastdds::rtps::WriteParams;
 
 
         using onPublicationMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
@@ -110,10 +112,14 @@ namespace FastDDS {
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t write(
             const void * _Nonnull const data,
             const SampleIdentity &relatedIdentity,
-            SampleIdentity &thisIdentity
-        ) SWIFT_NAME(write(data:related:this:)) {
+            SampleIdentity &thisIdentity,
+            const double_t &timestamp
+        ) SWIFT_NAME(write(data:related:this:timestamp:)) {
             auto params = eprosima::fastdds::rtps::WriteParams::write_params_default();
             params.related_sample_identity(relatedIdentity.sampleIdentity);
+            if (timestamp >= 0) {
+                params.source_timestamp(eprosima::fastdds::dds::Time_t(timestamp));
+            }
 
             auto ret = dataWriter->write(data, params);
             thisIdentity = params.sample_identity();

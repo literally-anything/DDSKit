@@ -26,7 +26,7 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
     /// A list of callbacks to call when a message arrives.
     /// If a callback returns true, it will be removed from the list.
     @usableFromInline
-    internal let dataCallbacks: Mutex<[@Sendable (UnsafeRawPointer, borrowing (identifier: MessageIdentifier, related: MessageIdentifier?)) -> Bool]> = Mutex([])
+    internal let dataCallbacks: Mutex<[@Sendable (UnsafeRawPointer, borrowing MessageMetadata) -> Bool]> = Mutex([])
     /// A list of callbacks to call when an error occurs while loaning messages.
     /// If a callback returns true, it will be removed from the list.
     @usableFromInline
@@ -76,17 +76,19 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
                             callbacks.removeAll()
                         }
                     }
-                } onDataCallback: { @Sendable [unowned self] dataPtr, identity, related in
+                } onDataCallback: { @Sendable [unowned self] dataPtr, info in
                     // Called when a new message is received
                     dataCallbacks.withLock { callbacks in
                         guard !callbacks.isEmpty else {
                             return
                         }
 
+                        let metadata = MessageMetadata(info: info)
+
                         var index = callbacks.count - 1
                         let reversedCallbacks: ReversedCollection<_> = callbacks.reversed()
                         for callback in reversedCallbacks {
-                            if callback(dataPtr, (MessageIdentifier(identity.pointee)!, MessageIdentifier(related.pointee))) {
+                            if callback(dataPtr, metadata) {
                                 callbacks.remove(at: index)
                             }
                             index -= 1
@@ -152,6 +154,34 @@ extension DDSSubscriber {
 }
 
 extension DDSSubscriber {
+    /// Some metadata that is returned with a message to provide more context.
+    public struct MessageMetadata: @unchecked Sendable {
+        /// The underlying fastdds SampleInfo.
+        internal let info: UnsafePointer<FastDDS.DataReader.SampleInfo>
+
+        /// The identifier of the message.
+        public var identifier: DDSMessageIdentifier {
+            DDSMessageIdentifier(.init(info.pointee.sample_identity))!
+        }
+
+        /// The identifier of a related message.
+        /// This is used mainly for request-reply patterns or similar.
+        public var relatedIdentifier: DDSMessageIdentifier? {
+            DDSMessageIdentifier(.init(info.pointee.related_sample_identity))
+        }
+
+        /// The timestamp of when the message was sent.
+        /// This is in seconds since the epoch.
+        public var timestamp: Double {
+            let seconds = Double(info.pointee.source_timestamp.seconds())
+            let nanoseconds_fixed = Double(info.pointee.source_timestamp.nanosec()) * 1e-9
+            let fraction_fixed = Double(info.pointee.source_timestamp.fraction()) * pow(2, -32)
+            return seconds + nanoseconds_fixed + fraction_fixed
+        }
+    }
+}
+
+extension DDSSubscriber {
     /// A single error that can be thrown in a message callback to unregister the callback.
     public enum UnregisterCallbackError: Error {
         /// Unregisters the callback when thrown from a subscriber message callback.
@@ -159,7 +189,7 @@ extension DDSSubscriber {
     }
 
     @inlinable
-    public func registerMessageCallback(_ callback: @Sendable @escaping (borrowing Message) throws(UnregisterCallbackError) -> Void) {
+    public func registerMessageCallback(_ callback: @escaping @Sendable (borrowing Message) throws(UnregisterCallbackError) -> Void) {
         dataCallbacks.withLock { callbacks in
             callbacks.append { dataPtr, _ in
                 do throws(UnregisterCallbackError) {
@@ -173,12 +203,12 @@ extension DDSSubscriber {
     }
 
     internal func registerMessageCallback(
-        _ callback: @Sendable @escaping (borrowing Message, borrowing (identifier: MessageIdentifier, related: MessageIdentifier?)) throws(UnregisterCallbackError) -> Void
+        _ callback: @escaping @Sendable (borrowing Message, borrowing MessageMetadata) throws(UnregisterCallbackError) -> Void
     ) {
         dataCallbacks.withLock { callbacks in
-            callbacks.append { dataPtr, identifiers in
+            callbacks.append { dataPtr, metadata in
                 do throws(UnregisterCallbackError) {
-                    try callback(dataPtr.assumingMemoryBound(to: Message.self).pointee, identifiers)
+                    try callback(dataPtr.assumingMemoryBound(to: Message.self).pointee, metadata)
                 } catch {
                     return true
                 }

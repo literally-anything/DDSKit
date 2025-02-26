@@ -10,7 +10,7 @@ internal import _CFastDDS
 /// A unique identifier for a message.
 /// This is used to track the message for request reply and similar patterns.
 /// These are amost always passed as Optional because they are not always present.
-public struct MessageIdentifier: Sendable {
+public struct DDSMessageIdentifier: Sendable {
     /// The underlying fastdds SampleIdentity.
     internal let sampleIdentity: FastDDS.SampleIdentity
 
@@ -28,7 +28,7 @@ public struct MessageIdentifier: Sendable {
     }
 }
 
-extension MessageIdentifier {
+extension DDSMessageIdentifier {
     /// Creates a new empty message identifier.
     public init?() {
         return nil
@@ -44,11 +44,11 @@ extension MessageIdentifier {
     }
 
     /// An empty message identifier.
-    public var unknown: MessageIdentifier? { MessageIdentifier() }
+    public var unknown: DDSMessageIdentifier? { DDSMessageIdentifier() }
 }
 
-extension MessageIdentifier: Hashable {
-    public static func == (lhs: MessageIdentifier, rhs: MessageIdentifier) -> Bool {
+extension DDSMessageIdentifier: Hashable {
+    public static func == (lhs: DDSMessageIdentifier, rhs: DDSMessageIdentifier) -> Bool {
         lhs.sampleIdentity == rhs.sampleIdentity
     }
 
@@ -57,7 +57,7 @@ extension MessageIdentifier: Hashable {
     }
 }
 
-extension Optional where Wrapped == MessageIdentifier {
+extension Optional where Wrapped == DDSMessageIdentifier {
     /// The fastdds SampleIdentity representation of the message identifier.
     /// If the message identifier is nil, this will be an unknown() SampleIdentity.
     internal var sampleIdentity: FastDDS.SampleIdentity {
