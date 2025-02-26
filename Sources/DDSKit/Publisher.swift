@@ -8,8 +8,6 @@
 internal import Synchronization
 internal import _CFastDDS
 
-// extension DataWriter: DestroyableEntity {}
-
 /// A publisher for a DDS topic.
 /// 
 /// A publisher is used to publish messages to a topic.

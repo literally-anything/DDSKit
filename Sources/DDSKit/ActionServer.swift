@@ -15,14 +15,29 @@ internal func getActionTopicNames(base: String) -> (request: String, reply: Stri
     return ("rq/" + base, "rr/" + base)
 }
 
+/// A server for an action client.
+/// Actions are an implementation of the request reply pattern using topics.
 public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Sendable {
+    /// The type of the handler function for the action server.
     public typealias RequestHandler = @Sendable (borrowing Request) -> Reply
 
+    /// The logger for the action server.
     private let logger: Logger
+    /// The subscriber for the request.
     private let subscriber: DDSSubscriber<Request>
+    /// The publisher for the reply.
     private let publisher: DDSPublisher<Reply>
-    internal let requestHandler: RequestHandler
+    /// The handler callback for the request.
+    private let requestHandler: RequestHandler
 
+    /// Initializes a new action server.
+    /// - Parameters:
+    ///   - participant: The participant to use for the action.
+    ///   - name: The base name of the action.
+    ///   - publisherSettings: A list of settings to apply to the request publisher.
+    ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    ///   - handler: The handler for the request.
+    /// - Throws: If the subscriber cannot be created.
     public convenience init(
         participant: DDSParticipant, name actionName: String,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
@@ -37,6 +52,14 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
         )
     }
 
+    /// Initializes a new action server.
+    /// - Parameters:
+    ///   - requestTopic: The topic for the request.
+    ///   - replyTopic: The topic for the reply.
+    ///   - subscriberSettings: A list of settings to apply to the request subscriber.
+    ///   - publisherSettings: A list of settings to apply to the reply publisher.
+    ///   - handler: The handler for the request.
+    /// - Throws: If the subscriber cannot be created.
     public convenience init(
         requestTopic: DDSTopic<Request>, replyTopic: DDSTopic<Reply>,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
@@ -49,6 +72,12 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
         )
     }
 
+    /// Initializes a new action server.
+    /// - Parameters:
+    ///   - requestSubscriber: The subscriber for the request.
+    ///   - replyPublisher: The publisher for the reply.
+    ///   - handler: The handler for the request.
+    /// - Throws: If the subscriber cannot be created.
     public init(
         requestSubscriber: DDSSubscriber<Request>, replyPublisher: DDSPublisher<Reply>,
         handler: @escaping RequestHandler

@@ -7,10 +7,13 @@
  */
 internal import _CFastDDS
 
+/// A type that can be encoded and decoded with CDR.
 public protocol DDSCodable: Sendable {
+    /// The type identifier for the type.
     static var ddsTopicType: DynamicTypeDescription { get }
 }
 
+/// A type that can be encoded and decoded with CDR and can be loaned for zero copy transfer.
 public protocol DDSLoaningCodable: Sendable, DDSCodable {}
 
 // public struct CDREncodingInfo<T: CDRCodable> {

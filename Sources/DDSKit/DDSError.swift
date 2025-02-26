@@ -45,12 +45,19 @@ public enum DDSError: Error {
 
 /// A type of FastDDS entity.
 public enum FastDDSEntityType: Sendable {
+    /// Represents an unknown entity type.
     case unknown
+    /// Represents a participant in the DDS.
     case participant
+    /// Represents a topic in the DDS.
     case topic
+    /// Represents a publisher in the DDS. This is part of a participant in the DDSKit API.
     case publisher
+    /// Represents a data writer on a topic. This is represented as a publisher in the DDSKit API.
     case dataWriter
+    /// Represents a subscriber in the DDS. This is part of a participant in the DDSKit API.
     case subscriber
+    /// Represents a data reader on a topic. This is represented as a subscriber in the DDSKit API.
     case dataReader
 }
 
@@ -68,6 +75,9 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
     case noData = 10
     case illegalOperation = 11
 
+    /// Checks if the error code is not RETCODE_OK and returns the error code if it is not.
+    /// - Parameter code: The error code to check.
+    /// - Returns: The error code if it is not RETCODE_OK.
     @usableFromInline
     internal static func check(_ code: Int32) -> FastDDSErrorCode? {
         guard code == eprosima.fastdds.dds.RETCODE_OK else {
@@ -76,6 +86,11 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
         return nil
     }
 
+    /// Throws a user error based on the error code.
+    /// - Parameters:
+    ///   - error: The error code to throw.
+    ///   - entity: The entity type that the error occurred on.
+    /// - Throws: The error that corresponds to the error code.
     @usableFromInline
     internal static func throwUser(_ error: FastDDSErrorCode, from entity: FastDDSEntityType = .unknown) throws(DDSError) {
         assert(
@@ -92,6 +107,11 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
         }
     }
 
+    /// Checks if the error code is not RETCODE_OK and throws a user error if it is not.
+    /// - Parameters:
+    ///   - code: The error code to check.
+    ///   - entity: The entity type that the error occurred on.
+    /// - Throws: The error that corresponds to the error code.
     @usableFromInline
     internal static func checkThrow(_ code: Int32, from entity: FastDDSEntityType = .unknown) throws(DDSError) {
         let error = check(code)
@@ -100,6 +120,15 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
         }
     }
 
+    /// Checks if the error code is not RETCODE_OK and throws an internal error if it is not.
+    /// - Parameters:
+    ///   - code: The error code to check.
+    ///   - entity: The entity type that the error occurred on.
+    ///   - file: The file that the error occurred in.
+    ///   - function: The function that the error occurred in.
+    ///   - line: The line that the error occurred on.
+    ///   - column: The column that the error occurred on.
+    /// - Throws: The error that corresponds to the error code.
     @usableFromInline
     internal static func checkThrowInternal(
         _ code: Int32, from entity: FastDDSEntityType = .unknown,

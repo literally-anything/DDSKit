@@ -8,12 +8,26 @@
 internal import Synchronization
 internal import Logging
 
+/// A client for an action server.
+/// Actions are an implementation of the request reply pattern using topics.
 public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Sendable {
+    /// The logger for the action client.
     private let logger: Logger
+    /// The publisher for the request.
     private let publisher: DDSPublisher<Request>
+    /// The subscriber for the reply.
     private let subscriber: DDSSubscriber<Reply>
+    /// The active actions that are waiting for a reply.
+    /// This maps the message identifier of the request to the continuation that is waiting for the reply.
     private let activeActions: Mutex<[DDSMessageIdentifier: UnsafeContinuation<Reply, Never>]> = Mutex([:])
 
+    /// Initializes a new action client.
+    /// - Parameters:
+    ///   - participant: The participant to use for the action.
+    ///   - name: The base name of the action.
+    ///   - publisherSettings: A list of settings to apply to the request publisher.
+    ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    /// - Throws: If the subscriber cannot be created.
     public convenience init(
         participant: DDSParticipant, name actionName: String,
         publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []
@@ -27,6 +41,13 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
         )
     }
 
+    /// Initializes a new action client.
+    /// - Parameters:
+    ///   - requestTopic: The topic for the request.
+    ///   - replyTopic: The topic for the reply.
+    ///   - publisherSettings: A list of settings to apply to the request publisher.
+    ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    /// - Throws: If the subscriber cannot be created.
     public convenience init(
         requestTopic: DDSTopic<Request>, replyTopic: DDSTopic<Reply>,
         publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []
@@ -37,6 +58,11 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
         )
     }
 
+    /// Initializes a new action client.
+    /// - Parameters:
+    ///   - requestPublisher: The publisher for the request.
+    ///   - replySubscriber: The subscriber for the reply.
+    /// - Throws: If the subscriber cannot be created.
     public init(requestPublisher: DDSPublisher<Request>, replySubscriber: DDSSubscriber<Reply>) {
         logger = Logger(label: "DDSActionClient(\(requestPublisher.topic.name), \(replySubscriber.topic.name))")
 
@@ -68,6 +94,11 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
 }
 
 extension DDSActionClient {
+    /// Sends a request to the action server and asynchronously waits for the reply.
+    /// This can be cancelled by the caller.
+    /// - Parameter request: The request to send.
+    /// - Returns: The reply from the action server.
+    /// - Throws: If the request cannot be sent.
     public func send(request: borrowing Request) async throws(DDSError) -> Reply {
         let identifier = try publisher.publishWithMetadata(request)
 
@@ -90,12 +121,18 @@ extension DDSActionClient {
 }
 
 extension DDSActionClient {
+    /// The state of the action client.
     public enum State: Sendable {
+        /// There are no servers.
         case none
+        /// There is one server.
         case good
+        /// There are too many servers.
+        /// - Parameter Int: The number of servers.
         case tooMany(Int)
     }
 
+    /// The state of the action client.
     public var state: State {
         if subscriber.publisherCount == 0 || publisher.subscriberCount == 0 {
             return .none
@@ -106,6 +143,7 @@ extension DDSActionClient {
         }
     }
 
+    /// Waits for a server to be ready.
     public func waitForServer() async {
         await subscriber.waitForPublisher()
         await publisher.waitForSubscriber()

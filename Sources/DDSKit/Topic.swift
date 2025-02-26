@@ -7,8 +7,6 @@
  */
 internal import _CFastDDS
 
-// extension Topic: DestroyableEntity {}
-
 /// A topic for a message.
 /// 
 /// A topic represents the abstract idea of the single data flow from a Publisher to a Subscriber.

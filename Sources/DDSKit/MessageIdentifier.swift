@@ -51,7 +51,6 @@ extension DDSMessageIdentifier: Hashable {
     public static func == (lhs: DDSMessageIdentifier, rhs: DDSMessageIdentifier) -> Bool {
         lhs.sampleIdentity == rhs.sampleIdentity
     }
-
     public func hash(into hasher: inout Hasher) {
         hasher.combine(sampleIdentity.u64Long)
     }

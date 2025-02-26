@@ -8,8 +8,6 @@
 public import Synchronization
 internal import _CFastDDS
 
-// extension DataReader: DestroyableEntity {}
-
 /// A subscriber for a topic.
 /// 
 /// A subscriber is used to receive messages from a topic.
@@ -32,6 +30,11 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
     @usableFromInline
     internal let errorCallbacks: Mutex<[@Sendable (Int32) -> Bool]> = Mutex([])
 
+    /// Creates a new subscriber on a topic.
+    /// - Parameters:
+    ///   - topic: The topic to subscribe to.
+    ///   - settings: A list of settings to apply to the subscriber.
+    /// - Throws: If the subscriber cannot be created.
     public init(topic: DDSTopic<Message>, settings: [Setting] = []) throws(DDSError) {
         self.topic = topic
 

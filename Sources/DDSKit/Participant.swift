@@ -9,10 +9,6 @@ internal import Synchronization
 internal import _CFastDDS
 internal import _FastDDSHelpers
 
-// extension Participant: DestroyableEntity {}
-// extension Publisher: DestroyableEntity {}
-// extension Subscriber: DestroyableEntity {}
-
 /// A participant in the DDS network.
 ///
 /// A participant is the main entry point for all DDS communication.
