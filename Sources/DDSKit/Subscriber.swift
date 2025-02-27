@@ -158,7 +158,7 @@ extension DDSSubscriber {
 
 extension DDSSubscriber {
     /// Some metadata that is returned with a message to provide more context.
-    public struct MessageMetadata: @unchecked Sendable {
+    public struct MessageMetadata: ~Copyable {
         /// The underlying fastdds SampleInfo.
         internal let info: UnsafePointer<FastDDS.DataReader.SampleInfo>
 
@@ -259,39 +259,39 @@ extension DDSSubscriber {
     /// Create an async stream of messages with metadata from the subscriber.
     /// - Parameter bufferingPolicy: The buffering policy to use for the stream.
     /// - Throws: If an error occurs while reading the message.
-    @inlinable
-    public func getMessageStreamWithMetadata(
-        bufferingPolicy: AsyncThrowingStream<(Message, MessageMetadata), Error>.Continuation.BufferingPolicy
-    ) -> AsyncThrowingStream<(Message, MessageMetadata), Error> {
-        AsyncThrowingStream(bufferingPolicy: bufferingPolicy) { continuation in
-            let end = Atomic(false)
-            dataCallbacks.withLock { @Sendable callbacks in
-                callbacks.append { dataPtr, metadata in
-                    guard !end.load(ordering: .relaxed) else {
-                        return true
-                    }
-                    if case .enqueued(_) = continuation.yield((dataPtr.assumingMemoryBound(to: Message.self).pointee, metadata)) {
-                        return false
-                    }
-                    end.store(true, ordering: .sequentiallyConsistent)
-                    return true
-                }
-            }
-            errorCallbacks.withLock { @Sendable callbacks in
-                callbacks.append { errorCode in
-                    do {
-                        try FastDDSErrorCode.checkThrowInternal(errorCode, from: .dataReader)
-                    } catch {
-                        continuation.finish(throwing: error)
-                    }
-                    return true
-                }
-            }
-            continuation.onTermination = { @Sendable _ in
-                end.store(true, ordering: .sequentiallyConsistent)
-            }
-        }
-    }
+    // @inlinable
+    // public func getMessageStreamWithMetadata(
+    //     bufferingPolicy: AsyncThrowingStream<(Message, MessageMetadata), Error>.Continuation.BufferingPolicy
+    // ) -> AsyncThrowingStream<(Message, MessageMetadata), Error> {
+    //     AsyncThrowingStream(bufferingPolicy: bufferingPolicy) { continuation in
+    //         let end = Atomic(false)
+    //         dataCallbacks.withLock { @Sendable callbacks in
+    //             callbacks.append { dataPtr, metadata in
+    //                 guard !end.load(ordering: .relaxed) else {
+    //                     return true
+    //                 }
+    //                 if case .enqueued(_) = continuation.yield((dataPtr.assumingMemoryBound(to: Message.self).pointee, metadata)) {
+    //                     return false
+    //                 }
+    //                 end.store(true, ordering: .sequentiallyConsistent)
+    //                 return true
+    //             }
+    //         }
+    //         errorCallbacks.withLock { @Sendable callbacks in
+    //             callbacks.append { errorCode in
+    //                 do {
+    //                     try FastDDSErrorCode.checkThrowInternal(errorCode, from: .dataReader)
+    //                 } catch {
+    //                     continuation.finish(throwing: error)
+    //                 }
+    //                 return true
+    //             }
+    //         }
+    //         continuation.onTermination = { @Sendable _ in
+    //             end.store(true, ordering: .sequentiallyConsistent)
+    //         }
+    //     }
+    // }
 
     /// An async stream of messages from the subscriber.
     /// - Note: This stream is unbounded, so if the callback is too slow, it will continue to fill up.
@@ -311,17 +311,17 @@ extension DDSSubscriber {
     /// An async stream of messages with metadata from the subscriber.
     /// - Note: This stream is unbounded, so if the callback is too slow, it will continue to fill up.
     /// - Throws: If an error occurs while reading the message.
-    @inlinable
-    public var messagesWithMetadata: AsyncThrowingStream<(Message, MessageMetadata), Error> {
-        getMessageStreamWithMetadata(bufferingPolicy: .unbounded)
-    }
+    // @inlinable
+    // public var messagesWithMetadata: AsyncThrowingStream<(Message, MessageMetadata), Error> {
+    //     getMessageStreamWithMetadata(bufferingPolicy: .unbounded)
+    // }
     /// An async stream of messages with metadata from the subscriber.
     /// - Note: This stream buffers the latest 16 messages.
     /// - Throws: If an error occurs while reading the message.
-    @inlinable
-    public var messagesWithMetadataBounded: AsyncThrowingStream<(Message, MessageMetadata), Error> {
-        getMessageStreamWithMetadata(bufferingPolicy: .bufferingNewest(16))
-    }
+    // @inlinable
+    // public var messagesWithMetadataBounded: AsyncThrowingStream<(Message, MessageMetadata), Error> {
+    //     getMessageStreamWithMetadata(bufferingPolicy: .bufferingNewest(16))
+    // }
 }
 
 /// Settings for a `DDSSubscriber`.
