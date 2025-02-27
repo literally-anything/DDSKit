@@ -80,6 +80,7 @@ public final class DDSParticipant: @unchecked Sendable {
             success: &success
         )
         guard success else {
+            try FastDDSErrorCode.checkThrowInternal(raw.destroy(), from: .participant)
             throw DDSError.initializationError(from: .publisher)
         }
 
@@ -89,7 +90,16 @@ public final class DDSParticipant: @unchecked Sendable {
             success: &success
         )
         guard success else {
+            try FastDDSErrorCode.checkThrowInternal(raw.destroy(), from: .participant)
             throw DDSError.initializationError(from: .subscriber)
+        }
+
+        // If something fails, destroy the participant to not leak memory.
+        var setupDone = false
+        defer {
+            if !setupDone {
+                try! FastDDSErrorCode.checkThrowInternal(raw.destroy(), from: .participant)
+            }
         }
 
         try FastDDSErrorCode.checkThrowInternal(
@@ -116,6 +126,8 @@ public final class DDSParticipant: @unchecked Sendable {
 
         try FastDDSErrorCode.checkThrow(rawPublisher.enable(), from: .publisher)
         try FastDDSErrorCode.checkThrow(rawSubscriber.enable(), from: .subscriber)
+
+        setupDone = true
     }
 
     deinit {
@@ -145,8 +157,8 @@ public final class DDSParticipant: @unchecked Sendable {
 extension DDSParticipant {
     /// A list of the other participants' names on the same domain.
     public var participants: [String] {
-        raw.participants.map { stdString in
-            String(stdString)
+        raw.participants.map { cxxString in
+            String(cxxString)
         }
     }
 
