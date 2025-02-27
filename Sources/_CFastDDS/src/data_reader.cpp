@@ -10,7 +10,7 @@
 #include <../lib/swift/Block/Block.h>
 
 #include "loaning_sequence.hpp"
-#include "sample_identity.hpp"
+#include "utils/sample_identity.hpp"
 
 #include <fastdds/dds/log/Log.hpp>
 #include <fastdds/dds/core/detail/DDSReturnCode.hpp>

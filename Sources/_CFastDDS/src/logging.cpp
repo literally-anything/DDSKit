@@ -7,7 +7,7 @@
  */
 #include "logging.hpp"
 
-#include "swift_helpers.hpp"
+#include "utils/swift_helpers.hpp"
 
 #include <fastdds/dds/log/Log.hpp>
 

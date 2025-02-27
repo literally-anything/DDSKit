@@ -10,7 +10,7 @@
 #include <swift/bridging>
 
 #include "common.h"
-#include "type_support.hpp"
+#include "cdr/type_support.hpp"
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>

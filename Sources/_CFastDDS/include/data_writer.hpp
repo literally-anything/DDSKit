@@ -14,7 +14,7 @@
 #include "common.h"
 #include "topic.hpp"
 #include "publisher.hpp"
-#include "sample_identity.hpp"
+#include "utils/sample_identity.hpp"
 
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/DataWriterListener.hpp>

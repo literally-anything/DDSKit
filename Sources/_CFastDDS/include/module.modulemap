@@ -11,7 +11,7 @@ module _CFastDDS {
     header "common.h"
     header "setup.hpp"
 
-    header "sample_identity.hpp"
+    header "utils/sample_identity.hpp"
 
     header "participant.hpp"
     header "topic.hpp"
@@ -20,13 +20,8 @@ module _CFastDDS {
     header "data_writer.hpp"
     header "data_reader.hpp"
 
-    header "type_support.hpp"
-    header "DynamicTypes.hpp"
-
-    // header "fastdds.hpp"
-    // header "type_representation.hpp"
-    // header "cdr_size.hpp"
-    // header "GenericTopicType.hpp"
+    header "cdr/type_support.hpp"
+    header "cdr/DynamicTypes.hpp"
 
     export *
 }

@@ -11,7 +11,7 @@
 
 #include "common.h"
 #include "participant.hpp"
-#include "type_support.hpp"
+#include "cdr/type_support.hpp"
 
 #include <fastdds/dds/topic/Topic.hpp>
 
