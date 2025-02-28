@@ -42,6 +42,8 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
                             qos.setDataSharingMode(dir: dir ?? "")
                         case .off:
                             qos.setDataSharingModeOff()
+                        case .auto:
+                            qos.setDataSharingModeAuto()
                     }
                 case .publishMode(let mode):
                     qos.setPublishMode(async: mode == .async)
@@ -315,10 +317,13 @@ public enum DDSPublisherSetting {
     /// If set to on and it is not supported, an error will be thrown when initializing the publisher.
     public enum DataSharingMode {
         /// The publisher will directly share it's history with subscribers with shared memory.
-        /// - Parameter dir: The path to the directory to use for memory-mapped files. Nil to use the default.
+        /// - Parameters:
+        //    - dir: The path to the directory to use for memory-mapped files. nil to use the default.
         case on(dir: String? = nil)
         /// The publisher will send data to subscribers as normal.
         case off
+        /// The publisher will use the default data sharing mode for the topic and data type.
+        case auto
 
         /// The publisher will directly share it's history with subscribers with shared memory.
         static var on: DataSharingMode { .on() }

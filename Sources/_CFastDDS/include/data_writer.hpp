@@ -52,6 +52,9 @@ namespace FastDDS {
             INLINE void setDataSharingModeOff() {
                 qos.data_sharing().off();
             }
+            INLINE void setDataSharingModeAuto() {
+                qos.data_sharing().automatic();
+            }
             INLINE void setPublishMode(bool async) SWIFT_NAME(setPublishMode(async:)) {
                 qos.publish_mode().kind = async ? eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE : eprosima::fastdds::dds::SYNCHRONOUS_PUBLISH_MODE;
             }
