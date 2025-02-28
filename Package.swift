@@ -49,7 +49,6 @@ let package = Package(
             dependencies: [
                 // "DDSKitMacros",
                 "_CFastDDS",
-                "_FastDDSHelpers",
                 .product(name: "Logging", package: "swift-log")
             ],
             cSettings: cSettings,
