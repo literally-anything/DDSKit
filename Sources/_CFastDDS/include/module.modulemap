@@ -12,6 +12,7 @@ module _CFastDDS {
     header "setup.hpp"
 
     header "utils/guid.hpp"
+    header "utils/machine_id.hpp"
     header "utils/sample_identity.hpp"
 
     header "participant.hpp"

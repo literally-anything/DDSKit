@@ -75,7 +75,7 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
                                 return
                             }
 
-                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.guidFromInstanceHandle(instanceHandle))
+                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.GUIDHelpers.guidFromInstanceHandle(instanceHandle))
 
                             for callback in callbacks {
                                 callback(entityIdentifier)

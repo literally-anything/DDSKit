@@ -78,7 +78,7 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
                                 return
                             }
 
-                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.guidFromInstanceHandle(instanceHandle))
+                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.GUIDHelpers.guidFromInstanceHandle(instanceHandle))
 
                             for callback in callbacks {
                                 callback(entityIdentifier)
@@ -196,7 +196,7 @@ extension DDSSubscriber {
 
         /// The identifier of the entity that sent the message.
         public var senderEntityIdentifier: DDSEntityIdentifier {
-            DDSEntityIdentifier(guid: FastDDS.guidFromInstanceHandle(info.pointee.publication_handle))
+            DDSEntityIdentifier(guid: FastDDS.GUIDHelpers.guidFromInstanceHandle(info.pointee.publication_handle))
         }
     }
 }

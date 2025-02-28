@@ -92,14 +92,25 @@ public final class DDSParticipant: @unchecked Sendable {
             case .internallyAssigned:
                 break
             case .hostUnique:
-                do throws(HostIdentifierError) {
-                    let hostIdentifier = try getHostIdentifer()
-                    raw.setGuidPrefix(hostInfo: hostIdentifier)
-                } catch {
-                    logger.warning("Failed to get host identifier: \"\(error.message)\", falling back to .internallyAssigned prefix")
+                let hostIdentifier = FastDDS.getMachineId()
+#if DEBUG
+                // When debugging, check that the host identifier doesn't change between calls to passively ensure that this mechanism works.
+                struct MachineIDDebug { static let uniqueId: Mutex<UInt16?> = .init(nil) }
+                MachineIDDebug.uniqueId.withLock { uniqueId in
+                    if uniqueId == nil {
+                        uniqueId = hostIdentifier
+                    } else {
+                        assert(uniqueId == hostIdentifier, "Host identifier changed between calls")
+                    }
                 }
+#endif
+                guard hostIdentifier != 0 else {
+                    logger.warning("Failed to get host identifier, falling back to .internallyAssigned prefix")
+                    break
+                }
+                try FastDDSErrorCode.checkThrowInternal(raw.setGuidPrefix(hostInfo: hostIdentifier))
             case .userAssigned(let userPrefix):
-                raw.setGuidPrefix(prefix: userPrefix.guidPrefix)
+                try FastDDSErrorCode.checkThrowInternal(raw.setGuidPrefix(prefix: userPrefix.guidPrefix))
         }
 
         // If this isn't enabled before creating the publisher and subscriber, it segfaults when creating a reader or witer.
@@ -266,11 +277,6 @@ extension DDSParticipant {
             /// This is the default.
             case internallyAssigned
             /// Uses more unique information about the host to ensure that data-sharing works even if network interfaces change.
-            ///
-            /// On Linux the host information is a hash including the contents of /etc/machine-id (a unique identifier generated at install) and, if available, PCR0 from a TPM.
-            /// The rest of the prefix is the same as `.internallyAssigned`. If the host information is not available, this is no different than `.internallyAssigned`.
-            ///
-            /// On other platforms, this is no different than `.internallyAssigned`.
             case hostUnique
             /// The prefix is assigned by the user.
             /// - Note: The fastdds documentation says which bytes are used for what, so follow this or data-sharing and intra-process delivery will not work.

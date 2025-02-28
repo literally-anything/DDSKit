@@ -84,19 +84,26 @@ extension DDSEntityIdentifier: Hashable {
     }
 }
 
+extension DDSEntityIdentifier: CustomStringConvertible {
+    public var description: String {
+        .init(FastDDS.GUIDHelpers.toString(guid))
+    }
+}
+
 extension DDSEntityIdentifier {
     /// A prefix for a DDS entity identifier.
     /// This directly maps to the fastdds GuidPrefix_t.
     /// This is what determines whether itra-process or data-sharing delivery is possible.
-    public struct Prefix: Sendable, Hashable, ExpressibleByArrayLiteral {
+    public struct Prefix: Sendable, Hashable, ExpressibleByArrayLiteral, CustomStringConvertible {
         /// The underlying fastdds GUIDPrefix.
         internal var guidPrefix: FastDDS.GUIDPrefix
 
         /// The [UInt8] representation of the prefix.
         public var value: [UInt8] {
             get {
-                withUnsafePointer(to: guidPrefix.value.0) { guidPrefixPtr in
-                    Array(
+                withUnsafePointer(to: guidPrefix.value) { guidPrefixTuplePtr in
+                    let guidPrefixPtr = UnsafeRawPointer(guidPrefixTuplePtr).assumingMemoryBound(to: UInt8.self)
+                    return Array(
                         UnsafeBufferPointer(start: guidPrefixPtr, count: Int(FastDDS.GUIDPrefix_size))
                     )
                 }
@@ -104,13 +111,33 @@ extension DDSEntityIdentifier {
             set {
                 precondition(newValue.count == Int(FastDDS.GUIDPrefix_size), "Prefix.value must be \(FastDDS.GUIDPrefix_size) bytes")
                 newValue.withUnsafeBufferPointer { newValueBuffer in
-                    withUnsafeMutablePointer(to: &guidPrefix.value.0) { guidPrefixPtr in
+                    withUnsafeMutablePointer(to: &guidPrefix.value) { guidPrefixTuplePtr in
+                        let guidPrefixPtr = UnsafeMutableRawPointer(guidPrefixTuplePtr).assumingMemoryBound(to: UInt8.self)
                         let guidPrefixBuffer = UnsafeMutableBufferPointer(start: guidPrefixPtr, count: Int(FastDDS.GUIDPrefix_size))
                         for (index, value) in newValueBuffer.enumerated() {
                             guidPrefixBuffer[index] = value
                         }
                     }
                 }
+            }
+        }
+
+        /// The vendor id of the prefix.
+        public var vendorId: (UInt8, UInt8) {
+            get {
+                (guidPrefix.value.0, guidPrefix.value.1)
+            }
+        }
+        /// The bytes in the prefix that represent the host.
+        public var hostId: (UInt8, UInt8) {
+            get {
+                (guidPrefix.value.2, guidPrefix.value.3)
+            }
+        }
+        /// The bytes in the prefix that represent the process.
+        public var processId: (UInt8, UInt8, UInt8, UInt8) {
+            get {
+                (guidPrefix.value.4, guidPrefix.value.5, guidPrefix.value.6, guidPrefix.value.7)
             }
         }
 
@@ -154,12 +181,16 @@ extension DDSEntityIdentifier {
         public func hash(into hasher: inout Hasher) {
             hasher.combine(value)
         }
+
+        public var description: String {
+            .init(FastDDS.GUIDHelpers.toString(guidPrefix))
+        }
     }
 }
 
 extension DDSEntityIdentifier {
     /// The entity id part of an entity identifier.
-    public struct EntityId: Sendable, Hashable, ExpressibleByArrayLiteral, ExpressibleByIntegerLiteral {
+    public struct EntityId: Sendable, Hashable, ExpressibleByArrayLiteral, ExpressibleByIntegerLiteral, CustomStringConvertible {
         /// The underlying fastdds EntityID.
         internal var entityId: FastDDS.EntityID
 
@@ -175,8 +206,9 @@ extension DDSEntityIdentifier {
         /// The [UInt8] representation of the entity id.
         public var value: [UInt8] {
             get {
-                withUnsafePointer(to: entityId.value.0) { entityIdPtr in
-                    Array(
+                withUnsafePointer(to: entityId.value) { entityIdTuplePtr in
+                    let entityIdPtr = UnsafeRawPointer(entityIdTuplePtr).assumingMemoryBound(to: UInt8.self)
+                    return Array(
                         UnsafeBufferPointer(start: entityIdPtr, count: Int(FastDDS.EntityID_size))
                     )
                 }
@@ -184,7 +216,8 @@ extension DDSEntityIdentifier {
             set {
                 precondition(newValue.count == Int(FastDDS.EntityID_size), "EntityId.value must be \(FastDDS.EntityID_size) bytes")
                 newValue.withUnsafeBufferPointer { newValueBuffer in
-                    withUnsafeMutablePointer(to: &entityId.value.0) { entityIdPtr in
+                    withUnsafeMutablePointer(to: &entityId.value) { entityIdTuplePtr in
+                        let entityIdPtr = UnsafeMutableRawPointer(entityIdTuplePtr).assumingMemoryBound(to: UInt8.self)
                         let entityIdBuffer = UnsafeMutableBufferPointer(start: entityIdPtr, count: Int(FastDDS.EntityID_size))
                         for (index, value) in newValueBuffer.enumerated() {
                             entityIdBuffer[index] = value
@@ -216,6 +249,10 @@ extension DDSEntityIdentifier {
         }
         public func hash(into hasher: inout Hasher) {
             hasher.combine(value)
+        }
+
+        public var description: String {
+            .init(FastDDS.GUIDHelpers.toString(entityId))
         }
     }
 }

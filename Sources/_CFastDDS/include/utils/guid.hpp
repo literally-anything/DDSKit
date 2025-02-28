@@ -22,8 +22,26 @@ namespace FastDDS {
     static const unsigned int GUIDPrefix_size = GUIDPrefix::size;
     static const unsigned int EntityID_size = EntityID::size;
 
-    INLINE GUID guidFromInstanceHandle(const InstanceHandle &handle) {
-        return eprosima::fastdds::rtps::iHandle2GUID(handle);
+    namespace GUIDHelpers {
+        INLINE GUID guidFromInstanceHandle(const InstanceHandle &handle) {
+            return eprosima::fastdds::rtps::iHandle2GUID(handle);
+        }
+
+        INLINE std::string toString(const GUID &guid) {
+            std::stringstream ss;
+            ss << guid;
+            return ss.str();
+        }
+        INLINE std::string toString(const GUIDPrefix &prefix) {
+            std::stringstream ss;
+            ss << prefix;
+            return ss.str();
+        }
+        INLINE std::string toString(const EntityID &id) {
+            std::stringstream ss;
+            ss << id;
+            return ss.str();
+        }
     }
 
 }
