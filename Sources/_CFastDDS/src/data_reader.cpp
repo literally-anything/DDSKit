@@ -33,7 +33,7 @@ namespace FastDDS {
     }
 
     void DataReader::Listener::on_subscription_matched(_DataReader *writer, const SubscriptionMatchedStatus &info) {
-        subscriptionMatchedCallback(info.current_count, info.current_count_change);
+        subscriptionMatchedCallback(info.current_count, info.current_count_change, info.last_publication_handle);
     }
 
     void DataReader::Listener::on_data_available(_DataReader *reader) {

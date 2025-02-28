@@ -6,8 +6,8 @@
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 internal import Synchronization
+internal import Logging
 internal import _CFastDDS
-internal import _FastDDSHelpers
 
 /// A participant in the DDS network.
 ///
@@ -15,6 +15,9 @@ internal import _FastDDSHelpers
 /// Particiants are linked to a specific domain and can only communicate with other participants in the same domain.
 /// Participants can create topics with publishers and subscribers which send and receive messages.
 public final class DDSParticipant: @unchecked Sendable {
+    /// The logger for the participant.
+    internal let logger: Logger
+
     /// A wrapper around the underlying FastDDS DomainParticipant.
     /// The wrapper is needed because the FastDDS DomainParticipant is mostly virtual and fails to import into swift.
     internal var raw: FastDDS.Participant
@@ -47,16 +50,29 @@ public final class DDSParticipant: @unchecked Sendable {
         // Setup the library wrapper. (Only happens on the first successful call)
         try FastDDSErrorCode.checkThrowInternal(FastDDS.setup())
 
+        logger = Logger(
+            label: "DDSKit.Participant",
+            metadataProvider: .init {
+                [
+                    "domain": "\(domain)",
+                    "name": "\(name)"
+                ]
+            }
+        )
+
         var qos = FastDDS.Participant.Qos()
 
         name.withCString { cString in
             qos.setName(cString)
         }
 
+        var identifierPrefixMethod: Setting.IdentifierPrefixMethod = .internallyAssigned
         for setting in settings {
             switch setting {
                 case .ignoreLocalEndpoints(let ignore):
                     qos.setIgnoreLocalEndpoints(ignore)
+                case .identiferPrefixMethod(let method):
+                    identifierPrefixMethod = method
             }
         }
 
@@ -69,6 +85,21 @@ public final class DDSParticipant: @unchecked Sendable {
         )
         guard success else {
             throw DDSError.initializationError(from: .participant)
+        }
+
+        // Set after creating the participant but before enabling, so the base of the GUID will be generated, but can still be modified.
+        switch identifierPrefixMethod {
+            case .internallyAssigned:
+                break
+            case .hostUnique:
+                do throws(HostIdentifierError) {
+                    let hostIdentifier = try getHostIdentifer()
+                    raw.setGuidPrefix(hostInfo: hostIdentifier)
+                } catch {
+                    logger.warning("Failed to get host identifier: \"\(error.message)\", falling back to .internallyAssigned prefix")
+                }
+            case .userAssigned(let userPrefix):
+                raw.setGuidPrefix(prefix: userPrefix.guidPrefix)
         }
 
         // If this isn't enabled before creating the publisher and subscriber, it segfaults when creating a reader or witer.
@@ -155,6 +186,11 @@ public final class DDSParticipant: @unchecked Sendable {
 }
 
 extension DDSParticipant {
+    /// The entity identifier of the participant.
+    public var identifier: DDSEntityIdentifier {
+        DDSEntityIdentifier(guid: raw.guid)
+    }
+
     /// A list of the other participants' names on the same domain.
     public var participants: [String] {
         raw.participants.map { cxxString in
@@ -216,6 +252,30 @@ extension DDSParticipant {
         /// Sets whether to ingnore DataReaders and DataWriters that are created from the same participant.
         /// Defaults to false.
         case ignoreLocalEndpoints(Bool)
+
+        /// Sets the method to use to get the entity identifier prefix for the participant.
+        /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
+        /// This defalts to `.internallyAssigned`, which uses the default guid prefix in fastdds.
+        case identiferPrefixMethod(IdentifierPrefixMethod)
+
+        /// The method to use to get the entity identifier prefix for the participant.
+        /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
+        public enum IdentifierPrefixMethod {
+            /// The prefix is assigned internally by fastdds.
+            /// - Warning: This is sometimes an issue because it uses information about network interfaces. If network intefaces change at runtime, don't use this.
+            /// This is the default.
+            case internallyAssigned
+            /// Uses more unique information about the host to ensure that data-sharing works even if network interfaces change.
+            ///
+            /// On Linux the host information is a hash including the contents of /etc/machine-id (a unique identifier generated at install) and, if available, PCR0 from a TPM.
+            /// The rest of the prefix is the same as `.internallyAssigned`. If the host information is not available, this is no different than `.internallyAssigned`.
+            ///
+            /// On other platforms, this is no different than `.internallyAssigned`.
+            case hostUnique
+            /// The prefix is assigned by the user.
+            /// - Note: The fastdds documentation says which bytes are used for what, so follow this or data-sharing and intra-process delivery will not work.
+            case userAssigned(DDSEntityIdentifier.Prefix)
+        }
     }
 }
 

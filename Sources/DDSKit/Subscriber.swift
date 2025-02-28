@@ -20,7 +20,7 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
 
     /// A list of callbacks to call when a the publisher count goes above 0.
     /// This list is cleared after every time the callbacks are run.
-    private let matchCallbacks: Mutex<[@Sendable () -> Void]> = Mutex([])
+    private let matchCallbacks: Mutex<[@Sendable (borrowing DDSEntityIdentifier) -> Void]> = Mutex([])
     /// A list of callbacks to call when a message arrives.
     /// If a callback returns true, it will be removed from the list.
     @usableFromInline
@@ -65,7 +65,7 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
 
         try FastDDSErrorCode.checkThrowInternal(
             raw.setCallbacks(
-                .init { @Sendable [unowned self] publisherCount, countChange in
+                .init { @Sendable [unowned self] publisherCount, countChange, instanceHandle in
                     // Called when the number of publishers changes
                     if publisherCount > 0 {
                         matchCallbacks.withLock { callbacks in
@@ -73,8 +73,10 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
                                 return
                             }
 
+                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.guidFromInstanceHandle(instanceHandle))
+
                             for callback in callbacks {
-                                callback()
+                                callback(entityIdentifier)
                             }
                             callbacks.removeAll()
                         }
@@ -134,6 +136,11 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
 }
 
 extension DDSSubscriber {
+    /// The entity identifier of the subscriber.
+    public var identifier: DDSEntityIdentifier {
+        DDSEntityIdentifier(guid: raw.guid)
+    }
+
     /// The current number of publishers on the topic.
     public var publisherCount: Int {
         Int(raw.matchedCount)
@@ -148,7 +155,7 @@ extension DDSSubscriber {
 
         await withUnsafeContinuation { continuation in
             matchCallbacks.withLock { callbacks in
-                callbacks.append {
+                callbacks.append { _ in
                     continuation.resume()
                 }
             }
@@ -180,6 +187,11 @@ extension DDSSubscriber {
             let nanoseconds_fixed = Double(info.pointee.source_timestamp.nanosec()) * 1e-9
             let fraction_fixed = Double(info.pointee.source_timestamp.fraction()) * pow(2, -32)
             return seconds + nanoseconds_fixed + fraction_fixed
+        }
+
+        /// The identifier of the entity that sent the message.
+        public var senderEntityIdentifier: DDSEntityIdentifier {
+            DDSEntityIdentifier(guid: FastDDS.guidFromInstanceHandle(info.pointee.publication_handle))
         }
     }
 }

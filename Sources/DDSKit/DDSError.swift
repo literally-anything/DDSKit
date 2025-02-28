@@ -15,7 +15,7 @@ public enum DDSError: Error {
     /// Thrown when an operation times out.
     case timeout
 
-    /// Thrown when an operation fails because of what is likely a library bug.
+    /// Thrown when a fastdds operation fails because of what is likely a library bug.
     case internalError(code: FastDDSErrorCode, from: FastDDSEntityType, file: StaticString, function: StaticString, line: UInt, column: UInt)
 
     /// Thrown when an operation fails for an unknown reason.
@@ -41,24 +41,24 @@ public enum DDSError: Error {
     /// An error while publishing data.
     /// - Parameter FastDDSErrorCode: The error code returned from the DDS API.
     case publishError(FastDDSErrorCode)
-}
 
-/// A type of FastDDS entity.
-public enum FastDDSEntityType: Sendable {
-    /// Represents an unknown entity type.
-    case unknown
-    /// Represents a participant in the DDS.
-    case participant
-    /// Represents a topic in the DDS.
-    case topic
-    /// Represents a publisher in the DDS. This is part of a participant in the DDSKit API.
-    case publisher
-    /// Represents a data writer on a topic. This is represented as a publisher in the DDSKit API.
-    case dataWriter
-    /// Represents a subscriber in the DDS. This is part of a participant in the DDSKit API.
-    case subscriber
-    /// Represents a data reader on a topic. This is represented as a subscriber in the DDSKit API.
-    case dataReader
+    /// A type of FastDDS entity.
+    public enum FastDDSEntityType: Sendable {
+        /// Represents an unknown entity type.
+        case unknown
+        /// Represents a participant in the DDS.
+        case participant
+        /// Represents a topic in the DDS.
+        case topic
+        /// Represents a publisher in the DDS. This is part of a participant in the DDSKit API.
+        case publisher
+        /// Represents a data writer on a topic. This is represented as a publisher in the DDSKit API.
+        case dataWriter
+        /// Represents a subscriber in the DDS. This is part of a participant in the DDSKit API.
+        case subscriber
+        /// Represents a data reader on a topic. This is represented as a subscriber in the DDSKit API.
+        case dataReader
+    }
 }
 
 /// An error code from the DDS API.
@@ -92,7 +92,7 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
     ///   - entity: The entity type that the error occurred on.
     /// - Throws: The error that corresponds to the error code.
     @usableFromInline
-    internal static func throwUser(_ error: FastDDSErrorCode, from entity: FastDDSEntityType = .unknown) throws(DDSError) {
+    internal static func throwUser(_ error: FastDDSErrorCode, from entity: DDSError.FastDDSEntityType = .unknown) throws(DDSError) {
         assert(
             ![.unsupported, .badParameter, .notEnabled, .immutablePolicy, .inconsistentPolicy, .illegalOperation].contains(error),
             "\(error) occurred. This is probably a DDSKit library bug."
@@ -113,7 +113,7 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
     ///   - entity: The entity type that the error occurred on.
     /// - Throws: The error that corresponds to the error code.
     @usableFromInline
-    internal static func checkThrow(_ code: Int32, from entity: FastDDSEntityType = .unknown) throws(DDSError) {
+    internal static func checkThrow(_ code: Int32, from entity: DDSError.FastDDSEntityType = .unknown) throws(DDSError) {
         let error = check(code)
         if let error {
             try throwUser(error, from: entity)
@@ -131,7 +131,7 @@ public enum FastDDSErrorCode: Int32, Error, Sendable {
     /// - Throws: The error that corresponds to the error code.
     @usableFromInline
     internal static func checkThrowInternal(
-        _ code: Int32, from entity: FastDDSEntityType = .unknown,
+        _ code: Int32, from entity: DDSError.FastDDSEntityType = .unknown,
         file: StaticString = #file, function: StaticString = #function, line: UInt = #line, column: UInt = #column
     ) throws(DDSError) {
         let error = check(code)

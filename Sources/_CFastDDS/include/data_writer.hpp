@@ -14,6 +14,7 @@
 #include "common.h"
 #include "topic.hpp"
 #include "publisher.hpp"
+#include "utils/guid.hpp"
 #include "utils/sample_identity.hpp"
 
 #include <fastdds/dds/publisher/DataWriter.hpp>
@@ -30,7 +31,7 @@ namespace FastDDS {
         using WriteParams = eprosima::fastdds::rtps::WriteParams;
 
 
-        using onPublicationMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
+        using onPublicationMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange, InstanceHandle handle);
         struct Callbacks {
             onPublicationMatched_t publicationMatchedCallback;
         };
@@ -96,6 +97,10 @@ namespace FastDDS {
         }
         INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
             return destroyed;
+        }
+
+        INLINE GUID getGuid() const SWIFT_COMPUTED_PROPERTY {
+            return dataWriter->guid();
         }
 
 

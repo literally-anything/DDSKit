@@ -12,6 +12,7 @@
 #include "common.h"
 #include "topic.hpp"
 #include "subscriber.hpp"
+#include "utils/guid.hpp"
 
 #include <fastdds/dds/subscriber/DataReader.hpp>
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
@@ -28,7 +29,7 @@ namespace FastDDS {
         using SampleInfo = eprosima::fastdds::dds::SampleInfo;
 
         
-        using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange);
+        using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange, InstanceHandle handle);
         using onData_t = void (^ SENDABLE _Nonnull)(
             const void * _Nonnull const data,
             const SampleInfo * _Nonnull const info
@@ -95,6 +96,10 @@ namespace FastDDS {
         }
         INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
             return destroyed;
+        }
+
+        INLINE GUID getGuid() const SWIFT_COMPUTED_PROPERTY {
+            return dataReader->guid();
         }
 
 

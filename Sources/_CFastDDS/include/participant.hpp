@@ -7,10 +7,12 @@
  */
 #pragma once
 
+#include <cstdint>
 #include <swift/bridging>
 
 #include "common.h"
 #include "cdr/type_support.hpp"
+#include "utils/guid.hpp"
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
@@ -78,6 +80,19 @@ namespace FastDDS {
             }
         }
 
+        INLINE eprosima::fastdds::dds::ReturnCode_t setGuidPrefixHostInfo(uint16_t hostInfo) const SWIFT_NAME(setGuidPrefix(hostInfo:)) {
+            auto qos = participant->get_qos();
+            qos.wire_protocol().prefix.value[2] = hostInfo & 0xFF;
+            qos.wire_protocol().prefix.value[3] = (hostInfo >> 8) & 0xFF;
+            return participant->set_qos(qos);
+        }
+
+        INLINE eprosima::fastdds::dds::ReturnCode_t setGuidPrefix(const GUIDPrefix &guidPrefix) SWIFT_NAME(setGuidPrefix(prefix:)) {
+            auto qos = participant->get_qos();
+            qos.wire_protocol().prefix = guidPrefix;
+            return participant->set_qos(qos);
+        }
+
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t enable() {
             return participant->enable();
         }
@@ -103,6 +118,10 @@ namespace FastDDS {
         }
         INLINE bool getDestroyed() const SWIFT_COMPUTED_PROPERTY {
             return destroyed;
+        }
+
+        INLINE GUID getGuid() const SWIFT_COMPUTED_PROPERTY {
+            return participant->guid();
         }
 
         INLINE DomainID getDomain() const SWIFT_COMPUTED_PROPERTY {

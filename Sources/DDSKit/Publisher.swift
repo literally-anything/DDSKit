@@ -20,7 +20,7 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
 
     /// A list of callbacks to call when a the subscriber count goes above 0.
     /// This list is cleared after every time the callbacks are run.
-    private let matchCallbacks: Mutex<[@Sendable () -> Void]> = Mutex([])
+    private let matchCallbacks: Mutex<[@Sendable (borrowing DDSEntityIdentifier) -> Void]> = Mutex([])
 
     /// Initializes a new DDSPublisher on the given topic and with the given settings.
     /// - Parameters:
@@ -60,7 +60,7 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
 
         try FastDDSErrorCode.checkThrowInternal(
             raw.setCallbacks(
-                .init { [unowned self] subscriptionCount, countChange in
+                .init { [unowned self] subscriptionCount, countChange, instanceHandle in
                     // Called when the number of subscriptions changes
                     if subscriptionCount > 0 {
                         matchCallbacks.withLock { callbacks in
@@ -68,8 +68,10 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
                                 return
                             }
 
+                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.guidFromInstanceHandle(instanceHandle))
+
                             for callback in callbacks {
-                                callback()
+                                callback(entityIdentifier)
                             }
                             callbacks.removeAll()
                         }
@@ -95,6 +97,11 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
 }
 
 extension DDSPublisher {
+    /// The entity identifier of the publisher.
+    public var identifier: DDSEntityIdentifier {
+        DDSEntityIdentifier(guid: raw.guid)
+    }
+
     /// The current number of subscribers to the topic.
     public var subscriberCount: Int {
         Int(raw.matchedCount)
@@ -109,7 +116,7 @@ extension DDSPublisher {
 
         await withUnsafeContinuation { continuation in
             matchCallbacks.withLock { callbacks in
-                callbacks.append {
+                callbacks.append { _ in
                     continuation.resume()
                 }
             }
