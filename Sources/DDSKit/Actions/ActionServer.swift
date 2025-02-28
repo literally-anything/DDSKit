@@ -30,6 +30,11 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
     /// The handler callback for the request.
     private let requestHandler: RequestHandler
 
+    /// The participant for the action server.
+    public var participant: DDSParticipant {
+        subscriber.participant
+    }
+
     /// Initializes a new action server.
     /// - Parameters:
     ///   - participant: The participant to use for the action.

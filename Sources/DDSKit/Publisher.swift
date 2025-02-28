@@ -22,6 +22,11 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
     /// This list is cleared after every time the callbacks are run.
     private let matchCallbacks: Mutex<[@Sendable (borrowing DDSEntityIdentifier) -> Void]> = Mutex([])
 
+    /// The participant that this publisher is on.
+    public var participant: DDSParticipant {
+        topic.participant
+    }
+
     /// Initializes a new DDSPublisher on the given topic and with the given settings.
     /// - Parameters:
     ///   - topic: The topic to publish on.

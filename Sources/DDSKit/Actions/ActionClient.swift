@@ -21,6 +21,11 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
     /// This maps the message identifier of the request to the continuation that is waiting for the reply.
     private let activeActions: Mutex<[DDSMessageIdentifier: UnsafeContinuation<Reply, Never>]> = Mutex([:])
 
+    /// The participant for the action client.
+    public var participant: DDSParticipant {
+        publisher.participant
+    }
+
     /// Initializes a new action client.
     /// - Parameters:
     ///   - participant: The participant to use for the action.

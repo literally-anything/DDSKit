@@ -30,6 +30,11 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
     @usableFromInline
     internal let errorCallbacks: Mutex<[@Sendable (Int32) -> Bool]> = Mutex([])
 
+    /// The participant that the subscriber is on.
+    public var participant: DDSParticipant {
+        topic.participant
+    }
+
     /// Creates a new subscriber on a topic.
     /// - Parameters:
     ///   - topic: The topic to subscribe to.
