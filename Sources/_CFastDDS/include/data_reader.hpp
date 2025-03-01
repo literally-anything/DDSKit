@@ -7,7 +7,11 @@
  */
 #pragma once
 
-#include <swift/bridging>
+#if __has_include(<swift/bridging>)
+# include <swift/bridging>
+#else
+# include "utils/swift_bridging.h"
+#endif
 
 #include "common.h"
 #include "topic.hpp"
@@ -138,6 +142,6 @@ namespace FastDDS {
         std::unique_ptr<Listener> listener;
 
         bool destroyed = false;
-    } SWIFT_NONCOPYABLE;
+    } SWIFT_NONCOPYABLE SENDABLE;
 
 }

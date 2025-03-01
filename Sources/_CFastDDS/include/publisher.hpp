@@ -7,7 +7,11 @@
  */
 #pragma once
 
-#include <swift/bridging>
+#if __has_include(<swift/bridging>)
+# include <swift/bridging>
+#else
+# include "utils/swift_bridging.h"
+#endif
 
 #include "common.h"
 #include "participant.hpp"
@@ -78,6 +82,6 @@ namespace FastDDS {
         bool destroyed = false;
 
         friend class DataWriter;
-    } SWIFT_NONCOPYABLE;
+    } SWIFT_NONCOPYABLE SENDABLE;
 
 }

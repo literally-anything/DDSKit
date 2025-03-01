@@ -8,7 +8,12 @@
 #pragma once
 
 #include <cstdint>
-#include <swift/bridging>
+
+#if __has_include(<swift/bridging>)
+# include <swift/bridging>
+#else
+# include "utils/swift_bridging.h"
+#endif
 
 #include "common.h"
 #include "cdr/type_support.hpp"
@@ -184,6 +189,6 @@ namespace FastDDS {
         friend class Publisher;
         friend class Subscriber;
         friend class Topic;
-    } SWIFT_NONCOPYABLE;
+    } SWIFT_NONCOPYABLE SENDABLE;
 
 } 

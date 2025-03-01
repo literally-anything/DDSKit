@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common.h"
+
 #include <fastdds/rtps/common/Guid.hpp>
 #include <fastdds/rtps/common/GuidPrefix_t.hpp>
 #include <fastdds/rtps/common/InstanceHandle.hpp>

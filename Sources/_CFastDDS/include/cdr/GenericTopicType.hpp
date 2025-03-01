@@ -8,8 +8,20 @@
 #pragma once
 
 #include <cstdint>
-#include <swift/bridging>
-#include <../lib/swift/Block/Block.h>
+
+#if __has_include(<swift/bridging>)
+# include <swift/bridging>
+#else
+# include "utils/swift_bridging.h"
+#endif
+
+#error This file shouldn't be used right now. This way of defining types is not ready.
+// Shouldn't have private Block.h header included in a public header.
+#if __has_include(<Block.h>)
+# include <Block.h>
+#else
+# include "../../src/utils/Block.h"
+#endif
 
 #include "common.h"
 

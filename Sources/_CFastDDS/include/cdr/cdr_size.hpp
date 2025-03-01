@@ -9,11 +9,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <fastcdr/Cdr.h>
-#include <swift/bridging>
 
 #include "common.h"
 
+#include <fastcdr/Cdr.h>
 #include <fastcdr/CdrEncoding.hpp>
 #include <fastcdr/xcdr/MemberId.hpp>
 #include <fastcdr/CdrSizeCalculator.hpp>
