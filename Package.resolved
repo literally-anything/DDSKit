@@ -1,13 +1,22 @@
 {
-  "originHash" : "957b8ca3f661d248fc53a7ce4cc51d72721cdf9b64bc9494afe4f051f7a36c8c",
+  "originHash" : "3035b336913e697ede22dd026fd533123a596708fc656d1e705284bccf785971",
   "pins" : [
     {
-      "identity" : "fast-dds-prebuild",
+      "identity" : "swift-docc-plugin",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/literally-anything/Fast-DDS-Prebuild.git",
+      "location" : "https://github.com/apple/swift-docc-plugin",
       "state" : {
-        "revision" : "9136396cd5cfa44533b08f7ba1761c639a435fe6",
-        "version" : "3.0.1"
+        "revision" : "85e4bb4e1cd62cec64a4b8e769dcefdf0c5b9d64",
+        "version" : "1.4.3"
+      }
+    },
+    {
+      "identity" : "swift-docc-symbolkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-docc-symbolkit",
+      "state" : {
+        "revision" : "b45d1f2ed151d057b54504d653e0da5552844e34",
+        "version" : "1.0.0"
       }
     },
     {

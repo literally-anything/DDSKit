@@ -31,6 +31,18 @@ let swiftSettings: [SwiftSetting] = [
     .enableUpcomingFeature("InternalImportsByDefault")
 ]
 
+let applePlatformDependencies: [Package.Dependency] = []
+let applePlatformTargetDependencies: [Target.Dependency] = []
+#if canImport(Darwin)
+fastDDSPrebuildDependencies.append(
+    .package(url: "https://github.com/literally-anything/Fast-DDS-Prebuild.git", from: "3.0.0")
+)
+applePlatformTargetDependencies.append(
+    .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS]))
+)
+#endif
+
+
 let package = Package(
     name: "DDSKit",
     platforms: [.macOS(.v15), .iOS(.v18)],
@@ -40,8 +52,7 @@ let package = Package(
             targets: ["DDSKit"]
         )
     ],
-    dependencies: [
-        .package(url: "https://github.com/literally-anything/Fast-DDS-Prebuild.git", from: "3.0.0"), // Only used on apple platforms
+    dependencies: applePlatformDependencies + [
         // .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0")
     ],
@@ -59,9 +70,7 @@ let package = Package(
         ),
         .target(
             name: "_CFastDDS",
-            dependencies: [
-                .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS]))
-            ],
+            dependencies: applePlatformTargetDependencies,
             cSettings: cSettings,
             cxxSettings: cxxSettings,
             linkerSettings: [
