@@ -52,14 +52,29 @@ namespace FastDDS {
             INLINE void setName(const char * _Nonnull name) {
                 qos.name(eprosima::fastcdr::string_255(name));
             }
+
             INLINE void setIgnoreLocalEndpoints(bool ignore) {
                 qos.properties().properties().emplace_back("fastdds.ignore_local_endpoints", ignore ? "true" : "false");
             }
+
             INLINE void setMaxMessageSize(uint32_t size) {
                 qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
             }
             INLINE void setMaxMessageSizeToMinTransportSize() {
                 // qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
+            }
+
+            INLINE void setTypePropagationEnabled() {
+                qos.properties().properties().emplace_back("fastdds.type_propagation", "enabled");
+            }
+            INLINE void setTypePropagationDisabled() {
+                qos.properties().properties().emplace_back("fastdds.type_propagation", "disabled");
+            }
+            INLINE void setTypePropagationMinimal() {
+                qos.properties().properties().emplace_back("fastdds.type_propagation", "minimal_bandwidth");
+            }
+            INLINE void setTypePropagationRegistrationOnly() {
+                qos.properties().properties().emplace_back("fastdds.type_propagation", "registration_only");
             }
 
             INLINE const DomainParticipantQos &get() const {

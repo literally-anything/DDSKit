@@ -80,6 +80,17 @@ public final class DDSParticipant: @unchecked Sendable {
                         case .size(let size):
                             qos.setMaxMessageSize(size)
                     }
+                case .typePropagation(let mode):
+                    switch mode {
+                        case .enabled:
+                            qos.setTypePropagationEnabled()
+                        case .disabled:
+                            qos.setTypePropagationDisabled()
+                        case .minimal:
+                            qos.setTypePropagationMinimal()
+                        case .registrationOnly:
+                            qos.setTypePropagationRegistrationOnly()
+                    }
             }
         }
 
@@ -280,6 +291,11 @@ extension DDSParticipant {
         /// Defaults to 4294967295 if no value is provided.
         case maxMessageSize(MaxMessageSizeMode)
 
+        /// The mode to use to propagate data types to other participants.
+        /// This shoild really only need to be changed if you are very bandwidth constrained.
+        /// Defaults to `.enabled`.
+        case typePropagation(TypePropagationMode)
+
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
         public enum IdentifierPrefixMethod {
@@ -306,6 +322,18 @@ extension DDSParticipant {
             public init(integerLiteral value: UInt32) {
                 self = .size(value)
             }
+        }
+
+        /// The mode to use to propagate data types to other participants.
+        public enum TypePropagationMode {
+            /// Propagate all data type info to other participants.
+            case enabled
+            /// Do not propagate data type info to other participants.
+            case disabled
+            /// Use the minimum bandwidth possible to propagate data type info to other participants.
+            case minimal
+            /// Only send data type info to other participants, do not receive it.
+            case registrationOnly
         }
     }
 }
