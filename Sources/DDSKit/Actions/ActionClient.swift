@@ -29,7 +29,7 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
     /// Initializes a new action client.
     /// - Parameters:
     ///   - participant: The participant to use for the action.
-    ///   - name: The base name of the action.
+    ///   - actionName: The base name of the action.
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     /// - Throws: If the subscriber cannot be created.

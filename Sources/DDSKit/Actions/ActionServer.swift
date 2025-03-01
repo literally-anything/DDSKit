@@ -38,7 +38,7 @@ public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Send
     /// Initializes a new action server.
     /// - Parameters:
     ///   - participant: The participant to use for the action.
-    ///   - name: The base name of the action.
+    ///   - actionName: The base name of the action.
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     ///   - handler: The handler for the request.
@@ -125,6 +125,7 @@ extension DDSParticipant {
     ///   - reply: The message reply data type.
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    ///   - handler: The handler for the request.
     /// - Throws: If the subscriber cannot be created.
     public func createActionClient<Request: DDSCodable, Reply: DDSCodable>(
         name: String,

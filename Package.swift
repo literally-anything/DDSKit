@@ -9,7 +9,7 @@
 
 import PackageDescription
 import CompilerPluginSupport
-import FoundationEssentials
+import Foundation
 
 var cSettings: [CSetting] = []
 var cxxSettings: [CXXSetting] = []
