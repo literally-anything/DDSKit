@@ -11,21 +11,6 @@ import PackageDescription
 import CompilerPluginSupport
 import Foundation
 
-var cSettings: [CSetting] = []
-var cxxSettings: [CXXSetting] = []
-
-#if !os(macOS)
-let swift_cxx_flags_path = "./swift_cxx_flags"
-if FileManager.default.fileExists(atPath: swift_cxx_flags_path) {
-    let flags = try? String(contentsOfFile: swift_cxx_flags_path, encoding: .utf8).split(whereSeparator: \.isNewline)
-    if let flags {
-        let stringFlags = flags.map { String($0) }
-        cSettings.append(.unsafeFlags(stringFlags))
-        cxxSettings.append(.unsafeFlags(stringFlags))
-    }
-}
-#endif
-
 let swiftSettings: [SwiftSetting] = [
     .interoperabilityMode(.Cxx),
     .enableUpcomingFeature("InternalImportsByDefault")
@@ -65,15 +50,11 @@ let package = Package(
                 "_CFastDDS",
                 .product(name: "Logging", package: "swift-log")
             ],
-            cSettings: cSettings,
-            cxxSettings: cxxSettings,
             swiftSettings: swiftSettings
         ),
         .target(
             name: "_CFastDDS",
             dependencies: applePlatformTargetDependencies,
-            cSettings: cSettings,
-            cxxSettings: cxxSettings,
             linkerSettings: [
                 .linkedLibrary("fastdds"),
                 .linkedLibrary("fastcdr"),
