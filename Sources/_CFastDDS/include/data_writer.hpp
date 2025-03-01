@@ -163,6 +163,10 @@ namespace FastDDS {
             return dataWriter->discard_loan(data);
         }
 
+        INLINE void * _Nonnull getNative() const SWIFT_COMPUTED_PROPERTY {
+            return dataWriter;
+        }
+
     private:
         class Listener final : public eprosima::fastdds::dds::DataWriterListener {
         public:

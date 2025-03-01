@@ -93,6 +93,10 @@ namespace FastDDS {
             return topic->get_type_name();
         }
 
+        INLINE void * _Nonnull getNative() const SWIFT_COMPUTED_PROPERTY {
+            return topic;
+        }
+
     private:
         _Topic * _Nonnull topic;
         Participant::DomainParticipant * _Nonnull participant;

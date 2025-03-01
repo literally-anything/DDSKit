@@ -113,6 +113,10 @@ namespace FastDDS {
             return status.current_count;
         }
 
+        INLINE void * _Nonnull getNative() const SWIFT_COMPUTED_PROPERTY {
+            return dataReader;
+        }
+
     private:
         class Listener final : public eprosima::fastdds::dds::DataReaderListener {
         public:

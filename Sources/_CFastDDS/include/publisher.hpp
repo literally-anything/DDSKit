@@ -75,6 +75,10 @@ namespace FastDDS {
             return destroyed;
         }
 
+        INLINE void * _Nonnull getNative() const SWIFT_COMPUTED_PROPERTY {
+            return publisher;
+        }
+
     private:
         _Publisher * _Nonnull publisher;
         Participant::DomainParticipant * _Nonnull participant;

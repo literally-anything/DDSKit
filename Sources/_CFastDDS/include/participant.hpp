@@ -150,6 +150,10 @@ namespace FastDDS {
         //     return participant->unregister_type(typeSupportWrapper.typeSupport.get_type_name());
         // }
 
+        INLINE void * _Nonnull getNative() const SWIFT_COMPUTED_PROPERTY {
+            return participant;
+        }
+
     private:
         static INLINE DomainParticipantFactory * _Nonnull getFactory() {
             return DomainParticipantFactory::get_instance();
