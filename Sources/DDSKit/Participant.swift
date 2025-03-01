@@ -73,6 +73,13 @@ public final class DDSParticipant: @unchecked Sendable {
                     qos.setIgnoreLocalEndpoints(ignore)
                 case .identiferPrefixMethod(let method):
                     identifierPrefixMethod = method
+                case .maxMessageSize(let sizeMode):
+                    switch sizeMode {
+                        case .minTransport:
+                            qos.setMaxMessageSizeToMinTransportSize()
+                        case .size(let size):
+                            qos.setMaxMessageSize(size)
+                    }
             }
         }
 
@@ -269,6 +276,10 @@ extension DDSParticipant {
         /// This defalts to `.internallyAssigned`, which uses the default guid prefix in fastdds.
         case identiferPrefixMethod(IdentifierPrefixMethod)
 
+        /// The maximum size of a message that can be sent or received.
+        /// Defaults to 4294967295 if no value is provided.
+        case maxMessageSize(MaxMessageSizeMode)
+
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
         public enum IdentifierPrefixMethod {
@@ -281,6 +292,20 @@ extension DDSParticipant {
             /// The prefix is assigned by the user.
             /// - Note: The fastdds documentation says which bytes are used for what, so follow this or data-sharing and intra-process delivery will not work.
             case userAssigned(DDSEntityIdentifier.Prefix)
+        }
+
+        /// The maximum size of a message that can be sent or received.
+        public enum MaxMessageSizeMode: ExpressibleByIntegerLiteral {
+            /// Set the maximum message size to max size of the transport with the lowest size.
+            case minTransport
+            /// Set the maximum message size to the specified size.
+            case size(UInt32)
+
+            /// Creates a new MaxMessageSizeMode from an integer literal.
+            /// - Parameter value: The maximum size of a message that can be sent or received.
+            public init(integerLiteral value: UInt32) {
+                self = .size(value)
+            }
         }
     }
 }

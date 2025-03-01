@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #if __has_include(<swift/bridging>)
 # include <swift/bridging>
@@ -53,6 +54,12 @@ namespace FastDDS {
             }
             INLINE void setIgnoreLocalEndpoints(bool ignore) {
                 qos.properties().properties().emplace_back("fastdds.ignore_local_endpoints", ignore ? "true" : "false");
+            }
+            INLINE void setMaxMessageSize(uint32_t size) {
+                qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
+            }
+            INLINE void setMaxMessageSizeToMinTransportSize() {
+                // qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
             }
 
             INLINE const DomainParticipantQos &get() const {
