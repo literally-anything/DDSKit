@@ -85,6 +85,8 @@ std::string getMachineIdString() {
 #endif
 }
 
+using eprosima::fastdds::MD5;
+
 namespace FastDDS {
 
     uint16_t getMachineId() {
@@ -94,8 +96,8 @@ namespace FastDDS {
             return 0;
         }
 
-        eprosima::fastdds::MD5 md5;
-        md5.update(machine_id_str.c_str(), machine_id_str.size());
+        MD5 md5;
+        md5.update(machine_id_str.c_str(), static_cast<MD5::size_type>(machine_id_str.size()));
         md5.finalize();
 
         // Hash the 16-bytes md5.digest into a uint16_t

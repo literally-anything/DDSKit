@@ -1,6 +1,15 @@
 {
-  "originHash" : "73e219f1a657c9430a44e2aa1f664c42ec1c5261cb6469193839e57acd6567d8",
+  "originHash" : "957b8ca3f661d248fc53a7ce4cc51d72721cdf9b64bc9494afe4f051f7a36c8c",
   "pins" : [
+    {
+      "identity" : "fast-dds-prebuild",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/literally-anything/Fast-DDS-Prebuild.git",
+      "state" : {
+        "revision" : "9136396cd5cfa44533b08f7ba1761c639a435fe6",
+        "version" : "3.0.1"
+      }
+    },
     {
       "identity" : "swift-log",
       "kind" : "remoteSourceControl",

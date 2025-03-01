@@ -7,7 +7,11 @@
  */
 #include "data_writer.hpp"
 
-#include <../lib/swift/Block/Block.h>
+#if __has_include(<Block.h>)
+# include <Block.h>
+#else
+# include "utils/Block.h"
+#endif
 
 using namespace eprosima::fastdds::dds;
 

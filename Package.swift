@@ -33,6 +33,7 @@ let swiftSettings: [SwiftSetting] = [
 
 let package = Package(
     name: "DDSKit",
+    platforms: [.macOS(.v15), .iOS(.v18)],
     products: [
         .library(
             name: "DDSKit",
@@ -40,6 +41,7 @@ let package = Package(
         )
     ],
     dependencies: [
+        .package(url: "https://github.com/literally-anything/Fast-DDS-Prebuild.git", from: "3.0.0"), // Only used on apple platforms
         // .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0")
     ],
@@ -57,6 +59,9 @@ let package = Package(
         ),
         .target(
             name: "_CFastDDS",
+            dependencies: [
+                .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS]))
+            ],
             cSettings: cSettings,
             cxxSettings: cxxSettings,
             linkerSettings: [

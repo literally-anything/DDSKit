@@ -7,7 +7,11 @@
  */
 #include "data_reader.hpp"
 
-#include <../lib/swift/Block/Block.h>
+#if __has_include(<Block.h>)
+# include <Block.h>
+#else
+# include "utils/Block.h"
+#endif
 
 #include "loaning_sequence.hpp"
 #include "utils/sample_identity.hpp"
