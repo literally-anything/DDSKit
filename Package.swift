@@ -31,15 +31,16 @@ let swiftSettings: [SwiftSetting] = [
     .enableUpcomingFeature("InternalImportsByDefault")
 ]
 
-var applePlatformDependencies: [Package.Dependency] = []
-var applePlatformTargetDependencies: [Target.Dependency] = []
 #if canImport(Darwin)
-fastDDSPrebuildDependencies.append(
+let applePlatformDependencies: [Package.Dependency] = [
     .package(url: "https://github.com/literally-anything/Fast-DDS-Prebuild.git", from: "3.0.0")
-)
-applePlatformTargetDependencies.append(
+]
+let applePlatformTargetDependencies: [Target.Dependency] = [
     .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS]))
-)
+]
+#else
+let applePlatformDependencies: [Package.Dependency] = []
+let applePlatformTargetDependencies: [Target.Dependency] = []
 #endif
 
 
