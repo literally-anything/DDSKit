@@ -20,14 +20,16 @@ using namespace eprosima::fastdds::dds;
 
 namespace FastDDS {
 
-    int32_t setup() {
+    int32_t setup(
+        LogCallback_t logCallback
+    ) {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
 
         // Ensure that his is only actually run once successfully
         static bool setup_done = false;
         if (!setup_done) {
-            FastDDS::initLogging();
+            FastDDS::initLogging(logCallback);
 
             // The factory should non auto enable participants
             eprosima::fastdds::dds::DomainParticipantFactoryQos factoryQos;

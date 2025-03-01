@@ -48,7 +48,7 @@ public final class DDSParticipant: @unchecked Sendable {
         assert(name.count < 256, "Name must be less than 256 characters")
 
         // Setup the library wrapper. (Only happens on the first successful call)
-        try FastDDSErrorCode.checkThrowInternal(FastDDS.setup())
+        try FastDDSSetup.setup()
 
         logger = Logger(
             label: "DDSKit.Participant",

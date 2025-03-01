@@ -57,30 +57,14 @@ let package = Package(
         ),
         .target(
             name: "_CFastDDS",
-            dependencies: [
-                "_FastDDSHelpers"
-            ],
             cSettings: cSettings,
-            cxxSettings: cxxSettings + [
-                .headerSearchPath("../../.compatibility-headers/")
-            ],
+            cxxSettings: cxxSettings,
             linkerSettings: [
                 .linkedLibrary("fastdds"),
                 .linkedLibrary("fastcdr"),
                 .linkedLibrary("BlocksRuntime")
             ]
         ),
-        .target(
-            name: "_FastDDSHelpers",
-            dependencies: [
-                .product(name: "Logging", package: "swift-log")
-            ],
-            swiftSettings: swiftSettings + [
-                .unsafeFlags([
-                    "-emit-clang-header-path", ".compatibility-headers/_FastDDSHelpers-Swift.h"
-                ])
-            ]
-        )
         // .macro(
         //     name: "DDSKitMacros",
         //     dependencies: [

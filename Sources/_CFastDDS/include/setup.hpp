@@ -8,11 +8,17 @@
 #pragma once
 
 #include <cstdint>
+#include <swift/bridging>
 
 #include "common.h"
 
 namespace FastDDS {
 
-    NODISCARD int32_t setup();
+    using LogCallback_t = void (* _Nonnull)(
+        uint8_t level, const char * _Nonnull message, const char * _Nullable category,
+        const char * _Nullable file, const char * _Nullable function, int line
+    );
+
+    NODISCARD int32_t setup(LogCallback_t logCallback) SWIFT_NAME(setup(logCallback:));
 
 }

@@ -7,8 +7,15 @@
  */
 #pragma once
 
+#include <cstdint>
+
 namespace FastDDS {
 
-    void initLogging();
+    using LogCallback_t = void (* _Nonnull)(
+        uint8_t level, const char * _Nonnull message, const char * _Nullable category,
+        const char * _Nullable file, const char * _Nullable function, int line
+    );
+
+    void initLogging(LogCallback_t logCallback);
 
 }

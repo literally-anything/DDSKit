@@ -7,58 +7,47 @@
  */
 #include "logging.hpp"
 
-#include "utils/swift_helpers.hpp"
-
 #include <fastdds/dds/log/Log.hpp>
 
 using namespace eprosima::fastdds::dds;
 
 class SwiftLogConsumer final : public LogConsumer {
 public:
-    SwiftLogConsumer() : base(_FastDDSHelpers::LogConsumerBase::init()), LogConsumer() {}
+    SwiftLogConsumer(FastDDS::LogCallback_t logCallback) : callback(logCallback), LogConsumer() {}
     ~SwiftLogConsumer() override {}
 
     void Consume(const Log::Entry &entry) override {
         switch (entry.kind) {
             case Log::Kind::Info:
-                base.info(
-                    entry.message,
-                    entry.context.category,
-                    entry.context.filename,
-                    entry.context.function,
-                    entry.context.line
+                callback(
+                    0, entry.message.c_str(), entry.context.category,
+                    entry.context.filename, entry.context.function, entry.context.line
                 );
                 break;
             case Log::Kind::Warning:
-                base.warning(
-                    entry.message,
-                    entry.context.category,
-                    entry.context.filename,
-                    entry.context.function,
-                    entry.context.line
+                callback(
+                    1, entry.message.c_str(), entry.context.category,
+                    entry.context.filename, entry.context.function, entry.context.line
                 );
                 break;
             case Log::Kind::Error:
-                base.error(
-                    entry.message,
-                    entry.context.category,
-                    entry.context.filename,
-                    entry.context.function,
-                    entry.context.line
+                callback(
+                    2, entry.message.c_str(), entry.context.category,
+                    entry.context.filename, entry.context.function, entry.context.line
                 );
         }
     }
 
 private:
-    _FastDDSHelpers::LogConsumerBase base;
+    FastDDS::LogCallback_t callback;
 };
 
 namespace FastDDS {
 
-    void initLogging() {
+    void initLogging(LogCallback_t logCallback) {
         Log::ClearConsumers();
 
-        Log::RegisterConsumer(std::make_unique<SwiftLogConsumer>());
+        Log::RegisterConsumer(std::make_unique<SwiftLogConsumer>(logCallback));
 
         // Use the lowest verbosity level so that all messages are passed through and log levels can be handled by swift-log
         Log::SetVerbosity(Log::Kind::Info);
