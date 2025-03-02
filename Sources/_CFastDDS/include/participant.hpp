@@ -56,9 +56,11 @@ namespace FastDDS {
 
         class Qos final {
         public:
-
             INLINE Qos() {
                 qos = DomainParticipantFactory::get_instance()->get_default_participant_qos();
+            }
+            INLINE Qos(std::string profile, eprosima::fastdds::dds::ReturnCode_t &ret) SWIFT_NAME(init(profileName:ret:)) : Qos() {
+                ret = DomainParticipantFactory::get_instance()->get_participant_qos_from_profile(profile, qos);
             }
 
             INLINE void setName(const char * _Nonnull name) {
@@ -72,9 +74,9 @@ namespace FastDDS {
             INLINE void setMaxMessageSize(uint32_t size) {
                 qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
             }
-            INLINE void setMaxMessageSizeToMinTransportSize() {
-                // qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
-            }
+            // INLINE void setMaxMessageSizeToMinTransportSize() {
+            //     qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
+            // }
 
             INLINE void setTypePropagation(std::string mode) {
                 qos.properties().properties().emplace_back("fastdds.type_propagation", mode);

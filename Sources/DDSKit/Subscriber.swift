@@ -47,6 +47,12 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
 
         for setting in settings {
             switch setting {
+                case .loadProfile(let name):
+                    var ret: Int32 = 0
+                    qos = .init(subscriber: topic.participant.rawSubscriber, profileName: .init(name), ret: &ret)
+                    if let error = FastDDSErrorCode.check(ret) {
+                        throw .profileError(name: name, error)
+                    }
                 case .dataSharing(let mode):
                     switch mode {
                         case .on(let dir):
@@ -360,6 +366,12 @@ extension DDSSubscriber {
 
 /// Settings for a `DDSSubscriber`.
 public enum DDSSubscriberSettings {
+    /// Loads a profile with the specified name from an XML file.
+    /// These are documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/xml_configuration/xml_configuration.html
+    /// - Warning: This is not recommended because there are many settings that aren't accounted for in this library, and messing with them can cause undefined behavior.
+    /// - Parameter name: The name of the profile to load.
+    case loadProfile(name: String)
+
     /// Sets the data sharing mode of the subscriber. Defaults to automatically pick based on whether it is supported with this config and data type.
     /// If set to on and it is not supported, an error will be thrown when initializing the subscriber.
     case dataSharing(DataSharingMode)

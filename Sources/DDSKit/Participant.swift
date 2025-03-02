@@ -71,6 +71,12 @@ public final class DDSParticipant: @unchecked Sendable {
         var userTransports: [DDSTransport] = []
         for setting in settings {
             switch setting {
+                case .loadProfile(let name):
+                    var ret: Int32 = 0
+                    qos = .init(profileName: .init(name), ret: &ret)
+                    if let error = FastDDSErrorCode.check(ret) {
+                        throw .profileError(name: name, error)
+                    }
                 case .ignoreLocalEndpoints(let ignore):
                     qos.setIgnoreLocalEndpoints(ignore)
                 case .identiferPrefixMethod(let method):
@@ -78,7 +84,8 @@ public final class DDSParticipant: @unchecked Sendable {
                 case .maxMessageSize(let sizeMode):
                     switch sizeMode {
                         case .minTransport:
-                            qos.setMaxMessageSizeToMinTransportSize()
+                            logger.warning(".minTransport is not implemented yet")
+                            // qos.setMaxMessageSizeToMinTransportSize()
                         case .size(let size):
                             qos.setMaxMessageSize(size)
                     }
@@ -310,6 +317,12 @@ extension DDSParticipant {
     /// A setting for the participant.
     /// If multiple settings of the same type are provided, the last one will be used unless otherwise specified.
     public enum Setting {
+        /// Loads a profile with the specified name from an XML file.
+        /// These are documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/xml_configuration/xml_configuration.html
+        /// - Warning: This is not recommended because there are many settings that aren't accounted for in this library, and messing with them can cause undefined behavior.
+        /// - Parameter name: The name of the profile to load.
+        case loadProfile(name: String)
+
         /// Sets whether to ingnore DataReaders and DataWriters that are created from the same participant.
         /// Defaults to false.
         case ignoreLocalEndpoints(Bool)
@@ -351,6 +364,7 @@ extension DDSParticipant {
         /// The maximum size of a message that can be sent or received.
         public enum MaxMessageSizeMode: ExpressibleByIntegerLiteral {
             /// Set the maximum message size to max size of the transport with the lowest size.
+            /// - Warning: This is not implemented yet.
             case minTransport
             /// Set the maximum message size to the specified size.
             case size(UInt32)

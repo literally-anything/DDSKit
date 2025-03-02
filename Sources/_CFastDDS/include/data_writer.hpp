@@ -44,6 +44,11 @@ namespace FastDDS {
             INLINE Qos(const Publisher &publisherWrapper) SWIFT_NAME(init(publisher:)) {
                 qos = publisherWrapper.publisher->get_default_datawriter_qos();
             }
+            INLINE Qos(
+                const Publisher &publisherWrapper, std::string profile, eprosima::fastdds::dds::ReturnCode_t &ret
+            ) SWIFT_NAME(init(publisher:profileName:ret:)) : Qos(publisherWrapper) {
+                ret = publisherWrapper.publisher->get_datawriter_qos_from_profile(profile, qos);
+            }
 
             INLINE void setOperatingMode(bool push) SWIFT_NAME(setOperatingMode(push:)) {
                 qos.properties().properties().emplace_back("fastdds.push_mode", push ? "true" : "false");

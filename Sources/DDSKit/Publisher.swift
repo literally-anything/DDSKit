@@ -39,6 +39,12 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
 
         for setting in settings {
             switch setting {
+                case .loadProfile(let name):
+                    var ret: Int32 = 0
+                    qos = .init(publisher: topic.participant.rawPublisher, profileName: .init(name), ret: &ret)
+                    if let error = FastDDSErrorCode.check(ret) {
+                        throw .profileError(name: name, error)
+                    }
                 case .operatingMode(let mode):
                     qos.setOperatingMode(push: mode == .push)
                 case .dataSharing(let mode):
@@ -316,6 +322,12 @@ extension DDSPublisher where Message: DDSLoaningCodable {
 
 /// Settings for a `DDSPublisher`.
 public enum DDSPublisherSetting {
+    /// Loads a profile with the specified name from an XML file.
+    /// These are documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/xml_configuration/xml_configuration.html
+    /// - Warning: This is not recommended because there are many settings that aren't accounted for in this library, and messing with them can cause undefined behavior.
+    /// - Parameter name: The name of the profile to load.
+    case loadProfile(name: String)
+
     /// Sets the operating mode of the publisher. Defaults to `.push`.
     case operatingMode(OperatingMode)
 

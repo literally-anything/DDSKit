@@ -22,6 +22,10 @@ public enum DDSError: Error {
     /// - Parameter FastDDSErrorCode: The error code returned from the DDS API.
     case unknownError(from: FastDDSEntityType, FastDDSErrorCode?)
 
+    /// Thrown when the library fails to load an XML profile.
+    /// - Parameter name: The name of the profile that failed to load.
+    case profileError(name: String, FastDDSErrorCode)
+
     /// An error during the initialization of an entity.
     /// This does not have to be thrown from an initializer. Some entities are lazily initialized, so this could be thrown when the entity is first used.
     /// - Parameter FastDDSEntityType: The type of FastDDS entity that failed to initialize.

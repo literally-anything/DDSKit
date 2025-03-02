@@ -51,6 +51,11 @@ namespace FastDDS {
             INLINE Qos(const Subscriber &subscriberWrapper) SWIFT_NAME(init(subscriber:)) {
                 qos = subscriberWrapper.subscriber->get_default_datareader_qos();
             }
+            INLINE Qos(
+                const Subscriber &subscriberWrapper, std::string profile, eprosima::fastdds::dds::ReturnCode_t &ret
+            ) SWIFT_NAME(init(subscriber:profileName:ret:)) : Qos(subscriberWrapper) {
+                ret = subscriberWrapper.subscriber->get_datareader_qos_from_profile(profile, qos);
+            }
 
             INLINE void setDataSharingModeOn(const char * _Nonnull dir) SWIFT_NAME(setDataSharingMode(dir:)) {
                 qos.data_sharing().on(dir);
