@@ -26,7 +26,7 @@ namespace FastDDS {
     }
 
     void DataWriter::Listener::on_publication_matched(_DataWriter *writer, const PublicationMatchedStatus &info) {
-        publicationMatchedCallback(info.current_count, info.current_count_change, info.last_subscription_handle);
+        publicationMatchedCallback(info.current_count, info.current_count_change, eprosima::fastdds::rtps::iHandle2GUID(info.last_subscription_handle));
     }
 
 }

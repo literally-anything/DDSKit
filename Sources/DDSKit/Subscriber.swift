@@ -83,7 +83,7 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
 
         try FastDDSErrorCode.checkThrowInternal(
             raw.setCallbacks(
-                .init { @Sendable [unowned self] publisherCount, countChange, instanceHandle in
+                .init { @Sendable [unowned self] publisherCount, countChange, guid in
                     // Called when the number of publishers changes
                     if publisherCount > 0 {
                         matchCallbacks.withLock { callbacks in
@@ -91,7 +91,7 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
                                 return
                             }
 
-                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.GUIDHelpers.guidFromInstanceHandle(instanceHandle))
+                            let entityIdentifier = DDSEntityIdentifier(guid: guid)
 
                             for callback in callbacks {
                                 callback(entityIdentifier)
@@ -106,7 +106,7 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
                             return
                         }
 
-                        let metadata = MessageMetadata(info: info)
+                        let metadata = MessageMetadata(info: info.pointee)
 
                         var index = callbacks.count - 1
                         let reversedCallbacks: ReversedCollection<_> = callbacks.reversed()
@@ -166,15 +166,19 @@ extension DDSSubscriber {
 
     /// Waits for a publisher to be created on the topic.
     /// Returns immediately if there is already a publisher.
-    public func waitForPublisher() async {
+    /// - Returns: The entity identifier of the first publisher that is found. Or nil if there is already a publisher because I can't get the GUID of exisiting ones yet.
+    @discardableResult
+    public func waitForPublisher() async -> DDSEntityIdentifier? {
         if raw.matchedCount > 0 {
-            return
+            return nil
         }
 
-        await withUnsafeContinuation { continuation in
+        // Use a continuation to wait for the next call to the match callback.
+        return await withUnsafeContinuation { continuation in
             matchCallbacks.withLock { callbacks in
-                callbacks.append { _ in
-                    continuation.resume()
+                // Don't actually escape because the callback is removed before we exit this context.
+                withoutActuallyEscaping({ @Sendable in continuation.resume(returning: $0) }) { callback in
+                    callbacks.append(callback)
                 }
             }
         }
@@ -183,33 +187,33 @@ extension DDSSubscriber {
 
 extension DDSSubscriber {
     /// Some metadata that is returned with a message to provide more context.
-    public struct MessageMetadata: ~Copyable {
+    public struct MessageMetadata: Sendable {
         /// The underlying fastdds SampleInfo.
-        internal let info: UnsafePointer<FastDDS.DataReader.SampleInfo>
+        internal let info: FastDDS.DataReader.SampleInfo
 
         /// The identifier of the message.
         public var identifier: DDSMessageIdentifier {
-            DDSMessageIdentifier(.init(info.pointee.sample_identity))!
+            DDSMessageIdentifier(.init(info.sample_identity))!
         }
 
         /// The identifier of a related message.
         /// This is used mainly for request-reply patterns or similar.
         public var relatedIdentifier: DDSMessageIdentifier? {
-            DDSMessageIdentifier(.init(info.pointee.related_sample_identity))
+            DDSMessageIdentifier(.init(info.related_sample_identity))
         }
 
         /// The timestamp of when the message was sent.
         /// This is in seconds since the epoch.
         public var timestamp: Double {
-            let seconds = Double(info.pointee.source_timestamp.seconds())
-            let nanoseconds_fixed = Double(info.pointee.source_timestamp.nanosec()) * 1e-9
-            let fraction_fixed = Double(info.pointee.source_timestamp.fraction()) * pow(2, -32)
+            let seconds = Double(info.source_timestamp.seconds())
+            let nanoseconds_fixed = Double(info.source_timestamp.nanosec()) * 1e-9
+            let fraction_fixed = Double(info.source_timestamp.fraction()) * pow(2, -32)
             return seconds + nanoseconds_fixed + fraction_fixed
         }
 
         /// The identifier of the entity that sent the message.
         public var senderEntityIdentifier: DDSEntityIdentifier {
-            DDSEntityIdentifier(guid: FastDDS.GUIDHelpers.guidFromInstanceHandle(info.pointee.publication_handle))
+            DDSEntityIdentifier(guid: FastDDS.GUIDHelpers.guidFromInstanceHandle(info.publication_handle))
         }
     }
 }
@@ -289,39 +293,39 @@ extension DDSSubscriber {
     /// Create an async stream of messages with metadata from the subscriber.
     /// - Parameter bufferingPolicy: The buffering policy to use for the stream.
     /// - Throws: If an error occurs while reading the message.
-    // @inlinable
-    // public func getMessageStreamWithMetadata(
-    //     bufferingPolicy: AsyncThrowingStream<(Message, MessageMetadata), Error>.Continuation.BufferingPolicy
-    // ) -> AsyncThrowingStream<(Message, MessageMetadata), Error> {
-    //     AsyncThrowingStream(bufferingPolicy: bufferingPolicy) { continuation in
-    //         let end = Atomic(false)
-    //         dataCallbacks.withLock { @Sendable callbacks in
-    //             callbacks.append { dataPtr, metadata in
-    //                 guard !end.load(ordering: .relaxed) else {
-    //                     return true
-    //                 }
-    //                 if case .enqueued(_) = continuation.yield((dataPtr.assumingMemoryBound(to: Message.self).pointee, metadata)) {
-    //                     return false
-    //                 }
-    //                 end.store(true, ordering: .sequentiallyConsistent)
-    //                 return true
-    //             }
-    //         }
-    //         errorCallbacks.withLock { @Sendable callbacks in
-    //             callbacks.append { errorCode in
-    //                 do {
-    //                     try FastDDSErrorCode.checkThrowInternal(errorCode, from: .dataReader)
-    //                 } catch {
-    //                     continuation.finish(throwing: error)
-    //                 }
-    //                 return true
-    //             }
-    //         }
-    //         continuation.onTermination = { @Sendable _ in
-    //             end.store(true, ordering: .sequentiallyConsistent)
-    //         }
-    //     }
-    // }
+    @inlinable
+    public func getMessageStreamWithMetadata(
+        bufferingPolicy: AsyncThrowingStream<(Message, MessageMetadata), Error>.Continuation.BufferingPolicy
+    ) -> AsyncThrowingStream<(Message, MessageMetadata), Error> {
+        AsyncThrowingStream(bufferingPolicy: bufferingPolicy) { continuation in
+            let end = Atomic(false)
+            dataCallbacks.withLock { @Sendable callbacks in
+                callbacks.append { dataPtr, metadata in
+                    guard !end.load(ordering: .relaxed) else {
+                        return true
+                    }
+                    if case .enqueued(_) = continuation.yield((dataPtr.assumingMemoryBound(to: Message.self).pointee, metadata)) {
+                        return false
+                    }
+                    end.store(true, ordering: .sequentiallyConsistent)
+                    return true
+                }
+            }
+            errorCallbacks.withLock { @Sendable callbacks in
+                callbacks.append { errorCode in
+                    do {
+                        try FastDDSErrorCode.checkThrowInternal(errorCode, from: .dataReader)
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
+                    return true
+                }
+            }
+            continuation.onTermination = { @Sendable _ in
+                end.store(true, ordering: .sequentiallyConsistent)
+            }
+        }
+    }
 
     /// An async stream of messages from the subscriber.
     /// - Note: This stream is unbounded, so if the callback is too slow, it will continue to fill up.
@@ -341,17 +345,17 @@ extension DDSSubscriber {
     /// An async stream of messages with metadata from the subscriber.
     /// - Note: This stream is unbounded, so if the callback is too slow, it will continue to fill up.
     /// - Throws: If an error occurs while reading the message.
-    // @inlinable
-    // public var messagesWithMetadata: AsyncThrowingStream<(Message, MessageMetadata), Error> {
-    //     getMessageStreamWithMetadata(bufferingPolicy: .unbounded)
-    // }
+    @inlinable
+    public var messagesWithMetadata: AsyncThrowingStream<(Message, MessageMetadata), Error> {
+        getMessageStreamWithMetadata(bufferingPolicy: .unbounded)
+    }
     /// An async stream of messages with metadata from the subscriber.
     /// - Note: This stream buffers the latest 16 messages.
     /// - Throws: If an error occurs while reading the message.
-    // @inlinable
-    // public var messagesWithMetadataBounded: AsyncThrowingStream<(Message, MessageMetadata), Error> {
-    //     getMessageStreamWithMetadata(bufferingPolicy: .bufferingNewest(16))
-    // }
+    @inlinable
+    public var messagesWithMetadataBounded: AsyncThrowingStream<(Message, MessageMetadata), Error> {
+        getMessageStreamWithMetadata(bufferingPolicy: .bufferingNewest(16))
+    }
 }
 
 /// Settings for a `DDSSubscriber`.

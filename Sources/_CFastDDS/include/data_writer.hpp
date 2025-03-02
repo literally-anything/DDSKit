@@ -33,7 +33,7 @@ namespace FastDDS {
         using WriteParams = eprosima::fastdds::rtps::WriteParams;
 
 
-        using onPublicationMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange, InstanceHandle handle);
+        using onPublicationMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange, GUID guid);
         struct Callbacks {
             onPublicationMatched_t publicationMatchedCallback;
         };

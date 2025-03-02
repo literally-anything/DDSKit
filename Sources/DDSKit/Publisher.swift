@@ -80,7 +80,7 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
 
         try FastDDSErrorCode.checkThrowInternal(
             raw.setCallbacks(
-                .init { [unowned self] subscriptionCount, countChange, instanceHandle in
+                .init { [unowned self] subscriptionCount, countChange, guid in
                     // Called when the number of subscriptions changes
                     if subscriptionCount > 0 {
                         matchCallbacks.withLock { callbacks in
@@ -88,7 +88,7 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
                                 return
                             }
 
-                            let entityIdentifier = DDSEntityIdentifier(guid: FastDDS.GUIDHelpers.guidFromInstanceHandle(instanceHandle))
+                            let entityIdentifier = DDSEntityIdentifier(guid: guid)
 
                             for callback in callbacks {
                                 callback(entityIdentifier)
@@ -129,15 +129,19 @@ extension DDSPublisher {
 
     /// Waits for a subscriber to subscribe to the topic.
     /// Returns immediately if there is already a subscriber.
-    public func waitForSubscriber() async {
+    /// - Returns: The entity identifier of the first subscriber that is found. Or nil if there is already a subscriber because I can't get the GUID of exisiting ones yet.
+    @discardableResult
+    public func waitForSubscriber() async -> DDSEntityIdentifier? {
         if raw.matchedCount > 0 {
-            return
+            return nil
         }
 
-        await withUnsafeContinuation { continuation in
+        // Use a continuation to wait for the next call to the match callback.
+        return await withUnsafeContinuation { continuation in
             matchCallbacks.withLock { callbacks in
-                callbacks.append { _ in
-                    continuation.resume()
+                // Don't actually escape because the callback is removed before we exit this context.
+                withoutActuallyEscaping({ @Sendable in continuation.resume(returning: $0) }) { callback in
+                    callbacks.append(callback)
                 }
             }
         }

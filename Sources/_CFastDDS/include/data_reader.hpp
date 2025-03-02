@@ -33,7 +33,7 @@ namespace FastDDS {
         using SampleInfo = eprosima::fastdds::dds::SampleInfo;
 
         
-        using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange, InstanceHandle handle);
+        using onSubscriptionMatched_t = void (^ SENDABLE _Nonnull)(int32_t matchCount, int32_t countChange, GUID guid);
         using onData_t = void (^ SENDABLE _Nonnull)(
             const void * _Nonnull const data,
             const SampleInfo * _Nonnull const info
@@ -123,7 +123,6 @@ namespace FastDDS {
         INLINE GUID getGuid() const SWIFT_COMPUTED_PROPERTY {
             return dataReader->guid();
         }
-
 
         INLINE int32_t getMatchedCount() const SWIFT_COMPUTED_PROPERTY {
             eprosima::fastdds::dds::SubscriptionMatchedStatus status;
