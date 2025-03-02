@@ -67,6 +67,8 @@ public final class DDSParticipant: @unchecked Sendable {
         }
 
         var identifierPrefixMethod: Setting.IdentifierPrefixMethod = .internallyAssigned
+        var builtinTransportsMode: FastDDS.BuiltinTransports = .NONE
+        var userTransports: [DDSTransport] = []
         for setting in settings {
             switch setting {
                 case .ignoreLocalEndpoints(let ignore):
@@ -83,14 +85,43 @@ public final class DDSParticipant: @unchecked Sendable {
                 case .typePropagation(let mode):
                     switch mode {
                         case .enabled:
-                            qos.setTypePropagationEnabled()
+                            qos.setTypePropagation("enabled")
                         case .disabled:
-                            qos.setTypePropagationDisabled()
+                            qos.setTypePropagation("disabled")
                         case .minimal:
-                            qos.setTypePropagationMinimal()
+                            qos.setTypePropagation("minimal_bandwidth")
                         case .registrationOnly:
-                            qos.setTypePropagationRegistrationOnly()
+                            qos.setTypePropagation("registration_only")
                     }
+                case .transports(let transports):
+                    switch transports {
+                        case .default:
+                            builtinTransportsMode = .DEFAULT
+                        case .defaultv6:
+                            builtinTransportsMode = .DEFAULTv6
+                        case .largeData:
+                            builtinTransportsMode = .LARGE_DATA
+                        case .largeDatav6:
+                            builtinTransportsMode = .LARGE_DATAv6
+                        case .custom(let customTransports):
+                            userTransports.append(contentsOf: customTransports)
+                    }
+            }
+        }
+        if userTransports.isEmpty {
+            builtinTransportsMode = .DEFAULT
+        }
+        qos.setBuiltinTransports(builtinTransportsMode)
+        for transport in userTransports {
+            switch transport {
+                case .sharedMemory(let segmentSize, let queueCapacity, let healthTimeout, let common):
+                    qos.addUserTransportSHM(segmentSize: segmentSize, queueCapacity: queueCapacity, healthTimeout: healthTimeout, common: .init(common))
+                case .udp4(let outPort, let common, let networkSettings):
+                    qos.addUserTransportUDPv4(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
+                case .udp6(let outPort, let common, let networkSettings):
+                    qos.addUserTransportUDPv6(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
+                case .custom(let descriptor):
+                    qos.addUserTransportCustom(descriptor: .init(descriptor))
             }
         }
 
@@ -277,6 +308,7 @@ extension DDSParticipant {
 
 extension DDSParticipant {
     /// A setting for the participant.
+    /// If multiple settings of the same type are provided, the last one will be used unless otherwise specified.
     public enum Setting {
         /// Sets whether to ingnore DataReaders and DataWriters that are created from the same participant.
         /// Defaults to false.
@@ -291,10 +323,16 @@ extension DDSParticipant {
         /// Defaults to 4294967295 if no value is provided.
         case maxMessageSize(MaxMessageSizeMode)
 
-        /// The mode to use to propagate data types to other participants.
+        /// Sets mode to use to propagate data types to other participants.
         /// This shoild really only need to be changed if you are very bandwidth constrained.
         /// Defaults to `.enabled`.
         case typePropagation(TypePropagationMode)
+
+        /// Sets the transports to use for the participant and all children.
+        /// Defaults to just the default built-in transport: `.default`.
+        /// If this is provided multiple times, all of the custom transports will be used, but only the last built-in transport will be used.
+        /// If custom transports are provided, the built-in transports will be disabled, unless built-in transports are also explicitly provided.
+        case transports(Transports)
 
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
@@ -334,6 +372,40 @@ extension DDSParticipant {
             case minimal
             /// Only send data type info to other participants, do not receive it.
             case registrationOnly
+        }
+
+        /// The transports to use for the participant and all children.
+        /// - Note: If defined using an array literal, this does not include the built-in transports.
+        public indirect enum Transports: ExpressibleByArrayLiteral {
+            /// Configure built-in transports for IPv4.
+            /// Use the built-in transports. By default, this is UDPv4 and Shared Memory.
+            /// This can be changed using the `FASTDDS_BUILTIN_TRANSPORTS` environment variable.
+            /// This is the default.
+            case `default`
+            /// Configure built-in transports for IPv6.
+            /// By default, this is UDPv6 and Shared Memory.
+            /// This can be changed using the `FASTDDS_BUILTIN_TRANSPORTS` environment variable.
+            case defaultv6
+            /// Configure built-in transports for large ammounts of data over IPv4.
+            /// By default, this is UDPv4, TCPv4, and Shared Memory, but UDPv4 is only used for bootstrapping discovery.
+            /// This can be changed using the `FASTDDS_BUILTIN_TRANSPORTS` environment variable.
+            case largeData
+            /// Configure built-in transports for large ammounts of data over IPv6.
+            /// Use the built-in transports. By default, this is UDPv6, TCPv6, and Shared Memory, but UDPv6 is only used for bootstrapping discovery.
+            /// This can be changed using the `FASTDDS_BUILTIN_TRANSPORTS` environment variable.
+            case largeDatav6
+
+            /// Use the specified transports.
+            /// - Note: This will disable the built-in transports, unless a built-in transport is also explicitly enabled so you must specify every transport you want to use.
+            /// - Parameter transports: The transports to use.
+            case custom(_ transports: [DDSTransport])
+
+            /// Creates a new Transports from an array literal.
+            /// This does not include the built-in transports.
+            /// - Parameter elements: The transports to use.
+            public init(arrayLiteral elements: DDSTransport...) {
+                self = .custom(elements)
+            }
         }
     }
 }

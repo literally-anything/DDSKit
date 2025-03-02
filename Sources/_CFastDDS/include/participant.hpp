@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #if __has_include(<swift/bridging>)
@@ -24,11 +25,21 @@
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 
+#include <fastdds/rtps/attributes/BuiltinTransports.hpp>
+#include <fastdds/rtps/transport/network/NetmaskFilterKind.hpp>
+#include <fastdds/rtps/transport/TransportDescriptorInterface.hpp>
+#include <fastdds/rtps/transport/shared_mem/SharedMemTransportDescriptor.hpp>
+#include <fastdds/rtps/transport/UDPv4TransportDescriptor.hpp>
+#include <fastdds/rtps/transport/UDPv6TransportDescriptor.hpp>
+
 class Publisher;
 class Subscriber;
 class Topic;
 
 namespace FastDDS {
+
+    using BuiltinTransports = eprosima::fastdds::rtps::BuiltinTransports;
+    using NetmaskFilterKind = eprosima::fastdds::rtps::NetmaskFilterKind;
 
     class Participant final {
     public:
@@ -45,6 +56,7 @@ namespace FastDDS {
 
         class Qos final {
         public:
+
             INLINE Qos() {
                 qos = DomainParticipantFactory::get_instance()->get_default_participant_qos();
             }
@@ -64,17 +76,94 @@ namespace FastDDS {
                 // qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
             }
 
-            INLINE void setTypePropagationEnabled() {
-                qos.properties().properties().emplace_back("fastdds.type_propagation", "enabled");
+            INLINE void setTypePropagation(std::string mode) {
+                qos.properties().properties().emplace_back("fastdds.type_propagation", mode);
             }
-            INLINE void setTypePropagationDisabled() {
-                qos.properties().properties().emplace_back("fastdds.type_propagation", "disabled");
+
+            INLINE void setBuiltinTransports(const BuiltinTransports &transports) {
+                qos.setup_transports(transports);
+                qos.transport().use_builtin_transports = transports != BuiltinTransports::NONE;
             }
-            INLINE void setTypePropagationMinimal() {
-                qos.properties().properties().emplace_back("fastdds.type_propagation", "minimal_bandwidth");
+
+            struct TransportCommonConfig {
+                uint32_t maxMessageSize;
+                uint32_t maxInitialPeersRange;
+            };
+
+            struct TransportNetworkSettings {
+                uint32_t sendBufferSize;
+                uint32_t receiveBufferSize;
+                NetmaskFilterKind netmaskFilter;
+                uint8_t timeToLive;
+                bool nonBlockingSend;
+                using AllowedInterfacesArray = std::vector<std::pair<std::string, NetmaskFilterKind>>; // Instantiate for Swift
+                AllowedInterfacesArray allowedInterfaces;
+                std::vector<std::string> blockedInterfaces;
+            };
+            
+            INLINE void addUserTransportSHM(
+                uint32_t segmentSize, uint32_t queueCapacity, uint32_t healthTimeout, TransportCommonConfig common
+            ) SWIFT_NAME(addUserTransportSHM(segmentSize:queueCapacity:healthTimeout:common:)) {
+                auto descriptor = std::make_shared<eprosima::fastdds::rtps::SharedMemTransportDescriptor>();
+
+                descriptor->segment_size(segmentSize);
+                descriptor->port_queue_capacity(queueCapacity);
+                descriptor->healthy_check_timeout_ms(healthTimeout);
+    
+                descriptor->maxMessageSize = common.maxMessageSize;
+                descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
+
+                qos.transport().user_transports.push_back(descriptor);
             }
-            INLINE void setTypePropagationRegistrationOnly() {
-                qos.properties().properties().emplace_back("fastdds.type_propagation", "registration_only");
+            INLINE void addUserTransportUDPv4(
+                uint16_t outPort, TransportCommonConfig common, TransportNetworkSettings settings
+            ) SWIFT_NAME(addUserTransportUDPv4(outPort:common:networkSettings:)) {
+                auto descriptor = std::make_shared<eprosima::fastdds::rtps::UDPv4TransportDescriptor>();
+
+                descriptor->m_output_udp_socket = outPort;
+
+                descriptor->maxMessageSize = common.maxMessageSize;
+                descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
+
+                descriptor->sendBufferSize = settings.sendBufferSize;
+                descriptor->receiveBufferSize = settings.receiveBufferSize;
+                descriptor->TTL = settings.timeToLive;
+                descriptor->non_blocking_send = settings.nonBlockingSend;
+                for (auto &allowedInterface : settings.allowedInterfaces) {
+                    descriptor->interface_allowlist.emplace_back(allowedInterface.first, allowedInterface.second);
+                }
+                for (auto &blockedInterface : settings.blockedInterfaces) {
+                    descriptor->interface_blocklist.emplace_back(blockedInterface);
+                }
+
+                qos.transport().user_transports.push_back(descriptor);
+            }
+            INLINE void addUserTransportUDPv6(
+                uint16_t outPort, TransportCommonConfig common, TransportNetworkSettings settings
+            ) SWIFT_NAME(addUserTransportUDPv6(outPort:common:networkSettings:)) {
+                auto descriptor = std::make_shared<eprosima::fastdds::rtps::UDPv6TransportDescriptor>();
+
+                descriptor->m_output_udp_socket = outPort;
+
+                descriptor->maxMessageSize = common.maxMessageSize;
+                descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
+
+                descriptor->sendBufferSize = settings.sendBufferSize;
+                descriptor->receiveBufferSize = settings.receiveBufferSize;
+                descriptor->TTL = settings.timeToLive;
+                descriptor->non_blocking_send = settings.nonBlockingSend;
+                for (auto &allowedInterface : settings.allowedInterfaces) {
+                    descriptor->interface_allowlist.emplace_back(allowedInterface.first, allowedInterface.second);
+                }
+                for (auto &blockedInterface : settings.blockedInterfaces) {
+                    descriptor->interface_blocklist.emplace_back(blockedInterface);
+                }
+
+                qos.transport().user_transports.push_back(descriptor);
+            }
+            INLINE void addUserTransportCustom(void * _Nonnull rawDescriptor) SWIFT_NAME(addUserTransportCustom(descriptor:)) {
+                auto descriptor = *(std::shared_ptr<eprosima::fastdds::rtps::TransportDescriptorInterface> *)(rawDescriptor);
+                qos.transport().user_transports.push_back(descriptor);
             }
 
             INLINE const DomainParticipantQos &get() const {
