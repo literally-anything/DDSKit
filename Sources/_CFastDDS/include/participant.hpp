@@ -25,6 +25,8 @@
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 
+#include <fastdds/utils/IPLocator.hpp>
+#include <fastdds/rtps/common/LocatorList.hpp>
 #include <fastdds/rtps/attributes/BuiltinTransports.hpp>
 #include <fastdds/rtps/transport/network/NetmaskFilterKind.hpp>
 #include <fastdds/rtps/transport/TransportDescriptorInterface.hpp>
@@ -40,6 +42,14 @@ namespace FastDDS {
 
     using BuiltinTransports = eprosima::fastdds::rtps::BuiltinTransports;
     using NetmaskFilterKind = eprosima::fastdds::rtps::NetmaskFilterKind;
+    using Locator = eprosima::fastdds::rtps::Locator_t;
+
+    INLINE void Locator_setIPV4(Locator &locator, const std::string &ipv4) {
+        eprosima::fastdds::rtps::IPLocator::setIPv4(locator, ipv4);
+    }
+    INLINE void Locator_setIPV6(Locator &locator, const std::string &ipv4) {
+        eprosima::fastdds::rtps::IPLocator::setIPv4(locator, ipv4);
+    }
 
     class Participant final {
     public:
@@ -166,6 +176,29 @@ namespace FastDDS {
             INLINE void addUserTransportCustom(void * _Nonnull rawDescriptor) SWIFT_NAME(addUserTransportCustom(descriptor:)) {
                 auto descriptor = *(std::shared_ptr<eprosima::fastdds::rtps::TransportDescriptorInterface> *)(rawDescriptor);
                 qos.transport().user_transports.push_back(descriptor);
+            }
+
+            INLINE void setDiscoveryModeSIMPLE() {
+                qos.wire_protocol().builtin.discovery_config.use_SIMPLE_EndpointDiscoveryProtocol = true;
+                qos.wire_protocol().builtin.discovery_config.use_STATIC_EndpointDiscoveryProtocol = false;
+                qos.wire_protocol().builtin.discovery_config.discoveryProtocol = eprosima::fastdds::rtps::DiscoveryProtocol::SIMPLE;
+            }
+            INLINE void setDiscoveryModeSTATIC() {
+                qos.wire_protocol().builtin.discovery_config.use_SIMPLE_EndpointDiscoveryProtocol = false;
+                qos.wire_protocol().builtin.discovery_config.use_STATIC_EndpointDiscoveryProtocol = true;
+                qos.wire_protocol().builtin.discovery_config.discoveryProtocol = eprosima::fastdds::rtps::DiscoveryProtocol::SIMPLE; // There is no STATIC for this
+            }
+            INLINE void setDiscoveryMulticast(bool useMulticast) {
+                qos.wire_protocol().builtin.metatrafficMulticastLocatorList.clear();
+                if (!useMulticast) {
+                    Locator locator; // Empty locator
+                    qos.wire_protocol().builtin.metatrafficMulticastLocatorList.push_back(locator);
+                }
+            }
+            INLINE void setDiscoveryInitialPeers(const std::vector<Locator> &peers) {
+                for (auto &peer : peers) {
+                    qos.wire_protocol().builtin.initialPeersList.push_back(peer);
+                }
             }
 
             INLINE const DomainParticipantQos &get() const {

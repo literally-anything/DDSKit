@@ -52,6 +52,7 @@ public enum DDSTransport {
         /// - Parameters:
         ///   - sendBufferSize: Size of the send buffer.
         ///   - receiveBufferSize: Size of the receive buffer.
+        ///   - netmaskFilter: Whether the netmask filter is enabled. Defaults to auto.
         ///   - timeToLive: Time to live for the socket in number of hops.
         ///   - nonBlockingSend: Whether the socket is non-blocking. This means that a message will be dropped if the buffer is full instead of waiting for space.
         ///   - allowedInterfaces: A list of allowed interfaces. Allows all if left empty.
@@ -73,6 +74,7 @@ public enum DDSTransport {
         /// - Parameters:
         ///   - sendBufferSize: Size of the send buffer.
         ///   - receiveBufferSize: Size of the receive buffer.
+        ///   - netmaskFilter: Whether the netmask filter is enabled. Defaults to auto.
         ///   - timeToLive: Time to live for the socket in number of hops.
         ///   - nonBlockingSend: Whether the socket is non-blocking. This means that a message will be dropped if the buffer is full instead of waiting for space.
         ///   - allowedInterfaces: A dictionary of allowed interfaces and whether the netmask filter should be enabled. Allows all if left empty.

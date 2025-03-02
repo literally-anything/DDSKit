@@ -100,6 +100,13 @@ public final class DDSParticipant: @unchecked Sendable {
                         case .registrationOnly:
                             qos.setTypePropagation("registration_only")
                     }
+                case .discovery(let mode):
+                    switch mode {
+                        case .simple(let enableMulticast, let initialPeers):
+                            qos.setDiscoveryModeSIMPLE()
+                            qos.setDiscoveryMulticast(enableMulticast)
+                            qos.setDiscoveryInitialPeers(.init(initialPeers.map { $0.locator }))
+                    }
                 case .transports(let transports):
                     switch transports {
                         case .default:
@@ -341,6 +348,10 @@ extension DDSParticipant {
         /// Defaults to `.enabled`.
         case typePropagation(TypePropagationMode)
 
+        /// Sets the mode to use for discovery.
+        /// Defaults to `.simple`.
+        case discovery(DiscoveryMode)
+
         /// Sets the transports to use for the participant and all children.
         /// Defaults to just the default built-in transport: `.default`.
         /// If this is provided multiple times, all of the custom transports will be used, but only the last built-in transport will be used.
@@ -386,6 +397,35 @@ extension DDSParticipant {
             case minimal
             /// Only send data type info to other participants, do not receive it.
             case registrationOnly
+        }
+
+        /// The mode to use for discovery.
+        /// How this works is documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/discovery/discovery.html
+        public enum DiscoveryMode {
+            /// Use the SIMPLE discovery mode.
+            /// 
+            /// This is the default mode, and is the simplest to use.
+            /// 
+            /// The Participant Discovery Phase (PDP) will identify the participants in the network using multicast (default) or unicast.
+            /// The Endpoint Discovery Phase (EDP) will identify the publishers and subscribers of each participant.
+            /// This mode allows for very simple configuration and is very robust, but it increases the network traffic and setup time.
+            /// 
+            /// To only use unicast for discovery, set `enableMulticast` to false, and add every participant's address to `initialPeers`.
+            /// `initialPeers` can also be used with multicast enabled in situations where multicast is not possible or unreliable (for example, on WiFi).
+            /// 
+            /// If there are multiple discovery mode settings, the last one will be used, but the `initialPeers` will be combined.
+            /// 
+            /// - Parameters:
+            ///   - enableMulticast: Whether to enable multicast for discovery. Defaults to true.
+            ///   - initialPeers: The initial peers to connect to. This allows for participants to be discovered through unicast. Defaults to an empty array.
+            case simple(enableMulticast: Bool = true, initialPeers: [SocketAddress] = [])
+            /// Use the STATIC discovery mode.
+            /// 
+            /// The Participant Discovery Phase (PDP) will identify the participants in the network using multicast (default) or unicast.
+            /// But, the Endpoint Discovery Phase (EDP) is not used. This means that 
+            // case `static`()
+
+            //case discoveryServer
         }
 
         /// The transports to use for the participant and all children.
