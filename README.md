@@ -1,4 +1,9 @@
 # DDSKit
+![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)
+![GitHub Release Date](https://img.shields.io/github/release-date/literally-anything/DDSKit)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fliterally-anything%2FDDSKit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/literally-anything/DDSKit)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fliterally-anything%2FDDSKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/literally-anything/DDSKit)
+
 *DDSKit* is an inter-process communication library built using [FastDDS](https://fast-dds.docs.eprosima.com/en/latest/index.html).
 DDSKit aims provide a simpler and easier-to-use API in Swift, including asynchronous operations using await and a request-reply model, while still remaining performant.
 DDSKit enables FastDDS's datasharing, intra-process, and zero-copy delivery methods for faster communication between threads or processes on the same machine.
