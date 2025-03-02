@@ -53,7 +53,20 @@ public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
                             qos.setDataSharingMode(dir: dir ?? "")
                         case .off:
                             qos.setDataSharingModeOff()
+                        case .auto:
+                            qos.setDataSharingModeAuto()
                     }
+                case .historyDepth(let depth):
+                    switch depth {
+                        case .endless:
+                            qos.setHistoryDepthEndless()
+                        case .depth(let depth):
+                            qos.setHistoryDepth(depth)
+                    }
+                case .timeout(let timeout):
+                    qos.setMaxBlockingTime(Int32(timeout.components.seconds), UInt32(Double(timeout.components.attoseconds) * 1e-9))
+                case .reliability(let reliability):
+                    qos.setReliability(reliability == .reliable)
             }
         }
 
@@ -347,6 +360,27 @@ public enum DDSSubscriberSettings {
     /// If set to on and it is not supported, an error will be thrown when initializing the subscriber.
     case dataSharing(DataSharingMode)
 
+    /// Sets the history depth of the subscriber.
+    /// Defaults to endless.
+    /// - Parameters:
+    ///   - depth: The depth of the history.
+    case historyDepth(HistoryDepth)
+
+    /// Sets the timeout for the subscriber.
+    /// This is the maximum time to wait for any resource to be available.
+    /// This only takes effect when `reliability` is set to `.reliable`.
+    /// Some operations won't respect this timeout unless FastDDS is compiled with strict realtime support.
+    /// When the timeout is reached, the operation will fail with a `DDSKit.timeout` error.
+    /// - Parameters:
+    ///   - timeout: The timeout to set.
+    case timeout(Duration)
+
+    /// Sets the reliability of the subscriber.
+    /// Defaults to `.reliable`.
+    /// - Parameters:
+    ///   - reliability: The reliability to set.
+    case reliability(Reliability)
+
     /// The data sharing mode of the subscriber.
     /// When this is on, the subscriber will share it's history with publisher through shared memory.
     /// This defualts to automatically picks based on whether it is supported with this config and data type.
@@ -357,9 +391,32 @@ public enum DDSSubscriberSettings {
         case on(dir: String? = nil)
         /// The subscriber will get data from publishers as normal.
         case off
+        /// The subscriber will use the default data sharing mode for the topic and data type.
+        case auto
 
         /// The subscriber will directly share it's history with subscribers with shared memory.
         static var on: DataSharingMode { .on() }
+    }
+
+    /// The depth of the history of the subscriber.
+    public enum HistoryDepth: ExpressibleByIntegerLiteral {
+        /// Don't drop any history until reaching system limits.
+        case endless
+        /// The history depth will be set to the given value.
+        case depth(UInt32)
+
+        /// Creates a new history depth.
+        public init(integerLiteral value: UInt32) {
+            self = .depth(value)
+        }
+    }
+
+    /// The reliability of the subscriber.
+    public enum Reliability {
+        /// The subscriber will wait until there is space in a buffer to store a new message.
+        case reliable
+        /// The subscriber will drop any messages that don't fit in the buffer.
+        case bestEffort
     }
 }
 

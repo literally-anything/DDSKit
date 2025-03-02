@@ -58,6 +58,24 @@ namespace FastDDS {
             INLINE void setDataSharingModeOff() {
                 qos.data_sharing().off();
             }
+            INLINE void setDataSharingModeAuto() {
+                qos.data_sharing().automatic();
+            }
+
+            INLINE void setHistoryDepthEndless() {
+                qos.history().kind = eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS;
+            }
+            INLINE void setHistoryDepth(uint32_t depth) {
+                qos.history().kind = eprosima::fastdds::dds::KEEP_LAST_HISTORY_QOS;
+                qos.history().depth = depth;
+            }
+
+            INLINE void setMaxBlockingTime(int32_t seconds, uint32_t nanoseconds) {
+                qos.reliability().max_blocking_time = eprosima::fastdds::dds::Duration_t(seconds, nanoseconds);
+            }
+            INLINE void setReliability(bool reliable) {
+                qos.reliability().kind = reliable ? eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS : eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS;
+            }
 
             INLINE const DataReaderQos &get() const {
                 return qos;

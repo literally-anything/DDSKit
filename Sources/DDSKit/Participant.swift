@@ -376,7 +376,7 @@ extension DDSParticipant {
 
         /// The transports to use for the participant and all children.
         /// - Note: If defined using an array literal, this does not include the built-in transports.
-        public indirect enum Transports: ExpressibleByArrayLiteral {
+        public enum Transports: ExpressibleByArrayLiteral {
             /// Configure built-in transports for IPv4.
             /// Use the built-in transports. By default, this is UDPv4 and Shared Memory.
             /// This can be changed using the `FASTDDS_BUILTIN_TRANSPORTS` environment variable.

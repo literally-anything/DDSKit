@@ -52,6 +52,19 @@ public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
                     }
                 case .publishMode(let mode):
                     qos.setPublishMode(async: mode == .async)
+                case .priority(let priority):
+                    qos.setPriority(priority.value)
+                case .historyDepth(let depth):
+                    switch depth {
+                        case .endless:
+                            qos.setHistoryDepthEndless()
+                        case .depth(let depth):
+                            qos.setHistoryDepth(depth)
+                    }
+                case .timeout(let timeout):
+                    qos.setMaxBlockingTime(Int32(timeout.components.seconds), UInt32(Double(timeout.components.attoseconds) * 1e-9))
+                case .reliability(let reliability):
+                    qos.setReliability(reliability == .reliable)
             }
         }
 
@@ -301,12 +314,40 @@ extension DDSPublisher where Message: DDSLoaningCodable {
 public enum DDSPublisherSetting {
     /// Sets the operating mode of the publisher. Defaults to `.push`.
     case operatingMode(OperatingMode)
+
     /// Sets the data sharing mode of the publisher. Defaults to automatically pick based on whether it is supported with this config and data type.
     /// If set to on and it is not supported, an error will be thrown when initializing the publisher.
     case dataSharing(DataSharingMode)
+
     /// Sets whether to publish synchronously or asynchronously.
     /// Whether publish calls should block.
     case publishMode(PublishMode)
+
+    /// Sets the priority of the publisher.
+    /// - Parameters:
+    ///   - priority: The priority to set.
+    case priority(Priority)
+
+    /// Sets the depth of the history of the publisher.
+    /// Defaults to `.endless`.
+    /// - Parameters:
+    ///   - depth: The history depth to set.
+    case historyDepth(HistoryDepth)
+
+    /// Sets the timeout for the publisher.
+    /// This is the maximum time to wait for any resource to be available.
+    /// This only takes effect when `reliability` is set to `.reliable`.
+    /// Some operations won't respect this timeout unless FastDDS is compiled with strict realtime support.
+    /// When the timeout is reached, the operation will fail with a `DDSKit.timeout` error.
+    /// - Parameters:
+    ///   - timeout: The timeout to set.
+    case timeout(Duration)
+
+    /// Sets the reliability of the publisher.
+    /// Defaults to `.reliable`.
+    /// - Parameters:
+    ///   - reliability: The reliability to set.
+    case reliability(Reliability)
 
     /// The operating mode of the publisher.
     public enum OperatingMode {
@@ -341,6 +382,51 @@ public enum DDSPublisherSetting {
         case sync
         /// Publish calls will return immediately and the data will be sent in the background.
         case async
+    }
+
+    /// The priority of the publisher.
+    public struct Priority: ExpressibleByIntegerLiteral {
+        /// The value of the priority.
+        public var value: UInt32
+
+        /// The highest priority.
+        public static var critical: Self { .init(integerLiteral: .max) }
+        /// A high priority.
+        public static var high: Self { 100 }
+        /// The default priority.
+        public static var normal: Self { 50 }
+        /// The lowest priority.
+        public static var low: Self { 0 }
+
+        /// Creates a custom priority.
+        public static func custom(_ value: UInt32) -> Self {
+            .init(integerLiteral: value)
+        }
+        /// Creates a new priority.
+        public init(integerLiteral value: UInt32) {
+            self.value = value
+        }
+    }
+
+    /// The depth of the history of the publisher.
+    public enum HistoryDepth: ExpressibleByIntegerLiteral {
+        /// Don't drop any history until reaching system limits.
+        case endless
+        /// The history depth will be set to the given value.
+        case depth(UInt32)
+
+        /// Creates a new history depth.
+        public init(integerLiteral value: UInt32) {
+            self = .depth(value)
+        }
+    }
+
+    /// The reliability of the publisher.
+    public enum Reliability {
+        /// The publisher will block until the data can be sent.
+        case reliable
+        /// The publisher will send the data as soon as possible, but may drop data if it can't be sent.
+        case bestEffort
     }
 }
 

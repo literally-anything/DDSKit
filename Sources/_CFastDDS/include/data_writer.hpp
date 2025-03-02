@@ -48,6 +48,7 @@ namespace FastDDS {
             INLINE void setOperatingMode(bool push) SWIFT_NAME(setOperatingMode(push:)) {
                 qos.properties().properties().emplace_back("fastdds.push_mode", push ? "true" : "false");
             }
+
             INLINE void setDataSharingModeOn(const char * _Nonnull dir) SWIFT_NAME(setDataSharingMode(dir:)) {
                 qos.data_sharing().on(dir);
             }
@@ -57,8 +58,28 @@ namespace FastDDS {
             INLINE void setDataSharingModeAuto() {
                 qos.data_sharing().automatic();
             }
+
             INLINE void setPublishMode(bool async) SWIFT_NAME(setPublishMode(async:)) {
                 qos.publish_mode().kind = async ? eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE : eprosima::fastdds::dds::SYNCHRONOUS_PUBLISH_MODE;
+            }
+
+            INLINE void setPriority(uint32_t priority) {
+                qos.transport_priority().value = priority;
+            }
+
+            INLINE void setHistoryDepthEndless() {
+                qos.history().kind = eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS;
+            }
+            INLINE void setHistoryDepth(uint32_t depth) {
+                qos.history().kind = eprosima::fastdds::dds::KEEP_LAST_HISTORY_QOS;
+                qos.history().depth = depth;
+            }
+
+            INLINE void setMaxBlockingTime(int32_t seconds, uint32_t nanoseconds) {
+                qos.reliability().max_blocking_time = eprosima::fastdds::dds::Duration_t(seconds, nanoseconds);
+            }
+            INLINE void setReliability(bool reliable) {
+                qos.reliability().kind = reliable ? eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS : eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS;
             }
 
             INLINE const DataWriterQos &get() const {
