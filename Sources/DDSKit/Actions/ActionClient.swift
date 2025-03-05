@@ -5,7 +5,7 @@
  * Created by Hunter Baker on 1/23/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-internal import Synchronization
+public import Synchronization
 internal import Logging
 
 /// A client for an action server.
@@ -14,12 +14,15 @@ public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Send
     /// The logger for the action client.
     private let logger: Logger
     /// The publisher for the request.
-    private let publisher: DDSPublisher<Request>
+    @usableFromInline
+    internal let publisher: DDSPublisher<Request>
     /// The subscriber for the reply.
-    private let subscriber: DDSSubscriber<Reply>
+    @usableFromInline
+    internal let subscriber: DDSSubscriber<Reply>
     /// The active actions that are waiting for a reply.
     /// This maps the message identifier of the request to the continuation that is waiting for the reply.
-    private let activeActions: Mutex<[DDSMessageIdentifier: UnsafeContinuation<Reply, Never>]> = Mutex([:])
+    @usableFromInline
+    internal let activeActions: Mutex<[DDSMessageIdentifier: UnsafeContinuation<Reply, Never>]> = Mutex([:])
 
     /// The participant for the action client.
     public var participant: DDSParticipant {
@@ -104,6 +107,7 @@ extension DDSActionClient {
     /// - Parameter request: The request to send.
     /// - Returns: The reply from the action server.
     /// - Throws: If the request cannot be sent.
+    @inlinable
     public func send(request: borrowing Request) async throws(DDSError) -> Reply {
         let identifier = try publisher.publishWithMetadata(request)
 
