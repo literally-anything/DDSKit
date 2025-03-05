@@ -5,7 +5,7 @@
  * Created by Hunter Baker on 8/19/2024
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-#include "cdr/DynamicTypes.hpp"
+#include "types/DynamicTypes.hpp"
 
 #include <fastdds/dds/core/Types.hpp>
 #include <fastdds/dds/core/detail/DDSReturnCode.hpp>

@@ -34,12 +34,16 @@ namespace eprosima {
     }
 }
 
-namespace CDR {
-    using eprosima::fastcdr::CdrSizeCalculator;
-    using eprosima::fastdds::dds::DataRepresentationId_t;
-    using eprosima::fastcdr::Cdr;
+namespace FastDDS {
 
-    // INLINE void *createCdr() {
-    //     return new Cdr();
-    // }
+    namespace CDR {
+        using eprosima::fastcdr::CdrSizeCalculator;
+        using eprosima::fastdds::dds::DataRepresentationId_t;
+        using eprosima::fastcdr::Cdr;
+
+        // INLINE void *createCdr() {
+        //     return new Cdr();
+        // }
+    }
+
 }

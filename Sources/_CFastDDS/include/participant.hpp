@@ -18,7 +18,7 @@
 #endif
 
 #include "common.h"
-#include "cdr/type_support.hpp"
+#include "types/type_support.hpp"
 #include "utils/guid.hpp"
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>

@@ -22,8 +22,10 @@ module _CFastDDS {
     header "data_writer.hpp"
     header "data_reader.hpp"
 
-    header "cdr/type_support.hpp"
-    header "cdr/DynamicTypes.hpp"
+    header "types/cdr_size.hpp"
+    header "types/type_support.hpp"
+    header "types/DynamicTypes.hpp"
+    header "types/generic_topic_type.hpp"
 
     export *
 }
