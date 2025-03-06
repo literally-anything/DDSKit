@@ -7,7 +7,7 @@
  */
 internal import _CFastDDS
 
-public struct CDRSizeCalculator: ~Copyable {
+public struct DDSSizeCalculator: ~Copyable {
     internal var calc: FastDDS.CDR.CdrSizeCalculator
     internal var size: Int = 0
     internal var alignment: Int = 0
