@@ -22,7 +22,7 @@ module _CFastDDS {
     header "data_writer.hpp"
     header "data_reader.hpp"
 
-    header "types/cdr_size.hpp"
+    header "types/size_calculator.hpp"
     header "types/type_support.hpp"
     header "types/DynamicTypes.hpp"
     header "types/generic_topic_type.hpp"
