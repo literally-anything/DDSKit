@@ -131,7 +131,7 @@ extension DDSSizeCalculator {
     ///   - memberId: The id of the member being added.
     ///   - value: The value of the member being added.
     @inlinable
-    public mutating func add<T: DDSCodable>(member memberId: UInt32, _ value: T) {
+    public mutating func add<T: DDSCodable>(member memberId: UInt32, _ value: borrowing T) {
         let prevSize = setupMemberAdd()
 
         var sizeCalculator = DDSSizeCalculator(copying: self, alignment: alignment)
@@ -225,15 +225,15 @@ extension DDSSizeCalculator {
     ///   - memberId: The id of the member being added.
     ///   - value: The value of the member being added.
     @inlinable
-    public mutating func add<T: DDSCodable>(member memberId: UInt32, _ value: T?) {
+    public mutating func add<T: DDSCodable>(member memberId: UInt32, _ value: borrowing T?) {
         let hasData = value != nil
         let prevSize = setupOptionalMemberAdd(hasData: hasData)
 
         let isPresentSize = addOptionalIsPresent()
 
         var sizeCalculator = DDSSizeCalculator(copying: self, alignment: alignment)
-        if let value { // same as if hasData
-            value.calculateDDSSize(calculator: &sizeCalculator)
+        if hasData{
+            value.unsafelyUnwrapped.calculateDDSSize(calculator: &sizeCalculator)
         }
 
         alignment = sizeCalculator.alignment
@@ -256,7 +256,7 @@ extension DDSSizeCalculator {
     ///   - value: The value to calculate the size of.
     ///   - useXCDR2: Indicates if the calculator should use XCDR2 over XCDR1.
     /// - Returns: The size of the primitive type.
-    internal static func calculateSize<T: DDSCodable>(primitive value: T, useXCDR2: Bool = true) -> UInt32 {
+    internal static func calculateSize<T: DDSCodable>(primitive value: borrowing T, useXCDR2: Bool = true) -> UInt32 {
         var calculator = DDSSizeCalculator(useXCDR2: useXCDR2)
 
         value.calculateDDSSize(calculator: &calculator)
@@ -270,7 +270,7 @@ extension DDSSizeCalculator {
     ///   - useXCDR2: Indicates if the calculator should use XCDR2 over XCDR1.
     /// - Returns: The calculated size of the `DDSCodable` type.
     @inlinable
-    public static func calculateSize<T: DDSCodable>(_ value: T, useXCDR2: Bool = true) -> UInt32 {
+    public static func calculateSize<T: DDSCodable>(_ value: borrowing T, useXCDR2: Bool = true) -> UInt32 {
         var calculator = DDSSizeCalculator(useXCDR2: useXCDR2)
 
         value.calculateDDSSize(calculator: &calculator)

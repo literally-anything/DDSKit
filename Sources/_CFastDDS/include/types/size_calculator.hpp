@@ -7,8 +7,6 @@
  */
 #pragma once
 
-#include <fastcdr/Cdr.h>
-#include <fastcdr/CdrEncoding.hpp>
 #include <fastcdr/xcdr/MemberId.hpp>
 #include <fastcdr/CdrSizeCalculator.hpp>
 #include <fastdds/dds/core/policy/QosPolicies.hpp>

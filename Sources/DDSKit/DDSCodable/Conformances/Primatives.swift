@@ -12,7 +12,14 @@ extension Bool: DDSCodable {
         calculator.size += 1
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
+
 extension Int: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         if MemoryLayout<Int>.size == 8 {
@@ -26,6 +33,18 @@ extension Int: DDSCodable {
         }
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        if MemoryLayout<Int>.size == 8 {
+            guard encoder.serializer.serialize(Int64(self)) else {
+                throw .notEnoughStorage
+            }
+        } else {
+            guard encoder.serializer.serialize(Int32(self)) else {
+                throw .notEnoughStorage
+            }
+        }
+    }
 }
 extension UInt: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -40,13 +59,32 @@ extension UInt: DDSCodable {
         }
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        if MemoryLayout<UInt>.size == 8 {
+            guard encoder.serializer.serialize(UInt64(self)) else {
+                throw .notEnoughStorage
+            }
+        } else {
+            guard encoder.serializer.serialize(UInt32(self)) else {
+                throw .notEnoughStorage
+            }
+        }
+    }
 }
+
 extension Int8: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         calculator.alignment += 1
         calculator.size += 1
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
 extension UInt8: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -54,7 +92,14 @@ extension UInt8: DDSCodable {
         calculator.size += 1
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
+
 extension Int16: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 2 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
@@ -62,6 +107,12 @@ extension Int16: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
 extension UInt16: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -70,7 +121,14 @@ extension UInt16: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
+
 extension Int32: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
@@ -78,6 +136,12 @@ extension Int32: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
 extension UInt32: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -86,7 +150,14 @@ extension UInt32: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
+
 extension Int64: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
@@ -94,6 +165,12 @@ extension Int64: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
 extension UInt64: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -102,7 +179,14 @@ extension UInt64: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
+
 extension Float: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
@@ -110,6 +194,12 @@ extension Float: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
 extension Double: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -118,6 +208,12 @@ extension Double: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }
 extension Float80: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -126,4 +222,10 @@ extension Float80: DDSCodable {
         calculator.size += calculatedSize
     }
     public var ddsSize: UInt32 {DDSSizeCalculator.calculateSize(primitive: self)}
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(self) else {
+            throw .notEnoughStorage
+        }
+    }
 }

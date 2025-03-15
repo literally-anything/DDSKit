@@ -11,6 +11,12 @@ module _CFastDDS {
     header "common.h"
     header "setup.hpp"
 
+    header "types/size_calculator.hpp"
+    header "types/cdr.hpp"
+    header "types/type_support.hpp"
+    header "types/DynamicTypes.hpp"
+    header "types/generic_topic_type.hpp"
+
     header "utils/guid.hpp"
     header "utils/machine_id.hpp"
     header "utils/sample_identity.hpp"
@@ -21,11 +27,6 @@ module _CFastDDS {
     header "subscriber.hpp"
     header "data_writer.hpp"
     header "data_reader.hpp"
-
-    header "types/size_calculator.hpp"
-    header "types/type_support.hpp"
-    header "types/DynamicTypes.hpp"
-    header "types/generic_topic_type.hpp"
 
     export *
 }
