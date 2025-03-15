@@ -8,6 +8,8 @@
 DDSKit aims provide a simpler and easier-to-use API in Swift, including asynchronous operations using await and a request-reply model, while still remaining performant.
 DDSKit enables FastDDS's datasharing, intra-process, and zero-copy delivery methods for faster communication between threads or processes on the same machine.
 
+#### This does actually run on Linux, even though the SPI says it won't. I haven't gotten around to making a docker container that has FastDDS installed, so it will fail to build on the SPI's Linux builds.
+
 Some use cases for this library are:
   - Robotics/Interfacing with ROS2
   - Distributed systems
@@ -16,14 +18,16 @@ Some use cases for this library are:
 ## Supported Platforms
 | Platform        | Support                    |
 | --------------- | -------------------------- |
-| Linux           | Supported*[^1]             |
-| MacOS           | Supported*[^1]             |
-| Other Apple OSs | Supported*[^1]*[^2]        |
-| Windows         | Absolutely no clue, but it might work*[^1] |
+| Linux           | Supported*[^1]*[^3]        |
+| MacOS           | Supported*[^2]*[^3]        |
+| Other Apple OSs | Supported*[^2]*[^3]        |
+| Windows         | Absolutely no clue, but it might work*[^3] |
 
-[^1]: Needs tests
+[^1]: FastDDS must be installed and it needs to findable using pkg-config for it to work with no exta setup. 
 
-[^2]: Prebuilt dylibs of fastdds and fastcdr are required
+[^2]: Prebuilt dylibs of fastdds and fastcdr are required. This is temporary for MacOS. In the future you should be able to use a global install of FastDDS on MacOS as well.
+
+[^3]: Needs tests
 
 ## Example
 The following code publishes a message on a topic
@@ -46,6 +50,7 @@ for await message in subscriber.messages {
 ```
 
 ## Using DDSKit
+If you are on Linux, you need to install FastDDS as well. Apple platforms default to using a prebuilt version.
 DDSKit is available as a Swift Package Manager package. To use it in a package,  add the following dependency in your `Package.swift`
 ```swift
 .package(
