@@ -298,12 +298,30 @@ extension DDSPublisher where Message: DDSLoaningCodable {
     /// This is useful for performance critical code.
     /// - Warning: Neither `publish` method should be called inside the `body` closure. This will cause undefined behavior when the closure ends.
     /// - Parameters:
-    ///   - initializationMode: How to initialize the memory before it's passed into `body`. Defaults to `.zero` (Initialized to zero).
+    ///   - initializationMode: How to initialize the memory before it's passed into `body`. Defaults to `.constructed` (Constructor is called).
+    ///   - body: A closure that takes a inout message and modifies it.
+    /// - Throws: DDSError if the message fails to publish.
+    @inlinable
+    public func publish(initializationMode: LoanInitializationMode = .constructed, _ body: (inout Message) -> Void) throws(DDSError) {
+        let sample = try loan(initializationMode: initializationMode)
+
+        let message = sample.assumingMemoryBound(to: Message.self)
+        body(&message.pointee)
+
+        // Publish the loaned message (DDS takes ownership of the memory, so no need to discard).
+        try publishRaw(sample)
+    }
+
+    /// Publishes a message to the without any copies.
+    /// This is useful for performance critical code.
+    /// - Warning: Neither `publish` method should be called inside the `body` closure. This will cause undefined behavior when the closure ends.
+    /// - Parameters:
+    ///   - initializationMode: How to initialize the memory before it's passed into `body`. Defaults to `.constructed` (Constructor is called).
     ///   - body: A closure that takes a inout message and modifies it.
     /// - Throws: DDSError if the message fails to publish.
     /// - Throws: E if the body throws.
     @inlinable
-    public func publish<E: Error>(initializationMode: LoanInitializationMode = .zero, _ body: (inout Message) throws(E) -> Void) throws {
+    public func publish<E: Error>(initializationMode: LoanInitializationMode = .constructed, _ body: (inout Message) throws(E) -> Void) throws {
         let sample = try loan(initializationMode: initializationMode)
 
         do throws(E) {
