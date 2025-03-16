@@ -1,5 +1,5 @@
 /**
- * DDSDecoder.swift
+ * Decoder.swift
  * DDSCodable
  * 
  * Created by Hunter Baker on 3/15/2025

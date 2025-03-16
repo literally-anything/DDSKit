@@ -1,5 +1,5 @@
 /**
- * CDRSerializer.swift
+ * Encoder.swift
  * DDSKit
  * 
  * Created by Hunter Baker on 1/31/2025
