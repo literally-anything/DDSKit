@@ -124,11 +124,11 @@ extension DDSEncoder {
 }
 
 extension DDSEncoder {
-    /// Encode a type.
+    /// Encode an entire message.
     /// This encodes an entire type that is not a member. This is only called internally when serializing an entire message.
     /// - Parameter value: The value to encode.
     /// - Throws: An error if there is not enough storage allocated to encode the value or some other unexpected error occurs during encoding.
-    internal mutating func encode<T: DDSCodable>(_ value: borrowing T) throws(EncodingError) {
+    internal mutating func encode<T: DDSCodable>(message value: borrowing T) throws(EncodingError) {
         try value.ddsEncode(encoder: &self)
     }
 }

@@ -20,3 +20,4 @@
 
 #define SWIFT_ATTR(attr) __attribute__((swift_attr(attr)))
 #define SENDABLE SWIFT_ATTR("@Sendable")
+#define NONESCAPING __attribute__((noescape))

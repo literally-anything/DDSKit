@@ -23,7 +23,13 @@ public protocol DDSCodable: Sendable {
 
     /// Encode the data using the provided DDS encoder.
     /// - Parameter encoder: The encoder to use to encode the data.
+    /// - Throws: An error if there is not enough storage allocated to encode the data or some other unexpected error occurs.
     func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError)
+
+    /// Decode the data using the provided DDS decoder.
+    /// - Parameter decoder: The decoder to use to decode the data.
+    /// - Throws: An error if the decoder reads beyond the bounds of the internal buffer, an unexpected member is encountered, or some other error occurs.
+    mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError)
 }
 
 extension DDSCodable {

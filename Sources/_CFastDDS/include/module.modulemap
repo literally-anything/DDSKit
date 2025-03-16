@@ -11,8 +11,8 @@ module _CFastDDS {
     header "common.h"
     header "setup.hpp"
 
-    header "types/size_calculator.hpp"
     header "types/cdr.hpp"
+    header "types/size_calculator.hpp"
     header "types/type_support.hpp"
     header "types/DynamicTypes.hpp"
     header "types/generic_topic_type.hpp"

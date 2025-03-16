@@ -18,6 +18,12 @@ extension Bool: DDSCodable {
             throw .notEnoughStorage
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
+        }
+    }
 }
 
 extension Int: DDSCodable {
@@ -43,6 +49,22 @@ extension Int: DDSCodable {
             guard encoder.serializer.serialize(Int32(self)) else {
                 throw .notEnoughStorage
             }
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        if MemoryLayout<Int>.size == 8 {
+            var value: Int64 = 0
+            guard decoder.deserializer.deserialize(&value) else {
+                throw .outOfBounds
+            }
+            self = Int(value)
+        } else {
+            var value: Int32 = 0
+            guard decoder.deserializer.deserialize(&value) else {
+                throw .outOfBounds
+            }
+            self = Int(value)
         }
     }
 }
@@ -71,6 +93,22 @@ extension UInt: DDSCodable {
             }
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        if MemoryLayout<UInt>.size == 8 {
+            var value: UInt64 = 0
+            guard decoder.deserializer.deserialize(&value) else {
+                throw .outOfBounds
+            }
+            self = UInt(value)
+        } else {
+            var value: UInt32 = 0
+            guard decoder.deserializer.deserialize(&value) else {
+                throw .outOfBounds
+            }
+            self = UInt(value)
+        }
+    }
 }
 
 extension Int8: DDSCodable {
@@ -85,6 +123,12 @@ extension Int8: DDSCodable {
             throw .notEnoughStorage
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
+        }
+    }
 }
 extension UInt8: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -96,6 +140,12 @@ extension UInt8: DDSCodable {
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         guard encoder.serializer.serialize(self) else {
             throw .notEnoughStorage
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
         }
     }
 }
@@ -113,6 +163,12 @@ extension Int16: DDSCodable {
             throw .notEnoughStorage
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
+        }
+    }
 }
 extension UInt16: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -125,6 +181,12 @@ extension UInt16: DDSCodable {
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         guard encoder.serializer.serialize(self) else {
             throw .notEnoughStorage
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
         }
     }
 }
@@ -142,6 +204,12 @@ extension Int32: DDSCodable {
             throw .notEnoughStorage
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
+        }
+    }
 }
 extension UInt32: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -154,6 +222,12 @@ extension UInt32: DDSCodable {
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         guard encoder.serializer.serialize(self) else {
             throw .notEnoughStorage
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
         }
     }
 }
@@ -171,6 +245,12 @@ extension Int64: DDSCodable {
             throw .notEnoughStorage
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
+        }
+    }
 }
 extension UInt64: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -183,6 +263,12 @@ extension UInt64: DDSCodable {
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         guard encoder.serializer.serialize(self) else {
             throw .notEnoughStorage
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
         }
     }
 }
@@ -200,6 +286,12 @@ extension Float: DDSCodable {
             throw .notEnoughStorage
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
+        }
+    }
 }
 extension Double: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -214,6 +306,12 @@ extension Double: DDSCodable {
             throw .notEnoughStorage
         }
     }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
+        }
+    }
 }
 extension Float80: DDSCodable {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -226,6 +324,12 @@ extension Float80: DDSCodable {
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         guard encoder.serializer.serialize(self) else {
             throw .notEnoughStorage
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        guard decoder.deserializer.deserialize(&self) else {
+            throw .outOfBounds
         }
     }
 }

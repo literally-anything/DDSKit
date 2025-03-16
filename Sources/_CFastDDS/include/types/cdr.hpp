@@ -70,7 +70,7 @@ namespace FastDDS {
                 type_encoding(cdr.get_cdr_version() == CDRVersion::XCDRv2 ? EncodingAlgorithmFlag::DELIMIT_CDR2 : EncodingAlgorithmFlag::PLAIN_CDR) {}
 
             struct State {
-                 _CDR::state state;
+                _CDR::state state;
             };
             struct StateWithError {
                 bool success;
@@ -226,73 +226,139 @@ namespace FastDDS {
             const eprosima::fastcdr::EncodingAlgorithmFlag type_encoding;
         } SWIFT_UNSAFE_REFERENCE;
 
-        // class CDRDeserializer final {
-        // public:
-        //     using _CDR = eprosima::fastcdr::Cdr;
-        //     using CDRVersion = eprosima::fastcdr::CdrVersion;
-        //     using EncodingAlgorithmFlag = eprosima::fastcdr::EncodingAlgorithmFlag;
+        class CDRDeserializer final {
+        public:
+            using _CDR = eprosima::fastcdr::Cdr;
+            using EncodingAlgorithmFlag = eprosima::fastcdr::EncodingAlgorithmFlag;
 
-        //     using withStructCallback_t = bool (^ SENDABLE _Nonnull)(uint32_t memberId);
+            using withStructCallback_t = bool (^ _Nonnull)(
+                CDRDeserializer &deserializer,
+                const uint32_t &memberId
+            );
 
-        //     INLINE CDRDeserializer(
-        //         eprosima::fastcdr::FastBuffer *cdrBuffer,
-        //         const _CDR::Endianness endian,
-        //         const CDRVersion cdrVersion
-        //     ) : cdr(*cdrBuffer, endian, cdrVersion),
-        //         type_encoding(CDRVersion::XCDRv2 == cdr.get_cdr_version() ? EncodingAlgorithmFlag::DELIMIT_CDR2 : EncodingAlgorithmFlag::PLAIN_CDR) {}
+            INLINE CDRDeserializer(
+                eprosima::fastcdr::FastBuffer &cdrBuffer,
+                const _CDR::Endianness endian = _CDR::DEFAULT_ENDIAN,
+                const CDRVersion cdrVersion = CDRVersion::XCDRv2
+            ) : cdr(cdrBuffer, endian, cdrVersion),
+                type_encoding(cdr.get_cdr_version() == CDRVersion::XCDRv2 ? EncodingAlgorithmFlag::DELIMIT_CDR2 : EncodingAlgorithmFlag::PLAIN_CDR) {}
 
-        //     //no copy constructors
-        //     CDRDeserializer(const CDRDeserializer&) = delete;
-        //     CDRDeserializer& operator=(const CDRDeserializer&) = delete;
+            //no copy constructors
+            CDRDeserializer(const CDRDeserializer&) = delete;
+            CDRDeserializer& operator=(const CDRDeserializer&) = delete;
 
-        //     INLINE void withStruct(withStructCallback_t callback) {
-        //         cdr.deserialize_type(type_encoding, [&callback](eprosima::fastcdr::Cdr& dcdr, const eprosima::fastcdr::MemberId& mid) -> bool {
-        //             return callback(mid.id);
-        //         });
-        //     }
+            NODISCARD INLINE bool withStruct(NONESCAPING withStructCallback_t callback) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr.deserialize_type(
+                        type_encoding,
+                        [this, &callback](auto &_, const eprosima::fastcdr::MemberId& mid) -> bool {
+                            return callback(*this, mid.id);
+                        } 
+                    )
+                );
+            }
 
-        //     INLINE void deserializeMember(bool &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(int8_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(uint8_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(int16_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(uint16_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(int32_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(uint32_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(int64_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(uint64_t &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(float &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(double &value) {
-        //         cdr >> value;
-        //     }
-        //     INLINE void deserializeMember(long double &value) {
-        //         cdr >> value;
-        //     }
+            NODISCARD INLINE bool setupOptional() {
+                if (cdr.current_encoding_ == EncodingAlgorithmFlag::PLAIN_CDR) {
+                    _CDR::state current_state(cdr);
 
-        // private:
-        //     _CDR cdr;
+                    eprosima::fastcdr::MemberId member_id;
+                    cdr.xcdr1_deserialize_member_header(member_id, current_state);
 
-        //     const eprosima::fastcdr::EncodingAlgorithmFlag type_encoding;
-        // } SWIFT_UNSAFE_REFERENCE;
+                    auto prev_offset = cdr.offset_;
+                    if (current_state.member_size_ > 0) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            /// Checks if I need to deserialize the isPresent value.
+            INLINE bool checkIfOptionalHasIsPresent() {
+                return cdr.cdr_version_ == CDRVersion::XCDRv2 && cdr.current_encoding_ != EncodingAlgorithmFlag::PL_CDR2;
+            }
+
+            NODISCARD INLINE bool deserialize(bool &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(int8_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(uint8_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(int16_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(uint16_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(int32_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(uint32_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(int64_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(uint64_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(float &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(double &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+            NODISCARD INLINE bool deserialize(long double &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr >> value
+                );
+            }
+
+            _CDR cdr;
+            const eprosima::fastcdr::EncodingAlgorithmFlag type_encoding;
+        } SWIFT_UNSAFE_REFERENCE;
 
     }
 
