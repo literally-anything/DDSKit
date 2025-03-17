@@ -31,12 +31,13 @@ extension DDSDecoder {
         /// This is usually related to optional types or arrays.
         /// This is most likely a library bug or an error in the header of a member in the encoded data.
         case memberSizeMismatch
-        /// Tried to decode a member with a header that says the size is zero.
-        /// This is most likely an error in the header of a member in the encoded data or a type mismatch between the encoded and decoded data.
-        case invalidMember
         /// Tried to decode a member with an unknown id.
         /// This might mean that the data is being encode as a different type than it is being decoded as.
         case unknownMember
+
+        /// A member was decoded properly, but the value was bad.
+        /// This isn't thrown by the library internally, but can be thrown by the user in a ddsDecode function to fail gracefully.
+        case badValue
     }
 
     /// Start decoding a new struct.
@@ -77,12 +78,10 @@ extension DDSDecoder {
 
 extension DDSDecoder {
     /// Setup decoding an optional member.
-    /// - Throws: An error if the member size in the encoded data does not match the expected size or some other error occurs.
+    /// - Returns: Whether the member should be decoded or not. If not, the member is nil.
     @usableFromInline
-    internal mutating func setupOptionalMember() throws(DecodingError) {
-        guard deserializer.setupOptional() else {
-            throw .invalidMember
-        }
+    internal mutating func setupOptionalMember() -> Bool {
+        deserializer.setupOptional()
     }
 
     /// Deserialize the isPresent flag for an optional member.
@@ -106,30 +105,25 @@ extension DDSDecoder {
     /// - Throws: An error if the member size in the encoded data does not match the expected size or some other error occurs.
     @inlinable
     public mutating func decode<T: DDSCodable>(_ value: inout T?) throws(DecodingError) {
-        try setupOptionalMember()
+        let shouldDecode = setupOptionalMember()
+        guard shouldDecode else {
+            value = nil
+            return
+        }
 
         let isPresent = try deserializeOptionalIsPresent()
-        if isPresent {
-            var error: DecodingError?
-            // There doesn't seem to be a way to do this without a temporary allocation because i cant set an optional using inout
-            // I really don't like this and would like to find a better way to do this.
-            withUnsafeTemporaryAllocation(of: T.self, capacity: 1) { ptr in
-                let newValuePtr = ptr.baseAddress.unsafelyUnwrapped
-                UnsafeMutableRawPointer(newValuePtr).initializeMemory(as: UInt8.self, repeating: 0, count: MemoryLayout<T>.size)
-                do throws(DecodingError) {
-                    try newValuePtr.pointee.ddsDecode(decoder: &self)
-                } catch let e {
-                    error = e
-                }
-                value = .init(newValuePtr.pointee)
-            }
-            if let error {
-                throw error
-            }
-        } else {
+        guard isPresent else {
             value = nil
+            return
         }
-    }
+
+        // There doesn't seem to be a way to do this without initializing the value first whenever it is .none.
+        // This is because I can't get the uninitialized memory for the optional value.
+        if value == nil {
+            value = T.ddsInitialized
+        }
+        try value!.ddsDecode(decoder: &self)
+}
 }
 
 extension DDSDecoder {
