@@ -288,7 +288,7 @@ namespace FastDDS {
             return participant->get_participant_names();
         }
 
-        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t registerDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(registerType(typeSupport:)) {
+        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t registerDataType(const Types::TypeSupport &typeSupportWrapper) SWIFT_NAME(registerType(typeSupport:)) {
             return participant->register_type(typeSupportWrapper.typeSupport);
         }
 

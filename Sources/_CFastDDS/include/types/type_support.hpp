@@ -19,20 +19,29 @@
 
 namespace FastDDS {
 
-    class TypeSupportWrapper final {
-    public:
-        INLINE TypeSupportWrapper(eprosima::fastdds::dds::TypeSupport &&typeSupport) : typeSupport(typeSupport) {}
-        INLINE TypeSupportWrapper(const eprosima::fastdds::dds::TypeSupport &typeSupport) : typeSupport(typeSupport) {}
-    
-        INLINE std::string getName() const SWIFT_COMPUTED_PROPERTY {
-            return typeSupport.get_type_name();
-        }
+    namespace Types {
 
-        INLINE bool isPlain() const SWIFT_COMPUTED_PROPERTY {
-            return typeSupport.is_plain(eprosima::fastdds::dds::DataRepresentationId_t::XCDR2_DATA_REPRESENTATION);
-        }
+        class TypeSupport final {
+        public:
+            using _TypeSupport = eprosima::fastdds::dds::TypeSupport;
 
-        eprosima::fastdds::dds::TypeSupport typeSupport;
-    };
+            INLINE TypeSupport(_TypeSupport &&typeSupport) : typeSupport(typeSupport) {}
+            INLINE TypeSupport(const _TypeSupport &typeSupport) : typeSupport(typeSupport) {}
+        
+            INLINE std::string getName() const SWIFT_COMPUTED_PROPERTY {
+                return typeSupport.get_type_name();
+            }
+
+            INLINE bool isPlain() const SWIFT_COMPUTED_PROPERTY {
+                return typeSupport.is_plain(eprosima::fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION);
+            }
+            INLINE bool isBounded() const SWIFT_COMPUTED_PROPERTY {
+                return typeSupport.is_bounded();
+            }
+
+            _TypeSupport typeSupport;
+        };
+
+    }
 
 }

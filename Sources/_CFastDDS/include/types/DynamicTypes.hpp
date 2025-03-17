@@ -67,7 +67,7 @@ namespace FastDDS {
         DDSReturnCode createString(const DynamicTypeBuilder &builder, const char * _Nonnull name, uint32_t length);
 
         DynamicTypeContainer buildType(const DynamicTypeBuilder &builder);
-        TypeSupportWrapper buildTypeSupport(const DynamicTypeContainer &type);
+        Types::TypeSupport buildTypeSupport(const DynamicTypeContainer &type);
 
         bool getBool(const DynamicDataContainer &data, epfastdds::MemberId memberId);
         int8_t getInt8(const DynamicDataContainer &data, epfastdds::MemberId memberId);

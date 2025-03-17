@@ -23,11 +23,24 @@ public final class DDSTopic<Message: DDSCodable> : @unchecked Sendable {
     ///   - participant: The participant to use for the topic.
     ///   - topic: The name of the topic.
     /// - Throws: If the topic cannot be created.
-    public init(participant: DDSParticipant, topic: String) throws(DDSError) {
+    @inlinable
+    public convenience init(participant: DDSParticipant, topic: String) throws(DDSError) {
+        try self.init(participant: participant, topic: topic, typeSupport: Message.ddsTypeSupport)
+    }
+
+    /// Creates a new topic.
+    /// This encapsulates all the internal details of creating a topic.
+    /// - Parameters:
+    ///   - participant: The participant to use for the topic.
+    ///   - topic: The name of the topic.
+    ///   - typeSupport: The type support object for the topic.
+    /// - Throws: If the topic cannot be created.
+    @usableFromInline
+    internal init(participant: DDSParticipant, topic: String, typeSupport: borrowing DDSTypeSupport) throws(DDSError) {
         self.participant = participant
 
         do {
-            try participant.registerType(Message.self)
+            try participant.registerType(typeSupport: typeSupport)
         } catch {
             throw .dataTypeError(error)
         }
@@ -35,7 +48,7 @@ public final class DDSTopic<Message: DDSCodable> : @unchecked Sendable {
         var success = false
         raw = FastDDS.Topic(
             participant: participant.raw,
-            topic: .init(topic), typeSupport: Message.ddsTopicType.typeSupport,
+            topic: .init(topic), typeSupport: typeSupport.typeSupport,
             // profile: FastDDS.Topic.Qos(participant: participant.raw),
             success: &success
         )

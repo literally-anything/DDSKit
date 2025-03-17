@@ -8,7 +8,6 @@
 #pragma once
 
 #include <cstdint>
-
 #if __has_include(<swift/bridging>)
 # include <swift/bridging>
 #else
@@ -16,6 +15,9 @@
 #endif
 
 #include "common.h"
+#include "cdr.hpp"
+#include "type_representation.hpp"
+#include "type_support.hpp"
 
 #include <fastdds/dds/topic/TopicDataType.hpp>
 #include <fastdds/rtps/common/SerializedPayload.hpp>
@@ -24,49 +26,47 @@ namespace FastDDS {
 
     class GenericTopicType final : public eprosima::fastdds::dds::TopicDataType {
     public:
-        using registerTypeCallback_t = void (^ SENDABLE _Nonnull)(eprosima::fastdds::dds::xtypes::TypeIdentifierPair &identifiers);
+        using registerTypeCallback_t = Types::TypeIdentifierPair (^ SENDABLE _Nonnull)();
+        using createCallback_t = void * _Nonnull (^ SENDABLE _Nonnull)();
+        using destroyCallback_t = void (^ SENDABLE _Nonnull)(void * _Nonnull data);
+        using constructCallback_t = bool (^ SENDABLE _Nonnull)(void * _Nonnull memory);
+
         using serializeCallback_t = bool (^ SENDABLE _Nonnull)(
             const void * _Nonnull const data,
-            eprosima::fastdds::rtps::SerializedPayload_t &payload,
-            eprosima::fastdds::dds::DataRepresentationId_t data_representation
+            CDR::CDRSerializer &serializer
         );
         using deserializeCallback_t = bool (^ SENDABLE _Nonnull)(
-            eprosima::fastdds::rtps::SerializedPayload_t &payload,
-            void * _Nonnull data
+            void * _Nonnull data,
+            CDR::CDRDeserializer &deserializer
         );
         using calculateSizeCallback_t = uint32_t (^ SENDABLE _Nonnull)(
             const void * _Nonnull const data,
-            eprosima::fastdds::dds::DataRepresentationId_t data_representation
+            bool useXCDR2
         );
         // using computeKeyCallback_t = bool (^ SENDABLE _Nonnull)(
         //     const void* const data,
         //     eprosima::fastdds::rtps::InstanceHandle_t &ihandle,
         //     bool force_md5
         // );
-        using createCallback_t = void * _Nonnull (^ SENDABLE _Nonnull)();
-        using destroyCallback_t = void (^ SENDABLE _Nonnull)(void * _Nonnull data);
-        using constructCallback_t = void (^ SENDABLE _Nonnull)(void * _Nonnull memory);
 
         GenericTopicType(
             const std::string &name,
             bool isBounded, bool isPlain, uint32_t maxSize,
             registerTypeCallback_t registerType,
+            createCallback_t create, destroyCallback_t destroy, constructCallback_t construct,
             serializeCallback_t serialize, deserializeCallback_t deserialize,
-            calculateSizeCallback_t calculateSize,
-            createCallback_t create, destroyCallback_t destroy, constructCallback_t construct
+            calculateSizeCallback_t calculateSize
         ) SWIFT_NAME(
-            init(name:isBounded:isPlain:maxSize:registerType:serialize:deserialize:calculateSize:create:destroy:construct:)
+            init(name:isBounded:isPlain:maxSize:registerType:create:destroy:construct:serialize:deserialize:calculateSize:)
         );
         GenericTopicType(const GenericTopicType &other);
         ~GenericTopicType() override;
 
-        // static TypeSupportWrapper getTypeSupport(const GenericTopicType &type) {
-        //     return TypeSupportWrapper(
-        //         eprosima::fastdds::dds::TypeSupport(
-        //             new GenericTopicType(type)
-        //         )
-        //     );
-        // }
+        INLINE Types::TypeSupport getTypeSupport() const SWIFT_COMPUTED_PROPERTY {
+            return Types::TypeSupport(
+                eprosima::fastdds::dds::TypeSupport(new GenericTopicType(*this))
+            );
+        }
 
         bool serialize(
             const void * _Nonnull const data,
@@ -115,13 +115,14 @@ namespace FastDDS {
         const uint32_t maxSize;
 
         registerTypeCallback_t registerTypeCallback;
+        createCallback_t createCallback;
+        destroyCallback_t destroyCallback;
+        constructCallback_t constructCallback;
+
         serializeCallback_t serializeCallback;
         deserializeCallback_t deserializeCallback;
         calculateSizeCallback_t calculateSizeCallback;
         // computeKeyCallback_t computeKeyCallback;
-        createCallback_t createCallback;
-        destroyCallback_t destroyCallback;
-        constructCallback_t constructCallback;
 
         // eprosima::fastdds::MD5 md5_;
         // unsigned char* key_buffer_;

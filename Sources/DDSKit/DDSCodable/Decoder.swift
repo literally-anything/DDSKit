@@ -134,10 +134,11 @@ extension DDSDecoder {
 
 extension DDSDecoder {
     /// Decode an entire message.
-    /// This decodes an entire type that is not a member. This is only called internally when deserializing an entire message.
+    /// This decodes an entire type that is not a member.
     /// - Parameter value: The value to decode.
     /// - Throws: An error if the decoder reads beyond the bounds of the internal buffer, an unexpected member is encountered, or some other error occurs.
-    internal mutating func decode<T: DDSCodable>(message value: inout T) throws(DecodingError) {
+    @inlinable
+    public mutating func decode<T: DDSCodable>(message value: inout T) throws(DecodingError) {
         try value.ddsDecode(decoder: &self)
     }
 }

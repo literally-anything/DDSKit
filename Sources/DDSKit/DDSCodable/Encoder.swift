@@ -33,19 +33,26 @@ extension DDSEncoder {
     /// - Parameter body: A closure that will be called with the encoder to encode the struct.
     /// - Throws: An error if there is not enough storage allocated to encode the struct or some other unexpected error occurs in the closure.
     public mutating func withStruct(_ body: (inout DDSEncoder) throws(EncodingError) -> Void) throws(EncodingError) {
-        var stateWithError = serializer.beginStruct()
-        guard stateWithError.success else { throw .notEnoughStorage }
+        var state = serializer.initState()
+        let success = serializer.beginStruct(state: &state)
+        guard success else { throw .notEnoughStorage }
 
         try body(&self)
 
-        guard serializer.endStruct(previousState: &stateWithError.state) else { throw .notEnoughStorage }
+        guard serializer.endStruct(previousState: &state) else { throw .notEnoughStorage }
     }
 
     /// A wrapper around the state of the encoder.
     /// This is supposed to only be an internal type, so I had to make a wrapper until swift fixes borrowing in nonescaping closures.
     @usableFromInline
-    internal struct StateWrapper {
+    internal struct StateWrapper: ~Copyable {
+        /// The underlying state object.
         internal var state: FastDDS.CDR.CDRSerializer.State
+        /// Create a new state wrapper with the provided state.
+        @usableFromInline
+        internal init(encoder: borrowing DDSEncoder) {
+            state = encoder.serializer.initState()
+        }
     }
 }
 
@@ -55,17 +62,16 @@ extension DDSEncoder {
     /// - Returns: The state of the encoder before the member was added.
     /// - Throws: An error if there is not enough storage allocated to encode the member.
     @usableFromInline
-    internal mutating func startMember(member memberId: UInt32) throws(EncodingError) -> StateWrapper {
-        let stateWithError = serializer.beginMember(memberId)
-        guard stateWithError.success else { throw .notEnoughStorage }
-        return StateWrapper(state: stateWithError.state)
+    internal mutating func startMember(state: inout StateWrapper, member memberId: UInt32) throws(EncodingError) {
+        let success = serializer.beginMember(memberId: memberId, state: &state.state)
+        guard success else { throw .notEnoughStorage }
     }
 
     /// End encoding a member of a struct.
     /// - Parameter previousState: The state of the encoder before the member was added.
     /// - Throws: An error if there is not enough storage allocated to encode the member.
     @usableFromInline
-    internal mutating func endMember(previousState: consuming StateWrapper) throws(EncodingError) {
+    internal mutating func endMember(previousState: borrowing StateWrapper) throws(EncodingError) {
         guard serializer.endMember(previousState: previousState.state) else { throw .notEnoughStorage }
     }
 
@@ -76,7 +82,9 @@ extension DDSEncoder {
     /// - Throws: An error if there is not enough storage allocated to encode the member or some other unexpected error occurs during encoding.
     @inlinable
     public mutating func encode<T: DDSCodable>(member memberId: UInt32, _ value: borrowing T) throws(EncodingError) {
-        let state = try startMember(member: memberId)
+        var state = StateWrapper(encoder: self)
+
+        try startMember(state: &state, member: memberId)
         try value.ddsEncode(encoder: &self)
         try endMember(previousState: state)
     }
@@ -90,10 +98,9 @@ extension DDSEncoder {
     /// - Returns: The state of the encoder before the optional member was added.
     /// - Throws: An error if there is not enough storage allocated to encode the member.
     @usableFromInline
-    internal mutating func startOptionalMember(member memberId: UInt32, hasData: Bool) throws(EncodingError) -> StateWrapper {
-        let stateWithError = serializer.beginOptionalMember(memberId, hasData)
-        guard stateWithError.success else { throw .notEnoughStorage }
-        return StateWrapper(state: stateWithError.state)
+    internal mutating func startOptionalMember(state: inout StateWrapper, member memberId: UInt32, hasData: Bool) throws(EncodingError) {
+        let success = serializer.beginOptionalMember(memberId: memberId, isPresent: hasData, state: &state.state)
+        guard success else { throw .notEnoughStorage }
     }
 
     /// End encoding an optional member of a struct.
@@ -101,7 +108,7 @@ extension DDSEncoder {
     ///   - previousState: The state of the encoder before the optional member was added.
     /// - Throws: An error if there is not enough storage allocated to encode the member.
     @usableFromInline
-    internal mutating func endOptionalMember(previousState: consuming StateWrapper) throws(EncodingError) {
+    internal mutating func endOptionalMember(previousState: borrowing StateWrapper) throws(EncodingError) {
         guard serializer.endOptionalMember(previousState: previousState.state) else { throw .notEnoughStorage }
     }
 
@@ -113,7 +120,9 @@ extension DDSEncoder {
     @inlinable
     public mutating func encode<T: DDSCodable>(member memberId: UInt32, _ value: borrowing T?) throws(EncodingError) {
         let hasData = value != nil
-        let state = try startOptionalMember(member: memberId, hasData: hasData)
+        var state = StateWrapper(encoder: self)
+
+        try startOptionalMember(state: &state, member: memberId, hasData: hasData)
         if hasData {
             // I have to use unsafelyUnwrapped here because let bindings can't borrow for some reason.
             // ToDo: Fix this and the one in the size calculator.
@@ -125,10 +134,11 @@ extension DDSEncoder {
 
 extension DDSEncoder {
     /// Encode an entire message.
-    /// This encodes an entire type that is not a member. This is only called internally when serializing an entire message.
+    /// This encodes an entire type that is not a member.
     /// - Parameter value: The value to encode.
     /// - Throws: An error if there is not enough storage allocated to encode the value or some other unexpected error occurs during encoding.
-    internal mutating func encode<T: DDSCodable>(message value: borrowing T) throws(EncodingError) {
+    @inlinable
+    public mutating func encode<T: DDSCodable>(message value: borrowing T) throws(EncodingError) {
         try value.ddsEncode(encoder: &self)
     }
 }

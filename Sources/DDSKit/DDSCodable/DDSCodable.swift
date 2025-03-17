@@ -1,5 +1,5 @@
 /**
- * CDRCodable.swift
+ * DDSCodable.swift
  * DDSKit
  * 
  * Created by Hunter Baker on 1/23/2025
@@ -9,8 +9,14 @@ internal import _CFastDDS
 
 /// A type that can be encoded and decoded with CDR.
 public protocol DDSCodable: Sendable {
-    /// The type identifier for the type.
-    static var ddsTopicType: DynamicTypeDescription { get }
+    /// Initialize the type with the default data.
+    /// This is used internally to initiailize the memory for the type.
+    static var ddsInitialized: Self { get }
+
+    /// The type descriptor for the type.
+    static var ddsTypeDescriptor: DDSTypeDescriptor { get }
+    /// The type support object for a topic.
+    static var ddsTypeSupport: DDSTypeSupport { get }
 
     /// Calculate the size of the serialized data using the provided calculator.
     /// This shouldn't ever need to be called by the user, but is used internally.
@@ -30,13 +36,6 @@ public protocol DDSCodable: Sendable {
     /// - Parameter decoder: The decoder to use to decode the data.
     /// - Throws: An error if the decoder reads beyond the bounds of the internal buffer, an unexpected member is encountered, or some other error occurs.
     mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError)
-}
-
-extension DDSCodable {
-    public static var ddsTopicType: DynamicTypeDescription {fatalError()}
-    public var ddsSize: UInt32 {
-        DDSSizeCalculator.calculateSize(self)
-    }
 }
 
 /// A type that can be encoded and decoded with CDR and can be loaned for zero copy transfer.

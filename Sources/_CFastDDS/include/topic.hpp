@@ -50,7 +50,7 @@ namespace FastDDS {
 
 
         INLINE Topic(
-            const Participant &participantWrapper, const std::string &topicName, const TypeSupportWrapper &typeSupport,
+            const Participant &participantWrapper, const std::string &topicName, const Types::TypeSupport &typeSupport,
             // const Qos &qos,
             bool &success
         ) SWIFT_NAME(init(participant:topic:typeSupport:success:)) : participant(participantWrapper.participant) {
