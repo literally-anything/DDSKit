@@ -17,7 +17,7 @@ internal func getActionTopicNames(base: String) -> (request: String, reply: Stri
 
 /// A server for an action client.
 /// Actions are an implementation of the request reply pattern using topics.
-public final class DDSActionServer<Request: DDSCodable, Reply: DDSCodable>: Sendable {
+public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Sendable {
     /// The type of the handler function for the action server.
     public typealias RequestHandler = @Sendable (borrowing Request) -> Reply
 
@@ -127,7 +127,7 @@ extension DDSParticipant {
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     ///   - handler: The handler for the request.
     /// - Throws: If the subscriber cannot be created.
-    public func createActionClient<Request: DDSCodable, Reply: DDSCodable>(
+    public func createActionClient<Request: DDSMessage, Reply: DDSMessage>(
         name: String,
         request: Request.Type, reply: Reply.Type,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],

@@ -11,7 +11,7 @@ internal import _CFastDDS
 /// 
 /// A topic represents the abstract idea of the single data flow from a Publisher to a Subscriber.
 /// Topics have a name and a type, and they only match with other topics that have the same name and type.
-public final class DDSTopic<Message: DDSCodable> : @unchecked Sendable {
+public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
     /// The participant that this topic is associated with.
     public let participant: DDSParticipant
     /// A wrapper around the underlying FastDDS Topic.
@@ -109,7 +109,7 @@ extension DDSParticipant {
     /// - Throws: If the topic cannot be created.
     /// - Returns: The new topic.
     @inlinable
-    public func getTopic<T: DDSCodable>(named name: String, type: T.Type) throws(DDSError) -> DDSTopic<T> {
+    public func getTopic<T: DDSMessage>(named name: String, type: T.Type) throws(DDSError) -> DDSTopic<T> {
         try DDSTopic<T>(participant: self, topic: name)
     }
 }

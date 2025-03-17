@@ -11,7 +11,7 @@ internal import _CFastDDS
 /// A subscriber for a topic.
 /// 
 /// A subscriber is used to receive messages from a topic.
-public final class DDSSubscriber<Message: DDSCodable> : @unchecked Sendable {
+public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
     /// The topic that this subscriber is subscribed to.
     public let topic: DDSTopic<Message>
     /// A wrapper around the underlying FastDDS DataReader.
@@ -471,7 +471,7 @@ extension DDSParticipant {
     ///   - type: The message data type of the topic.
     ///   - settings: A list of settings to apply to the subscriber.
     /// - Throws: If the subscriber cannot be created.
-    public func subscribe<T: DDSCodable>(to topicName: String, type: T.Type, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
+    public func subscribe<T: DDSMessage>(to topicName: String, type: T.Type, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
         try DDSSubscriber(
             topic: DDSTopic<T>(participant: self, topic: topicName),
             settings: settings

@@ -15,8 +15,6 @@ public protocol DDSCodable: Sendable {
 
     /// The type descriptor for the type.
     static var ddsTypeDescriptor: DDSTypeDescriptor { get }
-    /// The type support object for a topic.
-    static var ddsTypeSupport: DDSTypeSupport { get }
 
     /// Calculate the size of the serialized data using the provided calculator.
     /// This shouldn't ever need to be called by the user, but is used internally.
@@ -40,3 +38,8 @@ public protocol DDSCodable: Sendable {
 
 /// A type that can be encoded and decoded with CDR and can be loaned for zero copy transfer.
 public protocol DDSLoaningCodable: Sendable, DDSCodable {}
+
+public protocol DDSMessage: DDSCodable {
+    /// The type support object for a topic.
+    static var ddsTypeSupport: DDSTypeSupport { get }
+}

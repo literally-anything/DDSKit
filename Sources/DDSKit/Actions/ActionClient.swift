@@ -10,7 +10,7 @@ internal import Logging
 
 /// A client for an action server.
 /// Actions are an implementation of the request reply pattern using topics.
-public final class DDSActionClient<Request: DDSCodable, Reply: DDSCodable>: Sendable {
+public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Sendable {
     /// The logger for the action client.
     private let logger: Logger
     /// The publisher for the request.
@@ -174,7 +174,7 @@ extension DDSParticipant {
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     /// - Throws: If the subscriber cannot be created.
-    public func createActionClient<Request: DDSCodable, Reply: DDSCodable>(
+    public func createActionClient<Request: DDSMessage, Reply: DDSMessage>(
         name: String,
         request: Request.Type, reply: Reply.Type,
         publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []

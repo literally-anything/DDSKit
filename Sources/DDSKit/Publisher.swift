@@ -11,7 +11,7 @@ internal import _CFastDDS
 /// A publisher for a DDS topic.
 /// 
 /// A publisher is used to publish messages to a topic.
-public final class DDSPublisher<Message: DDSCodable> : @unchecked Sendable {
+public final class DDSPublisher<Message: DDSMessage> : @unchecked Sendable {
     /// The topic that this publisher is publishing on.
     public let topic: DDSTopic<Message>
     /// A wrapper around the underlying FastDDS DataWriter.
@@ -499,7 +499,7 @@ extension DDSParticipant {
     ///   - type: The message data type of the topic.
     ///   - settings: A list of settings to apply to the publisher.
     /// - Throws: If the publisher cannot be created.
-    public func publish<T: DDSCodable>(to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
+    public func publish<T: DDSMessage>(to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
         try DDSPublisher(
             topic: DDSTopic<T>(participant: self, topic: topicName),
             settings: settings

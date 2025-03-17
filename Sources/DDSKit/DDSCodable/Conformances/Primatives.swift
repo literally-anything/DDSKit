@@ -17,12 +17,6 @@ extension Bool: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for Bool: _bool")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         calculator.alignment += 1
@@ -57,12 +51,6 @@ extension Int: DDSCodable, DDSLoaningCodable {
         } catch {
             fatalError("Failed to lookup type descriptor for Int: \(MemoryLayout<Int>.size == 8 ? "_int64_t" : "_int32_t")")
         }
-    }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -121,12 +109,6 @@ extension UInt: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for UInt: \(MemoryLayout<UInt>.size == 8 ? "_uint64_t" : "_uint32_t")")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         if MemoryLayout<UInt>.size == 8 {
@@ -181,12 +163,6 @@ extension Int8: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for Int8: _int8_t")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         calculator.alignment += 1
@@ -216,12 +192,6 @@ extension UInt8: DDSCodable, DDSLoaningCodable {
         } catch {
             fatalError("Failed to lookup type descriptor for UInt8: _uint8_t")
         }
-    }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -254,12 +224,6 @@ extension Int16: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for Int16: _int16_t")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 2 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
@@ -290,12 +254,6 @@ extension UInt16: DDSCodable, DDSLoaningCodable {
         } catch {
             fatalError("Failed to lookup type descriptor for UInt16: _uint16_t")
         }
-    }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -329,12 +287,6 @@ extension Int32: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for Int32: _int32_t")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
@@ -365,12 +317,6 @@ extension UInt32: DDSCodable, DDSLoaningCodable {
         } catch {
             fatalError("Failed to lookup type descriptor for UInt32: _uint32_t")
         }
-    }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -404,12 +350,6 @@ extension Int64: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for Int64: _int64_t")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
@@ -440,12 +380,6 @@ extension UInt64: DDSCodable, DDSLoaningCodable {
         } catch {
             fatalError("Failed to lookup type descriptor for UInt64: _uint64_t")
         }
-    }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -479,12 +413,6 @@ extension Float: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for Float: _float")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
@@ -516,12 +444,6 @@ extension Double: DDSCodable, DDSLoaningCodable {
             fatalError("Failed to lookup type descriptor for Double: _double")
         }
     }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
@@ -552,12 +474,6 @@ extension Float80: DDSCodable, DDSLoaningCodable {
         } catch {
             fatalError("Failed to lookup type descriptor for Float80: _longdouble")
         }
-    }
-    /// This will always throw a fatal error.
-    /// - Warning: Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.
-    @available(*, deprecated, message: "Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
-    public static var ddsTypeSupport: DDSTypeSupport {
-        fatalError("Primitive types cannot be used as topic types. Wrap the primitive in a struct to use it as a topic type.")
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
