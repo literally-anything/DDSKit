@@ -126,10 +126,10 @@ namespace FastDDS {
             epfastdds::traits<epfastdds::DynamicType>::ref_type type = builder->build();
             return DynamicTypeContainer(type);
         }
-        TypeSupportWrapper buildTypeSupport(const DynamicTypeContainer &type) {
+        Types::TypeSupport buildTypeSupport(const DynamicTypeContainer &type) {
             epfastdds::DynamicPubSubType *pubSubType = new epfastdds::DynamicPubSubType(type.type);
             pubSubType->register_type_object_representation();
-            return TypeSupportWrapper(TypeSupport(pubSubType));
+            return Types::TypeSupport(TypeSupport(pubSubType));
         }
 
         bool getBool(const DynamicDataContainer &data, epfastdds::MemberId memberId) {
