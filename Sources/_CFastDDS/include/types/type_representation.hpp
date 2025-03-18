@@ -18,6 +18,7 @@
 #include <fastcdr/xcdr/optional.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/xtypes/type_representation/TypeObjectUtils.hpp>
+#include <fastdds/dds/log/Log.hpp>
 
 namespace FastDDS {
 
@@ -72,14 +73,17 @@ namespace FastDDS {
                 info.ann_custom = info.tmp_ann_custom;
             }
 
-            try {
-                fastddsxtypes::CompleteTypeDetail detail = TypeObjectUtils::build_complete_type_detail(
-                    info.type_ann_builtin,
-                    info.ann_custom,
-                    name
-                );
-                info.header = TypeObjectUtils::build_complete_struct_header(TypeIdentifier(), detail);
-            } catch (...) { return false; }
+            fastddsxtypes::CompleteTypeDetail detail = TypeObjectUtils::build_complete_type_detail(
+                info.type_ann_builtin,
+                info.ann_custom,
+                name
+            );
+            CATCH_FOR_SWIFT(
+                eprosima::fastdds::dds::xtypes::InvalidArgumentError,
+                {
+                    info.header = TypeObjectUtils::build_complete_struct_header(TypeIdentifier(), detail);
+                }
+            );
             return true;
         }
         NODISCARD INLINE bool addStructMember(
@@ -91,30 +95,26 @@ namespace FastDDS {
                 fastddsxtypes::TryConstructFailAction::DISCARD,
                 isOptional, false, isKey, false
             );
+            
             bool common_ec {false};
-            fastddsxtypes::CommonStructMember common_index;
-            try {
-                common_index = {
-                    TypeObjectUtils::build_common_struct_member(
-                        id,
-                        member_flags_index,
-                        TypeObjectUtils::retrieve_complete_type_identifier(memberIdentifiers.pair, common_ec)
-                    )
-                };
-            } catch (...) { return false; }
+            fastddsxtypes::CommonStructMember common_index = {
+                TypeObjectUtils::build_common_struct_member(
+                    id,
+                    member_flags_index,
+                    TypeObjectUtils::retrieve_complete_type_identifier(memberIdentifiers.pair, common_ec)
+                )
+            };
             if (!common_ec) { return false; }
 
             optional<fastddsxtypes::AppliedBuiltinMemberAnnotations> member_ann_builtin;
             info.ann_custom.reset();
             fastddsxtypes::CompleteStructMember member_index;
-            try {
-                fastddsxtypes::CompleteMemberDetail detail_index = TypeObjectUtils::build_complete_member_detail(
-                    name, member_ann_builtin, info.ann_custom
-                );
-                member_index = TypeObjectUtils::build_complete_struct_member(
-                    common_index, detail_index
-                );
-            } catch (...) { return false; }
+            fastddsxtypes::CompleteMemberDetail detail_index = TypeObjectUtils::build_complete_member_detail(
+                name, member_ann_builtin, info.ann_custom
+            );
+            member_index = TypeObjectUtils::build_complete_struct_member(
+                common_index, detail_index
+            );
 
             TypeObjectUtils::add_complete_struct_member(info.member_seq, member_index);
             return true;
@@ -124,21 +124,47 @@ namespace FastDDS {
             std::string &name, TypeIdentifierPair &identifiers
         ) SWIFT_NAME(finishStruct(info:name:identifiers:)) {
             eprosima::fastdds::dds::xtypes::CompleteStructType completeStructType;
-            try {
-                completeStructType = TypeObjectUtils::build_complete_struct_type(
-                    info.struct_flags,
-                    info.header,
-                    info.member_seq
-                );
-            } catch (...) { return eprosima::fastdds::dds::RETCODE_ERROR; }
+            CATCH_FOR_SWIFT_CUSTOM(
+                eprosima::fastdds::dds::xtypes::InvalidArgumentError,
+                eprosima::fastdds::dds::RETCODE_ERROR,
+                {
+                    completeStructType = TypeObjectUtils::build_complete_struct_type(
+                        info.struct_flags,
+                        info.header,
+                        info.member_seq
+                    );
+                }
+            );
 
             name = completeStructType.header().detail().type_name().to_string();
 
-            try {
-                return TypeObjectUtils::build_and_register_struct_type_object(
-                    completeStructType, name, identifiers.pair
-                );
-            } catch (...) { return eprosima::fastdds::dds::RETCODE_ERROR; }
+            // Try to register the type
+            auto ret = TypeObjectUtils::build_and_register_struct_type_object(
+                completeStructType, name, identifiers.pair
+            );
+
+            if (ret == eprosima::fastdds::dds::RETCODE_BAD_PARAMETER) {
+                // If the type is already registered, check if it is identical
+                TypeIdentifierPair foundIdentifiers;
+                if (getIdentifiersForName(name, foundIdentifiers)) {
+                    eprosima::fastdds::dds::xtypes::TypeObject foundType;
+                    auto ret = eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_object(
+                        foundIdentifiers.pair.type_identifier2(), foundType
+                    );
+
+                    if (ret == eprosima::fastdds::dds::RETCODE_OK) {
+                        try {
+                            if (foundType.complete().struct_type() == completeStructType) {
+                                EPROSIMA_LOG_INFO(Types.finishStruct, "Type already registered, but identical: " << name);
+                                identifiers.pair = foundIdentifiers.pair;
+                                return eprosima::fastdds::dds::RETCODE_OK;
+                            }
+                        } catch (const eprosima::fastcdr::exception::BadParamException &e) {}
+                    }
+                }
+            }
+
+            return ret;
         }
 
     }

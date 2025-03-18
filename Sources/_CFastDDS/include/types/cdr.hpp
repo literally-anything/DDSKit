@@ -31,13 +31,6 @@
 #include <fastdds/rtps/common/CdrSerialization.hpp>
 #include <fastdds/rtps/common/SerializedPayload.hpp>
 
-#define CATCH_FOR_SWIFT(error_type, call) \
-    try { \
-        call; \
-    } catch (const error_type &e) { \
-        return false; \
-    }
-
 namespace FastDDS {
 
     namespace CDR {

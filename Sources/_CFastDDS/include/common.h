@@ -21,3 +21,11 @@
 #define SWIFT_ATTR(attr) __attribute__((swift_attr(attr)))
 #define SENDABLE SWIFT_ATTR("@Sendable")
 #define NONESCAPING __attribute__((noescape))
+
+#define CATCH_FOR_SWIFT_CUSTOM(error_type, failure_return, call) \
+    try { \
+        call; \
+    } catch (const error_type &e) { \
+        return failure_return; \
+    }
+#define CATCH_FOR_SWIFT(error_type, call) CATCH_FOR_SWIFT_CUSTOM(error_type, false, call)
