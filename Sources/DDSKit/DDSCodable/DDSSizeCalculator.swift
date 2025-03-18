@@ -17,6 +17,16 @@ public struct DDSSizeCalculator: ~Copyable {
     /// The current alignment of the data. This is updated as members are added.
     public var alignment: Int = 0
 
+    /// When a sequence member is serialized, this is set to the size of the serialized member.
+    internal var serializedSequenceMemberSize: FastDDS.CDR.SerializedMemberSizeForNextInt {
+        get {
+            .init(rawValue: calc.serialized_member_size_.rawValue).unsafelyUnwrapped
+        }
+        set {
+            calc.serialized_member_size_ = .init(rawValue: newValue.rawValue)
+        }
+    }
+
     /// Create a new size calculator copying the internal calculator, but with a new alignment and size.
     /// - Parameters:
     ///   - calc: The calculator to copy.
@@ -103,10 +113,10 @@ extension DDSSizeCalculator {
             if calc.get_cdr_version() == eprosima.fastcdr.XCDRv2 && calc.get_encoding() == eprosima.fastcdr.PL_CDR2 {
                 if calculatedSize > 8 || (calculatedSize != 1 && calculatedSize != 2 && calculatedSize != 4 && calculatedSize != 8) {
                     extraSize = 8 // Long EMHEADER.
-                    // if (NO_SERIALIZED_MEMBER_SIZE != serialized_member_size_) If no data has been calculated
-                    // {
-                    //     calculated_size -= 4; // Join NEXTINT and DHEADER.
-                    // }
+                    if serializedSequenceMemberSize != .NO_SERIALIZED_MEMBER_SIZE {
+                        // If no data has been calculated
+                        calculatedSize -= 4; // Join NEXTINT and DHEADER.
+                    }
                 } else {
                     extraSize = 4 // EMHEADER;
                 }
@@ -184,10 +194,10 @@ extension DDSSizeCalculator {
         if calc.get_cdr_version() == eprosima.fastcdr.XCDRv2 && calc.get_encoding() == eprosima.fastcdr.PL_CDR2 && calculatedSize > 0 {
             if calculatedSize > 8 {
                 extraSize = 8 // Long EMHEADER.
-                // if (NO_SERIALIZED_MEMBER_SIZE != serialized_member_size_) If no data has been calculated
-                // {
-                //     calculated_size -= 4; // Join NEXTINT and DHEADER.
-                // }
+                    if serializedSequenceMemberSize != .NO_SERIALIZED_MEMBER_SIZE {
+                        // If no data has been calculated
+                        calculatedSize -= 4; // Join NEXTINT and DHEADER.
+                    }
             } else {
                 extraSize = 4 // EMHEADER;
             }
@@ -232,7 +242,7 @@ extension DDSSizeCalculator {
         let isPresentSize = addOptionalIsPresent()
 
         var sizeCalculator = DDSSizeCalculator(copying: self, alignment: alignment)
-        if hasData{
+        if hasData {
             value.unsafelyUnwrapped.calculateDDSSize(calculator: &sizeCalculator)
         }
 

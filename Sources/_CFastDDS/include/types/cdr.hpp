@@ -16,17 +16,13 @@
 
 #include "common.h"
 
+// Ensure that the Cdr private members are accessible
+#include "private_cdr.hpp"
+
+#include <fastcdr/Cdr.h>
+#include <fastcdr/FastBuffer.h>
 #include <fastcdr/CdrEncoding.hpp>
 #include <fastcdr/xcdr/MemberId.hpp>
-#include <fastcdr/FastBuffer.h>
-
-// Ridiculous trick to get around the fact that fastcdr has private members that we need so we can reimplement the generic functions in swift
-// Swift can't currently specialize c++ templates dircectly so we have to reimplement them in swift
-#undef private
-#define private public
-#include <fastcdr/Cdr.h>
-#undef private
-
 #include <fastdds/dds/topic/TopicDataType.hpp>
 #include <fastdds/rtps/common/CdrSerialization.hpp>
 #include <fastdds/rtps/common/SerializedPayload.hpp>

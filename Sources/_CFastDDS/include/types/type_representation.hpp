@@ -138,33 +138,52 @@ namespace FastDDS {
 
             name = completeStructType.header().detail().type_name().to_string();
 
+#ifdef DEBUG
+            bool identicalRegistered = false;
+            // Check if the type is already registered and is identical
+            TypeIdentifierPair foundIdentifiers;
+            if (getIdentifiersForName(name, foundIdentifiers)) {
+                eprosima::fastdds::dds::xtypes::TypeObject foundType;
+                auto ret = eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_object(
+                    foundIdentifiers.pair.type_identifier2(), foundType
+                );
+
+                if (ret == eprosima::fastdds::dds::RETCODE_OK) {
+                    try {
+                        if (foundType.complete().struct_type() == completeStructType) {
+                            identicalRegistered = true;
+                            EPROSIMA_LOG_WARNING(Types.finishStruct, "Type already registered, but identical: " << name);
+                            identifiers.pair = foundIdentifiers.pair;
+                            return eprosima::fastdds::dds::RETCODE_OK;
+                        }
+                    } catch (const eprosima::fastcdr::exception::BadParamException &e) {}
+                }
+            }
+#endif
+
             // Try to register the type
             auto ret = TypeObjectUtils::build_and_register_struct_type_object(
                 completeStructType, name, identifiers.pair
             );
 
-            if (ret == eprosima::fastdds::dds::RETCODE_BAD_PARAMETER) {
-                // If the type is already registered, check if it is identical
-                TypeIdentifierPair foundIdentifiers;
-                if (getIdentifiersForName(name, foundIdentifiers)) {
-                    eprosima::fastdds::dds::xtypes::TypeObject foundType;
-                    auto ret = eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_object(
-                        foundIdentifiers.pair.type_identifier2(), foundType
-                    );
-
-                    if (ret == eprosima::fastdds::dds::RETCODE_OK) {
-                        try {
-                            if (foundType.complete().struct_type() == completeStructType) {
-                                EPROSIMA_LOG_INFO(Types.finishStruct, "Type already registered, but identical: " << name);
-                                identifiers.pair = foundIdentifiers.pair;
-                                return eprosima::fastdds::dds::RETCODE_OK;
-                            }
-                        } catch (const eprosima::fastcdr::exception::BadParamException &e) {}
-                    }
-                }
+#ifdef DEBUG
+            if (ret == eprosima::fastdds::dds::RETCODE_BAD_PARAMETER && !identicalRegistered) {
+                EPROSIMA_LOG_ERROR(Types.finishStruct, "Type already registered as a different type:  " << name);
             }
+#endif
 
             return ret;
+        }
+
+        NODISCARD INLINE bool createString(
+            const std::string &name, uint32_t length, bool isWide, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(createString(name:length:isWide:identifiers:)) {
+            fastddsxtypes::SBound bound = length;
+            fastddsxtypes::StringSTypeDefn typeDef = TypeObjectUtils::build_string_s_type_defn(bound);
+            auto ret = TypeObjectUtils::build_and_register_s_string_type_identifier(
+                typeDef, name, identifiers.pair, isWide
+            );
+            return ret == eprosima::fastdds::dds::RETCODE_OK;
         }
 
     }

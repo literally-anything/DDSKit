@@ -21,9 +21,6 @@ public protocol DDSCodable: Sendable {
     /// - Parameters:
     ///   - calculator: The calculator to use to calculate the size.
     func calculateDDSSize(calculator: inout DDSSizeCalculator)
-    /// Get the size of the serialized data using the default calculator.
-    /// This may be only computed once and cached if the data type is statically sized.
-    var ddsSize: UInt32 { get }
 
     /// Encode the data using the provided DDS encoder.
     /// - Parameter encoder: The encoder to use to encode the data.
