@@ -11,6 +11,9 @@ import PackageDescription
 import CompilerPluginSupport
 import Foundation
 
+let cxxSettings: [CXXSetting] = [
+    .define("FASTDDS_ENFORCE_LOG_INFO", to: "1", .when(configuration: .debug))
+]
 let swiftSettings: [SwiftSetting] = [
     .interoperabilityMode(.Cxx),
     .enableUpcomingFeature("InternalImportsByDefault")
@@ -52,11 +55,13 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "IP", package: "swift-ip")
             ],
+            cxxSettings: cxxSettings,
             swiftSettings: swiftSettings
         ),
         .target(
             name: "_CFastDDS",
             dependencies: applePlatformTargetDependencies,
+            cxxSettings: cxxSettings,
             linkerSettings: [
                 .linkedLibrary("fastdds"),
                 .linkedLibrary("fastcdr"),
