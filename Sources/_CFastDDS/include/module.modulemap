@@ -9,6 +9,7 @@ module _CFastDDS {
     requires cplusplus14
 
     header "common.h"
+    header "fix_warnings.h"
     header "setup.hpp"
 
     header "types/cdr.hpp"

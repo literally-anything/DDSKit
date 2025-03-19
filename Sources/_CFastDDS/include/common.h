@@ -11,11 +11,7 @@
 # error "DDSKit needs to be compiled in cxx interoperability mode, this probably means that some higher up package doesn't have the .interoperabilityMode(.cxx) flag set."
 #endif
 
-#ifdef DEBUG
-# define INLINE inline
-#else
-# define INLINE inline __attribute__((always_inline))
-#endif
+#define INLINE inline __attribute__((always_inline))
 #define NODISCARD [[nodiscard("This return value needs to be checked")]]
 
 #define SWIFT_ATTR(attr) __attribute__((swift_attr(attr)))

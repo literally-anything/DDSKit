@@ -26,4 +26,6 @@ namespace FastDDS {
 
     NODISCARD int32_t setup(LogCallback_t logCallback) SWIFT_NAME(setup(logCallback:));
 
+    void setIntraProcessDelivery(bool enabled) SWIFT_NAME(setIntraProcessDelivery(enabled:));
+
 }

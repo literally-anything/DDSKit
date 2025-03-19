@@ -464,6 +464,16 @@ extension DDSParticipant {
     }
 }
 
+extension DDSParticipant {
+    /// Sets whether intra-process delivery is enabled for all participants.
+    /// This is a global setting that affects all participants in the process.
+    /// - Note: When this is enabled, all participants in the same process will communicate without going through the transport layer. This means that the subscriber callback will be called directly by the caller of the publish method.
+    /// - Parameter enabled: Whether intra-process delivery is enabled.
+    public static func setIntraProcessDelivery(enabled: Bool) {
+        FastDDS.setIntraProcessDelivery(enabled: enabled)
+    }
+}
+
 extension DDSParticipant: CustomStringConvertible {
     public var description: String {
         "DDSParticipant(domain: \(domain), name: \(name))"
