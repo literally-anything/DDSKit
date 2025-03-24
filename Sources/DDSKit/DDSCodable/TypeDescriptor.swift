@@ -17,6 +17,9 @@ public struct DDSTypeDescriptor: Sendable, CustomStringConvertible {
 
     /// A lock for type building.
     internal static let lock = DispatchSemaphore(value: 1)
+    /// A flag to indicate if the type is currently being built on this task so I don't lock twice.
+    @TaskLocal
+    internal static var isBuilding = false
 
     /// Creates a new type descriptor with the given identifier and name.
     /// - Parameters:

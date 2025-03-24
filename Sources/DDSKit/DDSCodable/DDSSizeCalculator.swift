@@ -18,6 +18,7 @@ public struct DDSSizeCalculator: ~Copyable {
     public var alignment: Int = 0
 
     /// When a sequence member is serialized, this is set to the size of the serialized member.
+    @usableFromInline
     internal var serializedSequenceMemberSize: FastDDS.CDR.SerializedMemberSizeForNextInt {
         get {
             .init(rawValue: calc.serialized_member_size_.rawValue).unsafelyUnwrapped
@@ -152,6 +153,8 @@ extension DDSSizeCalculator {
         addMemberExtraSize(memberId: memberId, prevSize: prevSize, calculatedSize: &sizeCalculator.size)
 
         size += sizeCalculator.size
+
+        serializedSequenceMemberSize = .NO_SERIALIZED_MEMBER_SIZE
     }
 }
 

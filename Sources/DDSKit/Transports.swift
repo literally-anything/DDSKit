@@ -19,8 +19,8 @@ public enum DDSTransport {
 
         /// Initializes a new instance of the `CommonConfig` struct.
         /// - Parameters:
-        ///   - maxMessageSize: 
-        ///   - maxInitialPeersRange: 
+        ///   - maxMessageSize: The maximum size of a single message in the transport.
+        ///   - maxInitialPeersRange: Number of channels opened with each initial remote peer.
         public init(maxMessageSize: UInt32 = 0, maxInitialPeersRange: UInt32 = 0) {
             self.maxMessageSize = maxMessageSize
             self.maxInitialPeersRange = maxInitialPeersRange

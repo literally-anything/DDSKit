@@ -39,7 +39,7 @@ namespace FastDDS {
         factoryQos.entity_factory().autoenable_created_entities = false;
         auto setFactoryQosRet = DomainParticipantFactory::get_instance()->set_qos(factoryQos);
         if (setFactoryQosRet != RETCODE_OK) {
-            EPROSIMA_LOG_WARNING(Participant, "Failed to set participant factory QoS");
+            EPROSIMA_LOG_WARNING(Setup, "Failed to set participant factory QoS");
             return setFactoryQosRet;
         }
 
@@ -48,7 +48,7 @@ namespace FastDDS {
         qos.entity_factory().autoenable_created_entities = false;
         auto setDefaultQosRet = DomainParticipantFactory::get_instance()->set_default_participant_qos(qos);
         if (setDefaultQosRet != RETCODE_OK) {
-            EPROSIMA_LOG_WARNING(Participant, "Failed to set default participant QoS");
+            EPROSIMA_LOG_WARNING(Setup, "Failed to set default participant QoS");
             return setDefaultQosRet;
         }
 

@@ -91,20 +91,20 @@ extension DDSTypeDescriptor {
     public init(struct name: String, build: (inout DDSStructTypeBuilder) -> Void) {
         var identifier = FastDDS.Types.TypeIdentifierPair()
 
-        DDSTypeDescriptor.lock.wait()
-        defer { DDSTypeDescriptor.lock.signal() }
+        // Lock the building process to avoid data races, but no need to lock if the task we are running on is already building this type.
+        if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
+        defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
+        self = DDSTypeDescriptor.$isBuilding.withValue(true) {
+            // When in debug mode, we always build the type, so we can ensure that the type is same as the one that is already registered.
+            #if !DEBUG
+                if FastDDS.Types.getIdentifiersForName(name: .init(name), identifiers: &identifier) {
+                    return DDSTypeDescriptor(identifier: identifier, name: name)
+                }
+            #endif
 
-        // When in debug mode, we always build the type, so we can ensure that the type is same as the one that is already registered.
-        #if !DEBUG
-            if FastDDS.Types.getIdentifiersForName(name: .init(name), identifiers: &identifier) {
-                self.identifier = identifier
-                self.name = name
-                return
-            }
-        #endif
-
-        var builder = DDSStructTypeBuilder(struct: name)
-        build(&builder)
-        self = builder.build()
+            var builder = DDSStructTypeBuilder(struct: name)
+            build(&builder)
+            return builder.build()
+        }
     }
 }

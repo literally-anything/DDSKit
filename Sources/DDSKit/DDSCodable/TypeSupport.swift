@@ -37,6 +37,9 @@ public struct DDSTypeSupport: Sendable {
             Message.ddsTypeDescriptor
         } createType: {
             let data = UnsafeMutablePointer<Message>.allocate(capacity: 1)
+            if !isPlain {
+                data.initialize(to: .ddsInitialized)
+            }
             return .init(data)
         } deleteType: { data in
             data.deallocate()
@@ -81,7 +84,7 @@ public struct DDSTypeSupport: Sendable {
             var encoder = DDSEncoder(serializer)
             do {
                 try serialize(data, &encoder)
-            } catch  {
+            } catch {
                 DDSTypeSupport.logger.error("Failed to serialize \(name): \(error)")
                 return false
             }

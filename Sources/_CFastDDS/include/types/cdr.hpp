@@ -215,6 +215,14 @@ namespace FastDDS {
                 return true;
             }
 
+            NODISCARD INLINE bool serialize(const char * _Nonnull string) SWIFT_NAME(serialize(string:)) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr.serialize(string)
+                );
+                return true;
+            }
+
             _CDR cdr;
         } SWIFT_UNSAFE_REFERENCE;
 
@@ -237,6 +245,22 @@ namespace FastDDS {
             //no copy constructors
             CDRDeserializer(const CDRDeserializer&) = delete;
             CDRDeserializer& operator=(const CDRDeserializer&) = delete;
+
+            INLINE size_t getLastDataSize() const SWIFT_COMPUTED_PROPERTY {
+                return cdr.last_data_size_;
+            }
+            INLINE void setLastDataSize(size_t value) SWIFT_COMPUTED_PROPERTY {
+                cdr.last_data_size_ = value;
+            }
+            INLINE size_t getSizeRemaining() const SWIFT_COMPUTED_PROPERTY {
+                return cdr.end_ - cdr.offset_;
+            }
+            INLINE const void * _Nonnull getCurrentOffset() const SWIFT_COMPUTED_PROPERTY {
+                return cdr.offset_.current_position_;
+            }
+            INLINE void unsafeIncrementOffset(const uint32_t &length) {
+                cdr.offset_ += length;
+            }
 
             NODISCARD INLINE bool withStruct(NONESCAPING withStructCallback_t callback) {
                 CATCH_FOR_SWIFT(
@@ -273,6 +297,15 @@ namespace FastDDS {
             /// Checks if I need to deserialize the isPresent value.
             INLINE bool checkIfOptionalHasIsPresent() {
                 return cdr.cdr_version_ == CDRVersion::XCDRv2 && cdr.current_encoding_ != EncodingAlgorithmFlag::PL_CDR2;
+            }
+
+            /// This doesn't deserialize the member header, it just gets a single uint32 for a size of a sequence or string.
+            NODISCARD INLINE bool deserializeRaw(uint32_t &value) {
+                CATCH_FOR_SWIFT(
+                    eprosima::fastcdr::exception::NotEnoughMemoryException,
+                    cdr.deserialize(value)
+                );
+                return true;
             }
 
             NODISCARD INLINE bool deserialize(bool &value) {

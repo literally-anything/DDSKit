@@ -33,7 +33,7 @@ namespace FastDDS {
             }
 
             INLINE bool isPlain() const SWIFT_COMPUTED_PROPERTY {
-                return typeSupport.is_plain(eprosima::fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION);
+                return typeSupport.is_plain(eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
             }
             INLINE bool isBounded() const SWIFT_COMPUTED_PROPERTY {
                 return typeSupport.is_bounded();

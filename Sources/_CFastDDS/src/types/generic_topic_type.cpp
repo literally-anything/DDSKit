@@ -6,6 +6,7 @@
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 #include "types/generic_topic_type.hpp"
+#include <fastdds/dds/log/Log.hpp>
 
 #if __has_include(<Block.h>)
 # include <Block.h>
@@ -94,6 +95,9 @@ namespace FastDDS {
         ser.cdr.serialize_encapsulation();
 
         bool success = serializeCallback(data, ser);
+
+        ser.cdr.set_dds_cdr_options({0,0});
+
         payload.length = static_cast<uint32_t>(ser.cdr.get_serialized_data_length());
         
         return success;
