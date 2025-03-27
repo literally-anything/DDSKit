@@ -19,8 +19,7 @@ namespace FastDDS {
     namespace CDR {
         using CdrSizeCalculator = eprosima::fastcdr::CdrSizeCalculator;
 
-        enum class SerializedMemberSizeForNextInt : uint32_t
-        {
+        enum class SerializedMemberSizeForNextInt : uint32_t {
             NO_SERIALIZED_MEMBER_SIZE,
             SERIALIZED_MEMBER_SIZE,
             SERIALIZED_MEMBER_SIZE_4,

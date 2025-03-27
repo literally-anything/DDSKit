@@ -6,7 +6,6 @@
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 #include "types/generic_topic_type.hpp"
-#include <fastdds/dds/log/Log.hpp>
 
 #if __has_include(<Block.h>)
 # include <Block.h>

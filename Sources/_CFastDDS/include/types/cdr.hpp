@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <float.h>
 #if __has_include(<swift/bridging>)
 # include <swift/bridging>
 #else
@@ -26,6 +27,10 @@
 #include <fastdds/dds/topic/TopicDataType.hpp>
 #include <fastdds/rtps/common/CdrSerialization.hpp>
 #include <fastdds/rtps/common/SerializedPayload.hpp>
+
+#if DBL_MANT_DIG < LDBL_MANT_DIG
+# define FLOAT80_SUPPORTED
+#endif
 
 namespace FastDDS {
 
@@ -130,90 +135,29 @@ namespace FastDDS {
                 return true;
             }
 
-            NODISCARD INLINE bool serialize(const bool &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const int8_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const uint8_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const int16_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const uint16_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const int32_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const uint32_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const int64_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const uint64_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const float &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const double &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
-            NODISCARD INLINE bool serialize(const long double &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.serialize(value)
-                );
-                return true;
-            }
+
+#define DEFINE_SERIALIZE_FUNCTION(type) NODISCARD INLINE bool serialize(const type &value) { \
+    CATCH_FOR_SWIFT(                                                                         \
+        eprosima::fastcdr::exception::NotEnoughMemoryException,                              \
+        cdr.serialize(value)                                                                 \
+    );                                                                                       \
+    return true;                                                                             \
+}
+            DEFINE_SERIALIZE_FUNCTION(bool)
+            DEFINE_SERIALIZE_FUNCTION(int8_t)
+            DEFINE_SERIALIZE_FUNCTION(uint8_t)
+            DEFINE_SERIALIZE_FUNCTION(int16_t)
+            DEFINE_SERIALIZE_FUNCTION(uint16_t)
+            DEFINE_SERIALIZE_FUNCTION(int32_t)
+            DEFINE_SERIALIZE_FUNCTION(uint32_t)
+            DEFINE_SERIALIZE_FUNCTION(int64_t)
+            DEFINE_SERIALIZE_FUNCTION(uint64_t)
+            DEFINE_SERIALIZE_FUNCTION(float)
+            DEFINE_SERIALIZE_FUNCTION(double)
+#ifdef FLOAT80_SUPPORTED
+            DEFINE_SERIALIZE_FUNCTION(long double)
+#endif
+#undef DEFINE_SERIALIZE_FUNCTION
 
             NODISCARD INLINE bool serialize(const char * _Nonnull string) SWIFT_NAME(serialize(string:)) {
                 CATCH_FOR_SWIFT(
@@ -227,6 +171,11 @@ namespace FastDDS {
         } SWIFT_UNSAFE_REFERENCE;
 
         class CDRDeserializer final {
+        private:
+            // no copy constructors
+            CDRDeserializer(const CDRDeserializer&) = delete;
+            CDRDeserializer& operator=(const CDRDeserializer&) = delete;
+
         public:
             using _CDR = eprosima::fastcdr::Cdr;
             using EncodingAlgorithmFlag = eprosima::fastcdr::EncodingAlgorithmFlag;
@@ -241,10 +190,6 @@ namespace FastDDS {
                 const _CDR::Endianness endian = _CDR::DEFAULT_ENDIAN,
                 const CDRVersion cdrVersion = CDRVersion::XCDRv2
             ) : cdr(cdrBuffer, endian, cdrVersion) {}
-
-            //no copy constructors
-            CDRDeserializer(const CDRDeserializer&) = delete;
-            CDRDeserializer& operator=(const CDRDeserializer&) = delete;
 
             INLINE size_t getLastDataSize() const SWIFT_COMPUTED_PROPERTY {
                 return cdr.last_data_size_;
@@ -308,90 +253,28 @@ namespace FastDDS {
                 return true;
             }
 
-            NODISCARD INLINE bool deserialize(bool &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(int8_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(uint8_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(int16_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(uint16_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(int32_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(uint32_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(int64_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(uint64_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(float &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(double &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
-            NODISCARD INLINE bool deserialize(long double &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr >> value
-                );
-                return true;
-            }
+#define DEFINE_DESERIALIZE_FUNCTION(type) NODISCARD INLINE bool deserialize(type &value) { \
+    CATCH_FOR_SWIFT(                                                                       \
+        eprosima::fastcdr::exception::NotEnoughMemoryException,                            \
+        cdr.deserialize(value)                                                             \
+    );                                                                                     \
+    return true;                                                                           \
+}
+            DEFINE_DESERIALIZE_FUNCTION(bool)
+            DEFINE_DESERIALIZE_FUNCTION(int8_t)
+            DEFINE_DESERIALIZE_FUNCTION(uint8_t)
+            DEFINE_DESERIALIZE_FUNCTION(int16_t)
+            DEFINE_DESERIALIZE_FUNCTION(uint16_t)
+            DEFINE_DESERIALIZE_FUNCTION(int32_t)
+            DEFINE_DESERIALIZE_FUNCTION(uint32_t)
+            DEFINE_DESERIALIZE_FUNCTION(int64_t)
+            DEFINE_DESERIALIZE_FUNCTION(uint64_t)
+            DEFINE_DESERIALIZE_FUNCTION(float)
+            DEFINE_DESERIALIZE_FUNCTION(double)
+#ifdef FLOAT80_SUPPORTED
+            DEFINE_DESERIALIZE_FUNCTION(long double)
+#endif
+#undef DEFINE_DESERIALIZE_FUNCTION
 
             _CDR cdr;
         } SWIFT_UNSAFE_REFERENCE;

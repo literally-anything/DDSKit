@@ -6,7 +6,7 @@
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 
-extension Bool: DDSCodable, DDSLoaningCodable {
+extension Bool: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Bool { false }
 
@@ -36,7 +36,7 @@ extension Bool: DDSCodable, DDSLoaningCodable {
     }
 }
 
-extension Int: DDSCodable, DDSLoaningCodable {
+extension Int: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Int { .zero }
 
@@ -93,7 +93,7 @@ extension Int: DDSCodable, DDSLoaningCodable {
         }
     }
 }
-extension UInt: DDSCodable, DDSLoaningCodable {
+extension UInt: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: UInt { .zero }
 
@@ -151,7 +151,7 @@ extension UInt: DDSCodable, DDSLoaningCodable {
     }
 }
 
-extension Int8: DDSCodable, DDSLoaningCodable {
+extension Int8: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Int8 { .zero }
 
@@ -180,7 +180,7 @@ extension Int8: DDSCodable, DDSLoaningCodable {
         }
     }
 }
-extension UInt8: DDSCodable, DDSLoaningCodable {
+extension UInt8: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: UInt8 { .zero }
 
@@ -210,7 +210,7 @@ extension UInt8: DDSCodable, DDSLoaningCodable {
     }
 }
 
-extension Int16: DDSCodable, DDSLoaningCodable {
+extension Int16: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Int16 { .zero }
 
@@ -240,7 +240,7 @@ extension Int16: DDSCodable, DDSLoaningCodable {
         }
     }
 }
-extension UInt16: DDSCodable, DDSLoaningCodable {
+extension UInt16: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: UInt16 { .zero }
 
@@ -271,7 +271,7 @@ extension UInt16: DDSCodable, DDSLoaningCodable {
     }
 }
 
-extension Int32: DDSCodable, DDSLoaningCodable {
+extension Int32: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Int32 { .zero }
 
@@ -301,7 +301,7 @@ extension Int32: DDSCodable, DDSLoaningCodable {
         }
     }
 }
-extension UInt32: DDSCodable, DDSLoaningCodable {
+extension UInt32: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: UInt32 { .zero }
 
@@ -332,7 +332,7 @@ extension UInt32: DDSCodable, DDSLoaningCodable {
     }
 }
 
-extension Int64: DDSCodable, DDSLoaningCodable {
+extension Int64: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Int64 { .zero }
 
@@ -362,7 +362,7 @@ extension Int64: DDSCodable, DDSLoaningCodable {
         }
     }
 }
-extension UInt64: DDSCodable, DDSLoaningCodable {
+extension UInt64: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: UInt64 { .zero }
 
@@ -393,7 +393,7 @@ extension UInt64: DDSCodable, DDSLoaningCodable {
     }
 }
 
-extension Float: DDSCodable, DDSLoaningCodable {
+extension Float: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Float { .nan }
 
@@ -423,7 +423,7 @@ extension Float: DDSCodable, DDSLoaningCodable {
         }
     }
 }
-extension Double: DDSCodable, DDSLoaningCodable {
+extension Double: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Double { .nan }
 
@@ -453,7 +453,8 @@ extension Double: DDSCodable, DDSLoaningCodable {
         }
     }
 }
-extension Float80: DDSCodable, DDSLoaningCodable {
+#if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+extension Float80: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     @inlinable
     public static var ddsInitialized: Float80 { .nan }
 
@@ -483,3 +484,4 @@ extension Float80: DDSCodable, DDSLoaningCodable {
         }
     }
 }
+#endif

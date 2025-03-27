@@ -14,7 +14,7 @@ public protocol DDSRawRepresentable: RawRepresentable, DDSMessage where RawValue
 }
 /// A protocol to automatically conform `OptionSet` types to `DDSCodable`.
 /// This protocol is used to automatically generate the necessary serialization and deserialization code for `OptionSet` types.
-public protocol DDSOptionSet: OptionSet, DDSMessage where RawValue: DDSCodable {}
+public protocol DDSOptionSet: DDSRawRepresentable, OptionSet, DDSMessage where RawValue: DDSCodable {}
 
 extension DDSRawRepresentable {
     @inlinable

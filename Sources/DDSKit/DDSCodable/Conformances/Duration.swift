@@ -6,7 +6,7 @@
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 
-extension Duration: DDSCodable {
+extension Duration: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Self {
         .init(secondsComponent: 0, attosecondsComponent: 0)
     }

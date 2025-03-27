@@ -119,7 +119,7 @@ public enum DDSTransport {
     /// - Note: This page explains what each parameter does: https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/udp/udp.html
     case udp4(
         outPort: UInt16 = 0,
-        common: CommonConfig = .init(), setworkSettings: NetworkSettings = .init()
+        common: CommonConfig = .init(), networkSettings: NetworkSettings = .init()
     )
     /// Defines a UDPv4 transport.
     public var udp4: Self { .udp4() }
@@ -135,7 +135,7 @@ public enum DDSTransport {
     /// - Note: This page explains what each parameter does: https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/udp/udp.html
     case udp6(
         outPort: UInt16 = 0,
-        common: CommonConfig = .init(), setworkSettings: NetworkSettings = .init()
+        common: CommonConfig = .init(), networkSettings: NetworkSettings = .init()
     )
     /// Defines a UDPv6 transport.
     public var udpv6: Self { .udp6() }

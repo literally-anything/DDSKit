@@ -36,6 +36,10 @@ public protocol DDSCodable: Sendable {
 /// A type that can be encoded and decoded with CDR and can be loaned for zero copy transfer.
 public protocol DDSLoaningCodable: Sendable, DDSCodable {}
 
+/// A primitive type that can be encoded and decoded with CDR.
+/// - Warning: Never manually conform a type to this protocol. Doing so will break encoding and decoding for collections and other complex types.
+public protocol DDSPrimitive: DDSLoaningCodable {}
+
 public protocol DDSMessage: DDSCodable {
     /// The type support object for a topic.
     static var ddsTypeSupport: DDSTypeSupport { get }

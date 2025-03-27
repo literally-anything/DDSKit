@@ -18,6 +18,7 @@ let swiftSettings: [SwiftSetting] = [
     .interoperabilityMode(.Cxx),
     .enableUpcomingFeature("InternalImportsByDefault")
 ]
+var cfastddsLinkerSettings: [LinkerSetting] = []
 
 #if canImport(Darwin)
 let applePlatformDependencies: [Package.Dependency] = [
@@ -26,9 +27,18 @@ let applePlatformDependencies: [Package.Dependency] = [
 let applePlatformTargetDependencies: [Target.Dependency] = [
     .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS]))
 ]
+cfastddsLinkerSettings.append(contentsOf: [
+    .linkedFramework("CoreFoundation", .when(platforms: [.macOS, .iOS, .visionOS])), // Used for the BlocksRuntime
+    .linkedFramework("IOKit", .when(platforms: [.macOS, .iOS, .visionOS])) // IOKit is used by FastDDS on macOS
+])
 #else
 let applePlatformDependencies: [Package.Dependency] = []
 let applePlatformTargetDependencies: [Target.Dependency] = []
+cfastddsLinkerSettings.append(contentsOf: [
+    .linkedLibrary("fastdds"),
+    .linkedLibrary("fastcdr"),
+    .linkedLibrary("BlocksRuntime")
+])
 #endif
 
 
@@ -62,11 +72,7 @@ let package = Package(
             name: "_CFastDDS",
             dependencies: applePlatformTargetDependencies,
             cxxSettings: cxxSettings,
-            linkerSettings: [
-                .linkedLibrary("fastdds"),
-                .linkedLibrary("fastcdr"),
-                .linkedLibrary("BlocksRuntime")
-            ]
+            linkerSettings: cfastddsLinkerSettings
         ),
         // .macro(
         //     name: "DDSKitMacros",
