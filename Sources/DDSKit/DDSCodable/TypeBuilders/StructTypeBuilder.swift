@@ -11,11 +11,14 @@ internal import _CFastDDS
 public class DDSStructTypeBuilder {
     /// The internal info for the type builder.
     internal var info = FastDDS.Types.CreateInfo()
+    /// The name of the type being built.
+    internal var name: String
 
     /// Creates a new type builder with the given name.
     /// - Parameter name: The name of the type to build. This name is only local and needs to be unique, so it's best to just make it very specific.
     /// - Note: This method will throw a fatal error if the type cannot be created.
     internal init(struct name: String) {
+        self.name = name
         guard FastDDS.Types.createStruct(name: .init(name), info: &info) else {
             fatalError("Failed to create DDS type builder. This is likely a library bug.")
         }
@@ -24,59 +27,51 @@ public class DDSStructTypeBuilder {
     /// Adds a member to the type being built using the given descriptor.
     /// - Parameters:
     ///   - descriptor: The descriptor of the type to add as a member.
-    ///   - name: The name of the member.
+    ///   - memberName: The name of the member.
     ///   - memberId: The id of the member.
     ///   - optional: Whether the member is optional. Defaults to `false`.
-    /// - Returns: The type builder for chaining.
     /// - Note: This method will throw a fatal error if the member type cannot be added.
-    @discardableResult
-    public func addMember(descriptor: DDSTypeDescriptor, name: String, memberId: UInt32, optional: Bool = false) -> Self {
+    public func addMember(descriptor: DDSTypeDescriptor, name memberName: String, memberId: UInt32, optional: Bool = false) {
         guard FastDDS.Types.addStructMember(
-            info: &info, identifiers: descriptor.identifier, name: .init(name), id: memberId, isOptional: optional, isKey: false
+            info: &info, identifiers: descriptor.identifier, name: .init(memberName), id: memberId, isOptional: optional, isKey: false
         ) else {
             fatalError("Failed to add member to DDS type builder. This is likely either two members with the same id or a library bug.")
         }
-        return self
     }
 
     /// Adds a member to the type being built using the given `DDSCodable` type.
     /// - Parameters:
     ///   - type: The type of the member.
-    ///   - name: The name of the member.
+    ///   - memberName: The name of the member.
     ///   - memberId: The id of the member.
-    /// - Returns: The type builder for chaining.
     /// - Note: This method will throw a fatal error if the member type cannot be added.
     @inlinable
-    @discardableResult
-    public func addMember<T: DDSCodable>(type: T.Type, name: String, memberId: UInt32) -> Self {
-        return addMember(descriptor: T.ddsTypeDescriptor, name: name, memberId: memberId, optional: false)
+    public func addMember<T: DDSCodable>(type: T.Type, name memberName: String, memberId: UInt32) {
+        addMember(descriptor: T.ddsTypeDescriptor, name: memberName, memberId: memberId, optional: false)
     }
     /// Adds a member to the type being built using the given optional `DDSCodable` type.
     /// - Parameters:
     ///   - type: The optional type of the member.
-    ///   - name: The name of the member.
+    ///   - memberName: The name of the member.
     ///   - memberId: The id of the member.
-    /// - Returns: The type builder for chaining.
     /// - Note: This method will throw a fatal error if the member type cannot be added.
     @inlinable
-    @discardableResult
-    public func addMember<T: DDSCodable>(type: T?.Type, name: String, memberId: UInt32) -> Self {
-        return addMember(descriptor: T.ddsTypeDescriptor, name: name, memberId: memberId, optional: true)
+    public func addMember<T: DDSCodable>(type: T?.Type, name memberName: String, memberId: UInt32) {
+        addMember(descriptor: T.ddsTypeDescriptor, name: memberName, memberId: memberId, optional: true)
     }
 
     /// Finishes building and registering the type and returns the built descriptor.
     /// - Returns: The built descriptor.
     /// - Note: This method will throw a fatal error if the type cannot be built.
     internal func build() -> DDSTypeDescriptor {
-        var name = std.string()
         var identifiers = FastDDS.Types.TypeIdentifierPair()
-        let ret = FastDDS.Types.finishStruct(info: info, name: &name, identifiers: &identifiers)
+        let ret = FastDDS.Types.finishStruct(info: info, name: .init(name), identifiers: &identifiers)
         switch ret {
             case eprosima.fastdds.dds.RETCODE_OK: break
             case eprosima.fastdds.dds.RETCODE_BAD_PARAMETER:
                 fatalError("Failed to build DDS type: \(name). Another type with the same name already exists.")
             default:
-                fatalError("Failed to build DDS type. Some internal error occured while building \(name).")
+                fatalError("Failed to build DDS type. Some internal error occured while building \(name): \(ret).")
         }
         return DDSTypeDescriptor(identifier: identifiers, name: .init(name))
     }

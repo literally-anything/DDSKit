@@ -11,7 +11,7 @@ extension String: DDSCodable {
     public static var ddsInitialized: String { .init() }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        DDSTypeDescriptor(stringSize: nil)
+        DDSTypeDescriptor.string()
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
@@ -30,7 +30,7 @@ extension String: DDSCodable {
     }
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
         var length: UInt32 = 0
-        let success = decoder.deserializer.deserializeRaw(&length)
+        let success = decoder.deserializer.deserialize(&length)
         guard success else { throw .outOfBounds }
 
         if length == 0 {

@@ -17,7 +17,6 @@
 
 #include <fastcdr/xcdr/optional.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
-#include <fastdds/dds/xtypes/type_representation/TypeObjectUtils.hpp>
 #include <fastdds/dds/log/Log.hpp>
 
 namespace FastDDS {
@@ -27,7 +26,6 @@ namespace FastDDS {
         namespace fastddsxtypes = eprosima::fastdds::dds::xtypes;
 
         using eprosima::fastcdr::optional;
-        using fastddsxtypes::TypeObjectUtils;
         using fastddsxtypes::TypeIdentifier;
         using fastddsxtypes::CompleteStructType;
 
@@ -52,121 +50,40 @@ namespace FastDDS {
             fastddsxtypes::TypeIdentifierPair pair;
         };
 
-        NODISCARD INLINE bool getIdentifiersForName(
+        NODISCARD bool getIdentifiersForName(
             const std::string &name, TypeIdentifierPair &typeIdentifiers
-        ) SWIFT_NAME(getIdentifiersForName(name:identifiers:)) {
-            auto ret = eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_identifiers(
-                name,
-                typeIdentifiers.pair
-            );
-            return ret == eprosima::fastdds::dds::RETCODE_OK;
-        }
+        ) SWIFT_NAME(getIdentifiersForName(name:identifiers:));
 
-        NODISCARD INLINE bool createStruct(
+        NODISCARD bool createStruct(
             const std::string &name, CreateInfo &info
-        ) SWIFT_NAME(createStruct(name:info:)) {
-            info.struct_flags = TypeObjectUtils::build_struct_type_flag(
-                fastddsxtypes::ExtensibilityKind::FINAL,
-                false, false
-            );
-            fastddsxtypes::QualifiedTypeName type_name = name;
-            if (!info.tmp_ann_custom.empty()) {
-                info.ann_custom = info.tmp_ann_custom;
-            }
-
-            fastddsxtypes::CompleteTypeDetail detail = TypeObjectUtils::build_complete_type_detail(
-                info.type_ann_builtin,
-                info.ann_custom,
-                name
-            );
-            CATCH_FOR_SWIFT(
-                eprosima::fastdds::dds::xtypes::InvalidArgumentError,
-                {
-                    info.header = TypeObjectUtils::build_complete_struct_header(TypeIdentifier(), detail);
-                }
-            );
-            return true;
-        }
-        NODISCARD INLINE bool addStructMember(
+        ) SWIFT_NAME(createStruct(name:info:));
+        NODISCARD bool addStructMember(
             CreateInfo &info,
             const TypeIdentifierPair &memberIdentifiers,
             const std::string &name, uint32_t id, bool isOptional, bool isKey
-        ) SWIFT_NAME(addStructMember(info:identifiers:name:id:isOptional:isKey:)) {
-            fastddsxtypes::StructMemberFlag member_flags_index = TypeObjectUtils::build_struct_member_flag(
-                fastddsxtypes::TryConstructFailAction::DISCARD,
-                isOptional, false, isKey, false
-            );
-            
-            bool common_ec {false};
-            fastddsxtypes::CommonStructMember common_index = {
-                TypeObjectUtils::build_common_struct_member(
-                    id,
-                    member_flags_index,
-                    TypeObjectUtils::retrieve_complete_type_identifier(memberIdentifiers.pair, common_ec)
-                )
-            };
-            if (!common_ec) { return false; }
+        ) SWIFT_NAME(addStructMember(info:identifiers:name:id:isOptional:isKey:));
+        NODISCARD eprosima::fastdds::dds::ReturnCode_t finishStruct(
+            const CreateInfo &info, const std::string &name, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(finishStruct(info:name:identifiers:));
 
-            optional<fastddsxtypes::AppliedBuiltinMemberAnnotations> member_ann_builtin;
-            info.ann_custom.reset();
-            fastddsxtypes::CompleteStructMember member_index;
-            fastddsxtypes::CompleteMemberDetail detail_index = TypeObjectUtils::build_complete_member_detail(
-                name, member_ann_builtin, info.ann_custom
-            );
-            member_index = TypeObjectUtils::build_complete_struct_member(
-                common_index, detail_index
-            );
+        NODISCARD bool createString(
+            const std::string &name, bool isWide, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(createString(name:isWide:identifiers:));
 
-            TypeObjectUtils::add_complete_struct_member(info.member_seq, member_index);
-            return true;
-        }
+        NODISCARD bool createArray(
+            const std::string &name, std::vector<uint8_t> shape, const TypeIdentifierPair &elementIdentifiers, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(createArray(name:shape:element:identifiers:));
+        NODISCARD bool createArray(
+            const std::string &name, std::vector<uint32_t> shape, const TypeIdentifierPair &elementIdentifiers, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(createArray(name:shape:element:identifiers:));
 
-        void debugCheckForIdenticalRegistered(const CompleteStructType &completeType, TypeIdentifierPair &identifiers, bool &identicalRegistered);
-        NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t finishStruct(
-            const CreateInfo &info,
-            std::string &name, TypeIdentifierPair &identifiers
-        ) SWIFT_NAME(finishStruct(info:name:identifiers:)) {
-            CompleteStructType completeStructType;
-            CATCH_FOR_SWIFT_CUSTOM(
-                fastddsxtypes::InvalidArgumentError,
-                eprosima::fastdds::dds::RETCODE_ERROR,
-                {
-                    completeStructType = TypeObjectUtils::build_complete_struct_type(
-                        info.struct_flags,
-                        info.header,
-                        info.member_seq
-                    );
-                }
-            );
+        NODISCARD bool createSequence(
+            const std::string &name, const TypeIdentifierPair &elementIdentifiers, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(createSequence(name:element:identifiers:));
 
-            name = completeStructType.header().detail().type_name().to_string();
-
-            bool identicalRegistered = false;
-            debugCheckForIdenticalRegistered(completeStructType, identifiers, identicalRegistered);
-            if (identicalRegistered) { return eprosima::fastdds::dds::RETCODE_OK; }
-
-            // Try to register the type
-            auto ret = TypeObjectUtils::build_and_register_struct_type_object(
-                completeStructType, name, identifiers.pair
-            );
-
-            if (ret == eprosima::fastdds::dds::RETCODE_BAD_PARAMETER && !identicalRegistered) {
-                EPROSIMA_LOG_ERROR(Types.finishStruct, "Type already registered as a different type: " << name);
-            }
-
-            return ret;
-        }
-
-        NODISCARD INLINE bool createString(
-            const std::string &name, uint32_t length, bool isWide, TypeIdentifierPair &identifiers
-        ) SWIFT_NAME(createString(name:length:isWide:identifiers:)) {
-            fastddsxtypes::SBound bound = length;
-            fastddsxtypes::StringSTypeDefn typeDef = TypeObjectUtils::build_string_s_type_defn(bound);
-            auto ret = TypeObjectUtils::build_and_register_s_string_type_identifier(
-                typeDef, name, identifiers.pair, isWide
-            );
-            return ret == eprosima::fastdds::dds::RETCODE_OK;
-        }
+        NODISCARD bool createMap(
+            const std::string &name, const TypeIdentifierPair &keyIdentifiers, const TypeIdentifierPair &valueIdentifiers, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(createMap(name:key:value:identifiers:));
 
     }
 

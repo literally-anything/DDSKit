@@ -17,6 +17,8 @@
 
 #include "common.h"
 
+#include "types/size_calculator.hpp"
+
 // Ensure that the Cdr private members are accessible
 #include "private_cdr.hpp"
 
@@ -59,6 +61,16 @@ namespace FastDDS {
             } SWIFT_NONCOPYABLE;
             NODISCARD INLINE State initState() const {
                 return { cdr.get_state() };
+            }
+
+            INLINE CDRVersion getCdrVersion() const SWIFT_COMPUTED_PROPERTY {
+                return cdr.get_cdr_version();
+            }
+            INLINE SerializedMemberSizeForNextInt getSerializedMemberSize() const SWIFT_COMPUTED_PROPERTY {
+                return static_cast<SerializedMemberSizeForNextInt>(cdr.serialized_member_size_);
+            }
+            INLINE void setSerializedMemberSize(SerializedMemberSizeForNextInt value) SWIFT_COMPUTED_PROPERTY {
+                cdr.serialized_member_size_ = static_cast<_CDR::SerializedMemberSizeForNextInt>(value);
             }
 
             NODISCARD INLINE bool beginStruct(State &state) SWIFT_NAME(beginStruct(state:)) {
@@ -135,6 +147,17 @@ namespace FastDDS {
                 return true;
             }
 
+            // Only needed when the base element is not a primitive
+            INLINE void beginSequence(State &state) SWIFT_NAME(beginSequence(state:)) {
+                // Replace the state with a current one.
+                // This is needed because swift doesn't understand how to move state objects around without resetting them, so we can't return them.
+                state.state.~state();
+                new (&state) State({ cdr.allocate_xcdrv2_dheader() });
+            }
+            // Only needed when the base element is not a primitive
+            INLINE void endSequence(const State &previousState) SWIFT_NAME(endSequence(previousState:)) {
+                cdr.set_xcdrv2_dheader(previousState.state);
+            }
 
 #define DEFINE_SERIALIZE_FUNCTION(type) NODISCARD INLINE bool serialize(const type &value) { \
     CATCH_FOR_SWIFT(                                                                         \
@@ -166,6 +189,29 @@ namespace FastDDS {
                 );
                 return true;
             }
+
+#define DEFINE_SERIALIZE_ARRAY_FUNCTION(type) NODISCARD INLINE bool serializeArray(const type * _Nullable array, const uint32_t &size) { \
+    CATCH_FOR_SWIFT(                                                                                                                     \
+        eprosima::fastcdr::exception::NotEnoughMemoryException,                                                                          \
+        cdr.serialize_array(array, size)                                                                                                 \
+    );                                                                                                                                   \
+    return true;                                                                                                                         \
+}
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(bool)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(int8_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(uint8_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(int16_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(uint16_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(int32_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(uint32_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(int64_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(uint64_t)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(float)
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(double)
+#ifdef FLOAT80_SUPPORTED
+            DEFINE_SERIALIZE_ARRAY_FUNCTION(long double)
+#endif
+#undef DEFINE_SERIALIZE_ARRAY_FUNCTION
 
             _CDR cdr;
         } SWIFT_UNSAFE_REFERENCE;
@@ -244,15 +290,6 @@ namespace FastDDS {
                 return cdr.cdr_version_ == CDRVersion::XCDRv2 && cdr.current_encoding_ != EncodingAlgorithmFlag::PL_CDR2;
             }
 
-            /// This doesn't deserialize the member header, it just gets a single uint32 for a size of a sequence or string.
-            NODISCARD INLINE bool deserializeRaw(uint32_t &value) {
-                CATCH_FOR_SWIFT(
-                    eprosima::fastcdr::exception::NotEnoughMemoryException,
-                    cdr.deserialize(value)
-                );
-                return true;
-            }
-
 #define DEFINE_DESERIALIZE_FUNCTION(type) NODISCARD INLINE bool deserialize(type &value) { \
     CATCH_FOR_SWIFT(                                                                       \
         eprosima::fastcdr::exception::NotEnoughMemoryException,                            \
@@ -275,6 +312,29 @@ namespace FastDDS {
             DEFINE_DESERIALIZE_FUNCTION(long double)
 #endif
 #undef DEFINE_DESERIALIZE_FUNCTION
+
+#define DEFINE_DESERIALIZE_ARRAY_FUNCTION(type) NODISCARD INLINE bool deserializeArray(type * _Nullable array, const uint32_t &size) { \
+    CATCH_FOR_SWIFT(                                                                                                                   \
+        eprosima::fastcdr::exception::NotEnoughMemoryException,                                                                        \
+        cdr.deserialize_array(array, size)                                                                                             \
+    );                                                                                                                                 \
+    return true;                                                                                                                       \
+}
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(bool)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(int8_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(uint8_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(int16_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(uint16_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(int32_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(uint32_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(int64_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(uint64_t)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(float)
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(double)
+#ifdef FLOAT80_SUPPORTED
+            DEFINE_DESERIALIZE_ARRAY_FUNCTION(long double)
+#endif
+#undef DEFINE_DESERIALIZE_ARRAY_FUNCTION
 
             _CDR cdr;
         } SWIFT_UNSAFE_REFERENCE;

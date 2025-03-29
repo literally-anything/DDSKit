@@ -9,20 +9,14 @@ internal import _CFastDDS
 
 /// A builder for creating DDS type descriptors for strings.
 public struct DDSStringTypeBuilder: ~Copyable {
-    let size: Int?
     // let isWide: Bool
 
     /// Creates a new string type builder with the given name.
-    /// - Parameters:
-    ///   - size: The size of the string. If `nil`, the string is unbounded.
-    internal init(size: Int?) {
-        self.size = size
-    }
+    internal init() {}
 
     /// The name of the string type using the standart FastDDS naming convention.
-    private var name: String {
-        let sizeText = if let size { String(size) } else { "unbounded" }
-        return "anonymous_string_\(sizeText)"
+    internal var name: String {
+        "anonymous_string_unbounded"
     }
 
     /// Builds and registers the string type.
@@ -31,7 +25,7 @@ public struct DDSStringTypeBuilder: ~Copyable {
     internal func build() -> DDSTypeDescriptor {
         var identifier = FastDDS.Types.TypeIdentifierPair()
 
-        let ret = FastDDS.Types.createString(name: .init(name), length: UInt32(size ?? 0), isWide: false, identifiers: &identifier)
+        let ret = FastDDS.Types.createString(name: .init(name), isWide: false, identifiers: &identifier)
         guard ret else {
             fatalError("Failed to build DDS string type: \(name). Another type with the same name already exists.")
         }
@@ -41,20 +35,18 @@ public struct DDSStringTypeBuilder: ~Copyable {
 }
 
 extension DDSTypeDescriptor {
-    /// Creates a new string type descriptor with the given size.
-    /// - Parameters:
-    ///   - stringSize: The size of the string. If `nil`, the string is unbounded.
-    public init(stringSize: Int?) {
-        var identifier = FastDDS.Types.TypeIdentifierPair()
-
+    /// Creates a new string type descriptor.
+    /// - Returns: The string type descriptor.
+    public static func string() -> DDSTypeDescriptor {
         // Lock the building process to avoid data races, but no need to lock if the task we are running on is already building this type.
         if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
         defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
-        self = DDSTypeDescriptor.$isBuilding.withValue(true) {
-            var builder = DDSStringTypeBuilder(size: stringSize)
+        return DDSTypeDescriptor.$isBuilding.withValue(true) {
+            var builder = DDSStringTypeBuilder()
 
             // When in debug mode, we always build the type, so we can ensure that the type is same as the one that is already registered.
             #if !DEBUG
+                var identifier = FastDDS.Types.TypeIdentifierPair()
                 if FastDDS.Types.getIdentifiersForName(name: .init(builder.name), identifiers: &identifier) {
                     return DDSTypeDescriptor(identifier: identifier, name: builder.name)
                 }

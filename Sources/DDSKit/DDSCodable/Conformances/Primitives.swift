@@ -6,7 +6,7 @@
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 
-extension Bool: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Bool: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Bool { false }
 
@@ -36,7 +36,7 @@ extension Bool: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     }
 }
 
-extension Int: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Int: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Int { .zero }
 
@@ -93,7 +93,7 @@ extension Int: DDSCodable, DDSLoaningCodable, DDSPrimitive {
         }
     }
 }
-extension UInt: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension UInt: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: UInt { .zero }
 
@@ -151,7 +151,7 @@ extension UInt: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     }
 }
 
-extension Int8: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Int8: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Int8 { .zero }
 
@@ -180,7 +180,7 @@ extension Int8: DDSCodable, DDSLoaningCodable, DDSPrimitive {
         }
     }
 }
-extension UInt8: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension UInt8: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: UInt8 { .zero }
 
@@ -210,7 +210,7 @@ extension UInt8: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     }
 }
 
-extension Int16: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Int16: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Int16 { .zero }
 
@@ -240,7 +240,7 @@ extension Int16: DDSCodable, DDSLoaningCodable, DDSPrimitive {
         }
     }
 }
-extension UInt16: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension UInt16: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: UInt16 { .zero }
 
@@ -271,7 +271,7 @@ extension UInt16: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     }
 }
 
-extension Int32: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Int32: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Int32 { .zero }
 
@@ -301,7 +301,7 @@ extension Int32: DDSCodable, DDSLoaningCodable, DDSPrimitive {
         }
     }
 }
-extension UInt32: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension UInt32: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: UInt32 { .zero }
 
@@ -332,7 +332,7 @@ extension UInt32: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     }
 }
 
-extension Int64: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Int64: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Int64 { .zero }
 
@@ -362,7 +362,7 @@ extension Int64: DDSCodable, DDSLoaningCodable, DDSPrimitive {
         }
     }
 }
-extension UInt64: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension UInt64: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: UInt64 { .zero }
 
@@ -393,7 +393,7 @@ extension UInt64: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     }
 }
 
-extension Float: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Float: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Float { .nan }
 
@@ -423,7 +423,7 @@ extension Float: DDSCodable, DDSLoaningCodable, DDSPrimitive {
         }
     }
 }
-extension Double: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Double: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Double { .nan }
 
@@ -454,7 +454,7 @@ extension Double: DDSCodable, DDSLoaningCodable, DDSPrimitive {
     }
 }
 #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
-extension Float80: DDSCodable, DDSLoaningCodable, DDSPrimitive {
+extension Float80: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Float80 { .nan }
 

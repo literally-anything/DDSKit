@@ -46,7 +46,7 @@ extension DDSSizeCalculator {
 
     @inline(__always)
     internal static func getAlignment(currentAlignment: Int, dataSize: Int) -> Int {
-        (dataSize - (currentAlignment % dataSize)) & (dataSize - 1)
+        (dataSize &- (currentAlignment % dataSize)) & (dataSize &- 1)
     }
 }
 
