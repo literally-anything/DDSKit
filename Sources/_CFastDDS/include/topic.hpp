@@ -19,8 +19,6 @@
 
 #include <fastdds/dds/topic/Topic.hpp>
 
-#define MAX_TOPIC_SEARCH_SECONDS 2
-
 class DataWriter;
 class DataReader;
 
@@ -54,7 +52,13 @@ namespace FastDDS {
             // const Qos &qos,
             bool &success
         ) SWIFT_NAME(init(participant:topic:typeSupport:success:)) : participant(participantWrapper.participant) {
-            topic = participant->find_topic(topicName, eprosima::fastdds::dds::Duration_t(MAX_TOPIC_SEARCH_SECONDS));
+
+            // Stops two threads from creating the same topic at the same time
+            // This is a problem because one will fail after it has already verified the topic does not exist
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+            
+            topic = participant->find_topic(topicName, eprosima::fastdds::dds::Duration_t(0));
             if (topic == nullptr) {
                 topic = participant->create_topic(
                     topicName, typeSupport.typeSupport.get_type_name(),
