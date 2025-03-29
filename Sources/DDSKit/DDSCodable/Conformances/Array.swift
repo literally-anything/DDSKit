@@ -7,6 +7,12 @@
  */
 internal import _CFastDDS
 
+/// Calculate the size of a DDS sequence of complex types.
+/// This is only used internally.
+/// - Parameters:
+///   - calculator: The calculator to use.
+///   - length: The length of the sequence.
+///   - body: The body callback that calculates the size of the elements.
 @usableFromInline
 internal func withDDSSizeCalculatorComplexSequence(
     calculator: inout DDSSizeCalculator, length: UInt32,
@@ -29,6 +35,13 @@ internal func withDDSSizeCalculatorComplexSequence(
         calculator.serializedSequenceMemberSize = .SERIALIZED_MEMBER_SIZE;
     }
 }
+/// Encode a DDS sequence of complex types.
+/// This is only used internally.
+/// - Parameters:
+///   - encoder: The encoder to use.
+///   - length: The length of the sequence.
+///   - body: The body callback that encodes the elements.
+/// - Throws: An error if there is not enough storage allocated to encode the data or some other unexpected error occurs in `body`.
 @usableFromInline
 internal func withDDSEncoderComplexSequence(
     encoder: inout DDSEncoder, length: UInt32,
@@ -45,6 +58,11 @@ internal func withDDSEncoderComplexSequence(
 
     encoder.serializer.endSequence(previousState: state)
 }
+/// Decode the length of a DDS sequence and check that the decoder has enough space for the entire sequence to be decoded.
+/// This is only used internally.
+/// - Parameter decoder: The decoder to use.
+/// - Throws: An error if the decoder reads beyond the bounds of the internal buffer.
+/// - Returns: The read length of the sequence.
 @usableFromInline
 internal func decodeAndCheckDDSSequenceLength(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) -> UInt32 {
     var length: UInt32 = 0
@@ -118,21 +136,34 @@ extension Array: DDSCodable where Element: DDSCodable {
     }
 }
 
-/// Specific specializations for primitive types.
-/// There needs to be this much duplication because the specializations in c++ have no connection to any Swift protocols I make.
-/// This makes Swift complain because not every type that could conform to the protocol can be passed to an overload of the c++ function.
+// Specific specializations for primitive types.
+// There needs to be this much duplication because the specializations in c++ have no connection to any Swift protocols I make.
+// This makes Swift complain because not every type that could conform to the protocol can be passed to an overload of the c++ function.
 
+/// Add the size of the sequence header for primitive types to the calculator.
+/// This is used internally.
+/// - Parameter calculator: The calculator to use.
 private func addPrimitiveHeaderSize(calculator: inout DDSSizeCalculator) {
     let initialAlignment = calculator.alignment
     calculator.alignment += 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
     calculator.size += calculator.alignment &- initialAlignment
 }
+/// Set the serialized member size for primitive types on a size calculator.
+/// This is used internally.
+/// - Parameters:
+///   - calculator: The calculator to use.
+///   - size: The size to set when necessary.
 private func setSerializedMemberSize(calculator: inout DDSSizeCalculator, size: FastDDS.CDR.SerializedMemberSizeForNextInt) {
     if calculator.calc.get_cdr_version() == eprosima.fastcdr.XCDRv2 {
         // Inform DHEADER can be joined with NEXTINT
         calculator.serializedSequenceMemberSize = size
     }
 }
+/// Set the serialized member size for primitive types on an encoder.
+/// This is used internally.
+/// - Parameters:
+///   - encoder: The encoder to use.
+///   - size: The size to set when necessary.
 private func setSerializedMemberSize(encoder: inout DDSEncoder, size: FastDDS.CDR.SerializedMemberSizeForNextInt) {
     if encoder.serializer.cdrVersion == eprosima.fastcdr.XCDRv2 {
         encoder.serializer.serializedMemberSize = size
