@@ -163,7 +163,6 @@ extension Array where Element == Bool {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -172,6 +171,138 @@ extension Array where Element == Bool {
         }
     }
 }
+
+extension Array where Element == Int {
+    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
+        addPrimitiveHeaderSize(calculator: &calculator)
+
+        let calculatedSize = if MemoryLayout<Int>.size == 8 {
+            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        } else {
+            (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
+        }
+        calculator.alignment += calculatedSize
+        calculator.size += calculatedSize
+
+        if MemoryLayout<Int>.size == 8 {
+            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+        } else {
+            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
+        }
+    }
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(UInt32(count)) else {
+            throw .notEnoughStorage
+        }
+        let success = withUnsafeBufferPointer { bufferPtr in
+            if MemoryLayout<Int>.size == 8 {
+                bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
+                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+                }
+            } else {
+                bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
+                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+                }
+            }
+        }
+        guard success else {
+            throw .notEnoughStorage
+        }
+        if MemoryLayout<Int>.size == 8 {
+            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
+        } else {
+            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
+
+        reserveLengthDDSDecode(length: length)
+
+        let success = withUnsafeMutableBufferPointer { bufferPtr in
+            if MemoryLayout<Int>.size == 8 {
+                bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
+                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
+                }
+            } else {
+                bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
+                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
+                }
+            }
+        }
+        guard success else {
+            throw .outOfBounds
+        }
+    }
+}
+extension Array where Element == UInt {
+    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
+        addPrimitiveHeaderSize(calculator: &calculator)
+
+        let calculatedSize = if MemoryLayout<UInt>.size == 8 {
+            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        } else {
+            (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
+        }
+        calculator.alignment += calculatedSize
+        calculator.size += calculatedSize
+
+        if MemoryLayout<UInt>.size == 8 {
+            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+        } else {
+            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
+        }
+    }
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(UInt32(count)) else {
+            throw .notEnoughStorage
+        }
+        let success = withUnsafeBufferPointer { bufferPtr in
+            if MemoryLayout<UInt>.size == 8 {
+                bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
+                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+                }
+            } else {
+                bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
+                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+                }
+            }
+        }
+        guard success else {
+            throw .notEnoughStorage
+        }
+        if MemoryLayout<UInt>.size == 8 {
+            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
+        } else {
+            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
+
+        reserveLengthDDSDecode(length: length)
+
+        let success = withUnsafeMutableBufferPointer { bufferPtr in
+            if MemoryLayout<Int>.size == 8 {
+                bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
+                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
+                }
+            } else {
+                bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
+                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
+                }
+            }
+        }
+        guard success else {
+            throw .outOfBounds
+        }
+    }
+}
+
 extension Array where Element == Int8 {
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
@@ -200,7 +331,6 @@ extension Array where Element == Int8 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -237,7 +367,6 @@ extension Array where Element == UInt8 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -276,7 +405,6 @@ extension Array where Element == Int16 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -314,7 +442,6 @@ extension Array where Element == UInt16 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -353,7 +480,6 @@ extension Array where Element == Int32 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -391,7 +517,6 @@ extension Array where Element == UInt32 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -430,7 +555,6 @@ extension Array where Element == Int64 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -468,7 +592,6 @@ extension Array where Element == UInt64 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -506,7 +629,6 @@ extension Array where Element == Float {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -544,7 +666,6 @@ extension Array where Element == Double {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
@@ -583,7 +704,6 @@ extension Array where Element == Float80 {
 
         reserveLengthDDSDecode(length: length)
 
-        reserveCapacity(Int(length))
         let success = withUnsafeMutableBufferPointer { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
         }
