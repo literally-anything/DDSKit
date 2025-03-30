@@ -81,7 +81,7 @@ extension Array: DDSCodable where Element: DDSCodable {
 
     @inlinable
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        DDSTypeDescriptor.array(of: Element.ddsTypeDescriptor)
+        .createArray(of: Element.ddsTypeDescriptor)
     }
 
     @inlinable

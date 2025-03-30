@@ -7,15 +7,23 @@
  */
 internal import _CFastDDS
 
-public struct DDSArrayTypeBuilder {
-    let elementType: DDSTypeDescriptor
-    let size: UInt32?
+/// A builder for creating DDS array and sequence types.
+internal struct DDSArrayTypeBuilder {
+    /// The type of the elements in the array or sequence.
+    internal let elementType: DDSTypeDescriptor
+    /// The size of the array. If `nil`, the type is a sequence (unbounded).
+    internal let size: UInt32?
 
+    /// Creates a new array type builder with the given element type and size.
+    /// - Parameters:
+    ///   - elementType: The type descriptor of the element type in the array or sequence.
+    ///   - size: The size of the array. If `nil`, the type is a sequence (unbounded).
     internal init(elementType: DDSTypeDescriptor, size: UInt32?) {
         self.elementType = elementType
         self.size = size
     }
 
+    /// The name of the array or sequence type using the standard FastDDS naming convention.
     internal var name: String {
         var elementName = elementType.name
         if elementName.starts(with: "_") { elementName.removeFirst() } // We don't want the leading underscore in private names.
@@ -27,6 +35,9 @@ public struct DDSArrayTypeBuilder {
         }
     }
 
+    /// Builds and registers the array or sequence type.
+    /// - Returns: The identifier pair for the array or sequence type.
+    /// - Note: This method will throw a fatal error if the type cannot be created.
     internal func build() -> DDSTypeDescriptor {
         var identifier = FastDDS.Types.TypeIdentifierPair()
 
@@ -52,7 +63,14 @@ public struct DDSArrayTypeBuilder {
 }
 
 extension DDSTypeDescriptor {
-    public static func array(of elementType: DDSTypeDescriptor, size: UInt32? = nil) -> DDSTypeDescriptor {
+    /// Creates a new array type descriptor by building it with the given element type and size.
+    /// - Parameters:
+    ///   - elementType: The type descriptor of the element type in the array or sequence.
+    ///   - size: The size of the array. If `nil`, the type is a sequence (unbounded).
+    /// - Returns: The array or sequence type descriptor.
+    /// - Note: This method will throw a fatal error if the type cannot be created.
+    @usableFromInline
+    internal static func createArray(of elementType: DDSTypeDescriptor, size: UInt32? = nil) -> DDSTypeDescriptor {
         if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
         defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
         return DDSTypeDescriptor.$isBuilding.withValue(true) {

@@ -28,7 +28,7 @@ extension DDSRawRepresentable {
     @inlinable
     @inline(__always)
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        DDSTypeDescriptor(struct: ddsName) { builder in
+        .createStruct(name: ddsName) { builder in
             builder.addMember(type: RawValue.self, name: "rawValue", memberId: 0)
         }
     }

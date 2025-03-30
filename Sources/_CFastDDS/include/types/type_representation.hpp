@@ -15,30 +15,36 @@
 
 #include "common.h"
 
-#include <fastcdr/xcdr/optional.hpp>
-#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
-#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/dds/core/ReturnCode.hpp>
+#include <fastdds/dds/xtypes/type_representation/detail/dds_xtypes_typeobject.hpp>
 
 namespace FastDDS {
 
     namespace Types {
 
         namespace fastddsxtypes = eprosima::fastdds::dds::xtypes;
-
-        using eprosima::fastcdr::optional;
+        
         using fastddsxtypes::TypeIdentifier;
         using fastddsxtypes::CompleteStructType;
+        using fastddsxtypes::CompleteUnionType;
 
-        class CreateInfo final {
+        class StructCreateInfo final {
         public:
-            INLINE CreateInfo() : struct_flags(), header(), member_seq(), type_ann_builtin(), ann_custom(), tmp_ann_custom() {}
+            INLINE StructCreateInfo() : struct_flags(), header(), member_seq() {}
 
             fastddsxtypes::StructTypeFlag struct_flags;
             fastddsxtypes::CompleteStructHeader header;
             fastddsxtypes::CompleteStructMemberSeq member_seq;
-            optional<fastddsxtypes::AppliedBuiltinTypeAnnotations> type_ann_builtin;
-            optional<fastddsxtypes::AppliedAnnotationSeq> ann_custom;
-            fastddsxtypes::AppliedAnnotationSeq tmp_ann_custom;
+        };
+
+        class UnionCreateInfo final {
+        public:
+            INLINE UnionCreateInfo() : union_flags(), header(), member_seq(), discriminator() {}
+
+            fastddsxtypes::UnionTypeFlag union_flags;
+            fastddsxtypes::CompleteUnionHeader header;
+            fastddsxtypes::CompleteUnionMemberSeq member_seq;
+            fastddsxtypes::CompleteDiscriminatorMember discriminator;
         };
 
         class TypeIdentifierPair final {
@@ -55,16 +61,28 @@ namespace FastDDS {
         ) SWIFT_NAME(getIdentifiersForName(name:identifiers:));
 
         NODISCARD bool createStruct(
-            const std::string &name, CreateInfo &info
+            const std::string &name, StructCreateInfo &info
         ) SWIFT_NAME(createStruct(name:info:));
         NODISCARD bool addStructMember(
-            CreateInfo &info,
+            StructCreateInfo &info,
             const TypeIdentifierPair &memberIdentifiers,
             const std::string &name, uint32_t id, bool isOptional, bool isKey
         ) SWIFT_NAME(addStructMember(info:identifiers:name:id:isOptional:isKey:));
         NODISCARD eprosima::fastdds::dds::ReturnCode_t finishStruct(
-            const CreateInfo &info, const std::string &name, TypeIdentifierPair &identifiers
+            const StructCreateInfo &info, const std::string &name, TypeIdentifierPair &identifiers
         ) SWIFT_NAME(finishStruct(info:name:identifiers:));
+
+        NODISCARD bool createUnion(
+            const std::string &name, uint32_t count, bool isDescriminatorKey, UnionCreateInfo &info
+        ) SWIFT_NAME(createUnion(name:count:isDescriminatorKey:info:));
+        NODISCARD bool addUnionCase(
+            UnionCreateInfo &info,
+            const TypeIdentifierPair &memberIdentifiers,
+            const std::string &name, uint32_t caseId
+        ) SWIFT_NAME(addUnionCase(info:identifiers:name:id:));
+        NODISCARD eprosima::fastdds::dds::ReturnCode_t finishUnion(
+            const UnionCreateInfo &info, const std::string &name, TypeIdentifierPair &identifiers
+        ) SWIFT_NAME(finishUnion(info:name:identifiers:));
 
         NODISCARD bool createString(
             const std::string &name, bool isWide, TypeIdentifierPair &identifiers

@@ -11,7 +11,7 @@ extension String: DDSCodable {
     public static var ddsInitialized: String { .init() }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        DDSTypeDescriptor.string()
+        DDSTypeDescriptor.createString()
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
