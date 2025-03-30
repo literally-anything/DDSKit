@@ -27,6 +27,8 @@ namespace FastDDS {
     namespace Types {
         using fastddsxtypes::TypeObjectUtils;
         using eprosima::fastdds::dds::DomainParticipantFactory;
+        using fastddsxtypes::CompleteStructType;
+        using fastddsxtypes::CompleteUnionType;
 
         bool getIdentifiersForName(
             const std::string &name, TypeIdentifierPair &typeIdentifiers
@@ -39,62 +41,38 @@ namespace FastDDS {
         }
 
 #if defined(DEBUG) && DEBUG == 1
-        void _debugCheckForIdenticalRegistered(const CompleteStructType &completeType, TypeIdentifierPair &identifiers, bool &identicalRegistered) {
-            std::string name = completeType.header().detail().type_name().to_string();
-
-            // Check if the type is already registered and is identical
-            TypeIdentifierPair foundIdentifiers;
-            if (getIdentifiersForName(name, foundIdentifiers)) {
-                eprosima::fastdds::dds::xtypes::TypeObject foundType;
-                bool gotCompleteIdentifier = false;
-                auto ret = eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_object(
-                    TypeObjectUtils::retrieve_complete_type_identifier(foundIdentifiers.pair, gotCompleteIdentifier), foundType
-                );
-                if (!gotCompleteIdentifier) {
-                    EPROSIMA_LOG_WARNING(Types.debugCheckForIdenticalRegistered, "Failed to get complete type identifier for: " << name);
-                }
-
-                if (ret == eprosima::fastdds::dds::RETCODE_OK) {
-                    try {
-                        if (foundType.complete().struct_type() == completeType) {
-                            identicalRegistered = true;
-                            EPROSIMA_LOG_INFO(Types.debugCheckForIdenticalRegistered, "Type already registered, but identical: " << name);
-                            identifiers.pair = foundIdentifiers.pair;
-                            return;
-                        }
-                    } catch (const eprosima::fastcdr::exception::BadParamException &e) {}
-                }
-            }
-            identicalRegistered = false;
+#define DEFINE_DEBUG_CHECK_FOR_IDENTICAL_REGISTERED(type, check) \
+        void _debugCheckForIdenticalRegistered(const type &completeType, const std::string &name, TypeIdentifierPair &identifiers, bool &identicalRegistered) { \
+            /* Check if the type is already registered and is identical */ \
+            TypeIdentifierPair foundIdentifiers; \
+            if (getIdentifiersForName(name, foundIdentifiers)) { \
+                eprosima::fastdds::dds::xtypes::TypeObject foundType; \
+                bool gotCompleteIdentifier = false; \
+                auto ret = eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_object( \
+                    TypeObjectUtils::retrieve_complete_type_identifier(foundIdentifiers.pair, gotCompleteIdentifier), foundType \
+                ); \
+                if (!gotCompleteIdentifier) { \
+                    EPROSIMA_LOG_WARNING(Types.debugCheckForIdenticalRegistered, "Failed to get complete type identifier for: " << name); \
+                } \
+                if (ret == eprosima::fastdds::dds::RETCODE_OK) { \
+                    try { \
+                        if (check) { \
+                            identicalRegistered = true; \
+                            EPROSIMA_LOG_INFO(Types.debugCheckForIdenticalRegistered, "Type already registered, but identical: " << name); \
+                            identifiers.pair = foundIdentifiers.pair; \
+                            return; \
+                        } \
+                    } catch (const eprosima::fastcdr::exception::BadParamException &e) {} \
+                } \
+            } \
+            identicalRegistered = false; \
         }
-        void _debugCheckForIdenticalRegistered(const CompleteUnionType &completeType, TypeIdentifierPair &identifiers, bool &identicalRegistered) {
-            std::string name = completeType.header().detail().type_name().to_string();
-
-            // Check if the type is already registered and is identical
-            TypeIdentifierPair foundIdentifiers;
-            if (getIdentifiersForName(name, foundIdentifiers)) {
-                eprosima::fastdds::dds::xtypes::TypeObject foundType;
-                bool gotCompleteIdentifier = false;
-                auto ret = eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_object(
-                    TypeObjectUtils::retrieve_complete_type_identifier(foundIdentifiers.pair, gotCompleteIdentifier), foundType
-                );
-                if (!gotCompleteIdentifier) {
-                    EPROSIMA_LOG_WARNING(Types.debugCheckForIdenticalRegistered, "Failed to get complete type identifier for: " << name);
-                }
-
-                if (ret == eprosima::fastdds::dds::RETCODE_OK) {
-                    try {
-                        if (foundType.complete().union_type() == completeType) {
-                            identicalRegistered = true;
-                            EPROSIMA_LOG_INFO(Types.debugCheckForIdenticalRegistered, "Type already registered, but identical: " << name);
-                            identifiers.pair = foundIdentifiers.pair;
-                            return;
-                        }
-                    } catch (const eprosima::fastcdr::exception::BadParamException &e) {}
-                }
-            }
-            identicalRegistered = false;
-        }
+        DEFINE_DEBUG_CHECK_FOR_IDENTICAL_REGISTERED(CompleteStructType, foundType.complete().struct_type() == completeType)
+        DEFINE_DEBUG_CHECK_FOR_IDENTICAL_REGISTERED(CompleteUnionType, foundType.complete().union_type() == completeType)
+        DEFINE_DEBUG_CHECK_FOR_IDENTICAL_REGISTERED(fastddsxtypes::PlainArrayLElemDefn, foundType.complete().array_type().header().common().bound_seq() == completeType.array_bound_seq())
+        DEFINE_DEBUG_CHECK_FOR_IDENTICAL_REGISTERED(fastddsxtypes::PlainSequenceSElemDefn, foundType.complete().sequence_type().header().common().bound() == completeType.bound())
+        DEFINE_DEBUG_CHECK_FOR_IDENTICAL_REGISTERED(fastddsxtypes::PlainMapSTypeDefn, foundType.complete().map_type().header().common().bound() == completeType.bound())
+#undef DEFINE_DEBUG_CHECK_FOR_IDENTICAL_REGISTERED
 #endif
 
         bool createStruct(
@@ -153,7 +131,7 @@ namespace FastDDS {
             );
 
             bool identicalRegistered = false;
-            debugCheckForIdenticalRegistered(completeStructType, identifiers, identicalRegistered);
+            debugCheckForIdenticalRegistered(completeStructType, name, identifiers, identicalRegistered);
             if (identicalRegistered) { return eprosima::fastdds::dds::RETCODE_OK; }
 
             // Try to register the type
@@ -169,7 +147,7 @@ namespace FastDDS {
         }
 
         NODISCARD bool createUnion(
-            const std::string &name, uint32_t count, bool isDescriminatorKey, UnionCreateInfo &info
+            const std::string &name, const TypeIdentifierPair &descriminator, bool isDescriminatorKey, UnionCreateInfo &info
         ) {
             info.union_flags = TypeObjectUtils::build_union_type_flag(
                 fastddsxtypes::ExtensibilityKind::FINAL,
@@ -187,37 +165,17 @@ namespace FastDDS {
                 fastddsxtypes::TryConstructFailAction::DISCARD, isDescriminatorKey
             );
 
-            eprosima::fastdds::dds::ReturnCode_t discriminatorTypeRet;
-            fastddsxtypes::TypeIdentifierPair descriminatorTypeIdentifiers;
-            if (count <= 2) {
-                discriminatorTypeRet = DomainParticipantFactory::get_instance()->type_object_registry().get_type_identifiers(
-                    "_bool", descriminatorTypeIdentifiers
-                );
-            } else if (count <= UINT8_MAX) {
-                discriminatorTypeRet = DomainParticipantFactory::get_instance()->type_object_registry().get_type_identifiers(
-                    "_uint8_t", descriminatorTypeIdentifiers
-                );
-            } else {
-                discriminatorTypeRet = DomainParticipantFactory::get_instance()->type_object_registry().get_type_identifiers(
-                    "_uint32_t", descriminatorTypeIdentifiers
-                );
-            }
-            if (discriminatorTypeRet != eprosima::fastdds::dds::RETCODE_OK) {
-                EPROSIMA_LOG_ERROR(Types.createUnion, "Union discriminator TypeIdentifier not found (it's a primitive, so it really should be).");
-                return false;
-            }
-
             fastddsxtypes::CommonDiscriminatorMember descriminatorMember;
             if (
-                descriminatorTypeIdentifiers.type_identifier1()._d() == fastddsxtypes::EK_COMPLETE ||
-                descriminatorTypeIdentifiers.type_identifier2()._d() == fastddsxtypes::TK_NONE
+                descriminator.pair.type_identifier1()._d() == fastddsxtypes::EK_COMPLETE ||
+                descriminator.pair.type_identifier2()._d() == fastddsxtypes::TK_NONE
             ) {
                 descriminatorMember = TypeObjectUtils::build_common_discriminator_member(
-                    desciminatorFlags, descriminatorTypeIdentifiers.type_identifier1()
+                    desciminatorFlags, descriminator.pair.type_identifier1()
                 );
-            } else if (descriminatorTypeIdentifiers.type_identifier2()._d() == fastddsxtypes::EK_COMPLETE) {
+            } else if (descriminator.pair.type_identifier2()._d() == fastddsxtypes::EK_COMPLETE) {
                 descriminatorMember = TypeObjectUtils::build_common_discriminator_member(
-                    desciminatorFlags, descriminatorTypeIdentifiers.type_identifier2()
+                    desciminatorFlags, descriminator.pair.type_identifier2()
                 );
             } else {
                 EPROSIMA_LOG_ERROR(Types.createUnion, "Union discriminator TypeIdentifier inconsistent.");
@@ -269,7 +227,7 @@ namespace FastDDS {
             );
 
             bool identicalRegistered = false;
-            debugCheckForIdenticalRegistered(completeUnionType, identifiers, identicalRegistered);
+            debugCheckForIdenticalRegistered(completeUnionType, name, identifiers, identicalRegistered);
             if (identicalRegistered) { return eprosima::fastdds::dds::RETCODE_OK; }
 
             // Try to register the type
@@ -357,6 +315,11 @@ namespace FastDDS {
                 header, bounds,
                 elementIdentifier
             );
+
+            bool identicalRegistered = false;
+            debugCheckForIdenticalRegistered(arrayDefinition, name, identifiers, identicalRegistered);
+            if (identicalRegistered) { return eprosima::fastdds::dds::RETCODE_OK; }
+
             auto ret = TypeObjectUtils::build_and_register_l_array_type_identifier(
                 arrayDefinition, name, identifiers.pair
             );
@@ -387,6 +350,11 @@ namespace FastDDS {
                 header, bound,
                 elementIdentifier
             );
+
+            bool identicalRegistered = false;
+            debugCheckForIdenticalRegistered(sequenceDefinition, name, identifiers, identicalRegistered);
+            if (identicalRegistered) { return eprosima::fastdds::dds::RETCODE_OK; }
+
             auto ret = TypeObjectUtils::build_and_register_s_sequence_type_identifier(
                 sequenceDefinition, name, identifiers.pair
             );

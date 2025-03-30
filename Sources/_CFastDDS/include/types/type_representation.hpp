@@ -25,8 +25,6 @@ namespace FastDDS {
         namespace fastddsxtypes = eprosima::fastdds::dds::xtypes;
         
         using fastddsxtypes::TypeIdentifier;
-        using fastddsxtypes::CompleteStructType;
-        using fastddsxtypes::CompleteUnionType;
 
         class StructCreateInfo final {
         public:
@@ -73,8 +71,8 @@ namespace FastDDS {
         ) SWIFT_NAME(finishStruct(info:name:identifiers:));
 
         NODISCARD bool createUnion(
-            const std::string &name, uint32_t count, bool isDescriminatorKey, UnionCreateInfo &info
-        ) SWIFT_NAME(createUnion(name:count:isDescriminatorKey:info:));
+            const std::string &name, const TypeIdentifierPair &descriminator, bool isDescriminatorKey, UnionCreateInfo &info
+        ) SWIFT_NAME(createUnion(name:descriminator:isDescriminatorKey:info:));
         NODISCARD bool addUnionCase(
             UnionCreateInfo &info,
             const TypeIdentifierPair &memberIdentifiers,

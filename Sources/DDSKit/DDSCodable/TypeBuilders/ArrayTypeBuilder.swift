@@ -74,14 +74,12 @@ extension DDSTypeDescriptor {
         if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
         defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
         return DDSTypeDescriptor.$isBuilding.withValue(true) {
-            var builder = DDSArrayTypeBuilder(elementType: elementType, size: size)
+            let builder = DDSArrayTypeBuilder(elementType: elementType, size: size)
 
-            #if !DEBUG
-                var identifier = FastDDS.Types.TypeIdentifierPair()
-                if FastDDS.Types.getIdentifiersForName(name: .init(builder.name), identifiers: &identifier) {
-                    return DDSTypeDescriptor(identifier: identifier, name: builder.name)
-                }
-            #endif
+            var identifier = FastDDS.Types.TypeIdentifierPair()
+            if FastDDS.Types.getIdentifiersForName(name: .init(builder.name), identifiers: &identifier) {
+                return DDSTypeDescriptor(identifier: identifier, name: builder.name)
+            }
 
             return builder.build()
         }

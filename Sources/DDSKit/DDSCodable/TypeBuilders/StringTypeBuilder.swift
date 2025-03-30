@@ -42,7 +42,7 @@ extension DDSTypeDescriptor {
         if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
         defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
         return DDSTypeDescriptor.$isBuilding.withValue(true) {
-            var builder = DDSStringTypeBuilder()
+            let builder = DDSStringTypeBuilder()
 
             // When in debug mode, we always build the type, so we can ensure that the type is same as the one that is already registered.
             #if !DEBUG

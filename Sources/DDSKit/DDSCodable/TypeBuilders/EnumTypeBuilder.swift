@@ -17,11 +17,11 @@ public struct DDSEnumTypeBuilder: ~Copyable {
     /// Creates a new enum type builder with the given name and case count.
     /// - Parameters
     ///   - name: The name of the enum type.
-    ///   - count: The number of cases in the enum.
+    ///   - descriminator: The type descriptor of the descriminator type.
     /// - Note: This method will throw a fatal error if the type cannot be created.
-    internal init(name: String, count: UInt32) {
+    internal init(name: String, descriminator: DDSTypeDescriptor) {
         self.name = name
-        guard FastDDS.Types.createUnion(name: .init(name), count: count, isDescriminatorKey: false, info: &info) else {
+        guard FastDDS.Types.createUnion(name: .init(name), descriminator: descriminator.identifier, isDescriminatorKey: false, info: &info) else {
             fatalError("Failed to create DDS enum type builder: \(name). This is likely a library bug.")
         }
     }
@@ -90,9 +90,9 @@ extension DDSTypeDescriptor {
     /// The closure is only called the first time the type is created. All subsequent calls will look up the type by name.
     /// - Parameters:
     ///   - name: The name of the type to build.
-    ///   - count: The number of cases in the enum.
+    ///   - descriminator: The type descriptor of the descriminator type.
     ///   - build: The closure to build the type with.
-    public static func createEnum(name: String, count: UInt32, build: (inout DDSEnumTypeBuilder) -> Void) -> DDSTypeDescriptor {
+    public static func createEnum(name: String, descriminator: DDSTypeDescriptor, build: (inout DDSEnumTypeBuilder) -> Void) -> DDSTypeDescriptor {
         // Lock the building process to avoid data races, but no need to lock if the task we are running on is already building this type.
         if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
         defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
@@ -105,7 +105,7 @@ extension DDSTypeDescriptor {
                 }
             #endif
 
-            var builder = DDSEnumTypeBuilder(name: name, count: count)
+            var builder = DDSEnumTypeBuilder(name: name, descriminator: descriminator)
             build(&builder)
             return builder.build()
         }

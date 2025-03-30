@@ -258,6 +258,29 @@ extension DDSSizeCalculator {
 }
 
 extension DDSSizeCalculator {
+    /// Calculate the size of an anonymous struct member.
+    /// This is mainly used for enums.
+    /// - Parameters:
+    ///   - memberId: The id of the member being added.
+    ///   - body: The function to call to calculate the size of the struct.
+    /// - Note: This method will throw a fatal error if the type cannot be created.
+    public mutating func addAnonymousStruct(member memberId: UInt32, _ body: (inout DDSSizeCalculator) -> Void) {
+        let prevSize = setupMemberAdd()
+
+        var sizeCalculator = DDSSizeCalculator(copying: self, alignment: alignment)
+        sizeCalculator.withStruct(body)
+
+        alignment = sizeCalculator.alignment
+
+        addMemberExtraSize(memberId: memberId, prevSize: prevSize, calculatedSize: &sizeCalculator.size)
+
+        size += sizeCalculator.size
+
+        serializedSequenceMemberSize = .NO_SERIALIZED_MEMBER_SIZE
+    }
+}
+
+extension DDSSizeCalculator {
     /// Initialize a new size calculator.
     /// - Parameter useXCDR2: Indicates if the calculator should use XCDR2 over XCDR1.
     public init(useXCDR2: Bool = true) {

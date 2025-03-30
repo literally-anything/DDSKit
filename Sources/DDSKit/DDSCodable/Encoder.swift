@@ -133,6 +133,22 @@ extension DDSEncoder {
 }
 
 extension DDSEncoder {
+    /// Encode an anonymous struct member.
+    /// This is mainly used for enums.
+    /// - Parameters:
+    ///   - memberId: The id of the member to encode.
+    ///   - body: A closure that will be called with the encoder to encode the struct.
+    /// - Throws: An error if there is not enough storage allocated to encode the struct or some other unexpected error occurs in the closure.
+    public mutating func encodeAnonymousStruct(member memberId: UInt32, _ body: (inout DDSEncoder) throws(EncodingError) -> Void) throws(EncodingError) {
+        var state = StateWrapper(encoder: self)
+
+        try startMember(state: &state, member: memberId)
+        try withStruct(body)
+        try endMember(previousState: state)
+    }
+}
+
+extension DDSEncoder {
     /// Encode an entire message.
     /// This encodes an entire type that is not a member.
     /// - Parameter value: The value to encode.
