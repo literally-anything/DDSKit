@@ -81,7 +81,7 @@ extension Array: DDSCodable where Element: DDSCodable {
 
     @inlinable
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createArray(of: Element.ddsTypeDescriptor)
+        .createUnboundedArray(of: Element.ddsTypeDescriptor, primitive: false)
     }
 
     @inlinable
@@ -171,6 +171,10 @@ private func setSerializedMemberSize(encoder: inout DDSEncoder, size: FastDDS.CD
 }
 
 extension Array where Element == Bool {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Bool.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         let calculatedSize = count &+ 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
         calculator.alignment += calculatedSize
@@ -204,11 +208,15 @@ extension Array where Element == Bool {
 }
 
 extension Array where Element == Int {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Int.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
         let calculatedSize = if MemoryLayout<Int>.size == 8 {
-            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         } else {
             (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
         }
@@ -269,11 +277,15 @@ extension Array where Element == Int {
     }
 }
 extension Array where Element == UInt {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: UInt.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
         let calculatedSize = if MemoryLayout<UInt>.size == 8 {
-            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         } else {
             (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
         }
@@ -335,6 +347,10 @@ extension Array where Element == UInt {
 }
 
 extension Array where Element == Int8 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Int8.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
@@ -371,6 +387,10 @@ extension Array where Element == Int8 {
     }
 }
 extension Array where Element == UInt8 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: UInt8.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
@@ -408,6 +428,10 @@ extension Array where Element == UInt8 {
 }
 
 extension Array where Element == Int16 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Int16.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
@@ -445,6 +469,10 @@ extension Array where Element == Int16 {
     }
 }
 extension Array where Element == UInt16 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: UInt16.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
@@ -483,6 +511,10 @@ extension Array where Element == UInt16 {
 }
 
 extension Array where Element == Int32 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Int32.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
@@ -520,6 +552,10 @@ extension Array where Element == Int32 {
     }
 }
 extension Array where Element == UInt32 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: UInt32.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
@@ -558,10 +594,14 @@ extension Array where Element == UInt32 {
 }
 
 extension Array where Element == Int64 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Int64.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
-        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
 
@@ -595,10 +635,14 @@ extension Array where Element == Int64 {
     }
 }
 extension Array where Element == UInt64 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: UInt64.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
-        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
 
@@ -632,6 +676,10 @@ extension Array where Element == UInt64 {
     }
 }
 extension Array where Element == Float {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Float.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
@@ -669,10 +717,14 @@ extension Array where Element == Float {
     }
 }
 extension Array where Element == Double {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Double.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
-        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
 
@@ -707,10 +759,14 @@ extension Array where Element == Double {
 }
 #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
 extension Array where Element == Float80 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Float80.ddsTypeDescriptor, primitive: true)
+    }
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         addPrimitiveHeaderSize(calculator: &calculator)
 
-        let calculatedSize = (count &* 16) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = (count &* 16) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
 

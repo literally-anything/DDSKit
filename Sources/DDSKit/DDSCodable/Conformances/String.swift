@@ -11,7 +11,34 @@ extension String: DDSCodable {
     public static var ddsInitialized: String { .init() }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        DDSTypeDescriptor.createString()
+        // Lock the building process to avoid data races, but no need to lock if the task we are running on is already building this type.
+        if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
+        defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
+        return DDSTypeDescriptor.$isBuilding.withValue(true) {
+            let typeName: String = "anonymous_string_unbounded"
+            var identifier = FastDDS.Types.TypeIdentifierPair()
+
+            // When in debug mode, we always build the type, so we can ensure that the type is same as the one that is already registered.
+            var foundExistingType = false
+            #if !DEBUG
+                foundExistingType = FastDDS.Types.getIdentifiersForName(name: .init(typeName), identifiers: &identifier) 
+            #endif
+
+            // If the type is not found, we need to build it.
+            if !foundExistingType {
+                let ret = FastDDS.Types.createString(name: .init(typeName), isWide: false, identifiers: &identifier)
+                guard ret else {
+                    fatalError("Failed to build DDS string type: \(typeName). Another type with the same name already exists.")
+                }
+            }
+
+            return DDSTypeDescriptor(
+                identifier: identifier, name: typeName,
+                isBounded: false, isPlain: false
+            ) { alignment in
+                4 + DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4) + 256
+            }
+        }
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {

@@ -11,7 +11,9 @@ extension Bool: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Bool { false }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_bool")
+        let descriptor = DDSTypeDescriptor(lookup: "_bool") { alignment in
+            1
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Bool: _bool")
         }
@@ -43,9 +45,13 @@ extension Int: DDSCodable, DDSLoaningCodable {
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         let descriptor: DDSTypeDescriptor?
         if MemoryLayout<Int>.size == 8 {
-            descriptor = DDSTypeDescriptor(lookup: "_int64_t")
+            descriptor = DDSTypeDescriptor(lookup: "_int64_t") { alignment in
+                8 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: DDSSizeCalculator.align64)
+            }
         } else {
-            descriptor = DDSTypeDescriptor(lookup: "_int32_t")
+            descriptor = DDSTypeDescriptor(lookup: "_int32_t") { alignment in
+                4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+            }
         }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Int: \(MemoryLayout<Int>.size == 8 ? "_int64_t" : "_int32_t")")
@@ -55,7 +61,7 @@ extension Int: DDSCodable, DDSLoaningCodable {
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         if MemoryLayout<Int>.size == 8 {
-            let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+            let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
             calculator.alignment += calculatedSize
             calculator.size += calculatedSize
         } else {
@@ -100,9 +106,13 @@ extension UInt: DDSCodable, DDSLoaningCodable {
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         let descriptor: DDSTypeDescriptor?
         if MemoryLayout<UInt>.size == 8 {
-            descriptor = DDSTypeDescriptor(lookup: "_uint64_t")
+            descriptor = DDSTypeDescriptor(lookup: "_uint64_t") { alignment in
+                8 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: DDSSizeCalculator.align64)
+            }
         } else {
-            descriptor = DDSTypeDescriptor(lookup: "_uint32_t")
+            descriptor = DDSTypeDescriptor(lookup: "_uint32_t") { alignment in
+                4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+            }
         }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for UInt: \(MemoryLayout<UInt>.size == 8 ? "_uint64_t" : "_uint32_t")")
@@ -112,7 +122,7 @@ extension UInt: DDSCodable, DDSLoaningCodable {
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         if MemoryLayout<UInt>.size == 8 {
-            let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+            let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
             calculator.alignment += calculatedSize
             calculator.size += calculatedSize
         } else {
@@ -156,7 +166,9 @@ extension Int8: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Int8 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_int8_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_int8_t") { alignment in
+            1
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Int8: _int8_t")
         }
@@ -185,7 +197,9 @@ extension UInt8: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: UInt8 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_uint8_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_uint8_t") { alignment in
+            1
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for UInt8: _uint8_t")
         }
@@ -215,7 +229,9 @@ extension Int16: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Int16 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_int16_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_int16_t") { alignment in
+            2 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 2)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Int16: _int16_t")
         }
@@ -245,7 +261,9 @@ extension UInt16: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: UInt16 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_uint16_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_uint16_t") { alignment in
+            2 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 2)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for UInt16: _uint16_t")
         }
@@ -276,7 +294,9 @@ extension Int32: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Int32 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_int32_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_int32_t") { alignment in
+            4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Int32: _int32_t")
         }
@@ -306,7 +326,9 @@ extension UInt32: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: UInt32 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_uint32_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_uint32_t") { alignment in
+            4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for UInt32: _uint32_t")
         }
@@ -337,7 +359,9 @@ extension Int64: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Int64 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_int64_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_int64_t") { alignment in
+            8 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: DDSSizeCalculator.align64)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Int64: _int64_t")
         }
@@ -345,7 +369,7 @@ extension Int64: DDSCodable, DDSLoaningCodable {
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
     }
@@ -367,7 +391,9 @@ extension UInt64: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: UInt64 { .zero }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_uint64_t")
+        let descriptor = DDSTypeDescriptor(lookup: "_uint64_t") { alignment in
+            8 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: DDSSizeCalculator.align64)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for UInt64: _uint64_t")
         }
@@ -375,7 +401,7 @@ extension UInt64: DDSCodable, DDSLoaningCodable {
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
     }
@@ -398,7 +424,9 @@ extension Float: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Float { .nan }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_float")
+        let descriptor = DDSTypeDescriptor(lookup: "_float") { alignment in
+            4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Float: _float")
         }
@@ -428,7 +456,9 @@ extension Double: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Double { .nan }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_double")
+        let descriptor = DDSTypeDescriptor(lookup: "_double") { alignment in
+            8 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: DDSSizeCalculator.align64)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Double: _double")
         }
@@ -436,7 +466,7 @@ extension Double: DDSCodable, DDSLoaningCodable {
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
     }
@@ -459,7 +489,9 @@ extension Float80: DDSCodable, DDSLoaningCodable {
     public static var ddsInitialized: Float80 { .nan }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_longdouble")
+        let descriptor = DDSTypeDescriptor(lookup: "_longdouble") { alignment in
+            16 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 16)
+        }
         guard let descriptor else {
             fatalError("Failed to lookup type descriptor for Float80: _longdouble")
         }
@@ -467,7 +499,7 @@ extension Float80: DDSCodable, DDSLoaningCodable {
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 16 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: calculator.align64)
+        let calculatedSize = 16 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
     }

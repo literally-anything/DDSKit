@@ -42,7 +42,7 @@ public struct DDSSizeCalculator: ~Copyable {
 extension DDSSizeCalculator {
     /// The alignment for types equal or greater than 64bits.
     @inline(__always)
-    internal var align64: Int { 4 }
+    internal static var align64: Int { 4 }
 
     @inline(__always)
     internal static func getAlignment(currentAlignment: Int, dataSize: Int) -> Int {

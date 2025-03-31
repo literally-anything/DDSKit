@@ -34,8 +34,10 @@ public protocol DDSCodable: Sendable {
 }
 
 /// A type that can be encoded and decoded with CDR and can be loaned for zero copy transfer.
+/// This should directly map to a DDS type that has isPlain set to true, but without macros that understand types, I can't find isPlain at compile time.
 public protocol DDSLoaningCodable: Sendable, DDSCodable {}
 
+/// A type that can be used as a message in DDS topic.
 public protocol DDSMessage: DDSCodable {
     /// The type support object for a topic.
     static var ddsTypeSupport: DDSTypeSupport { get }

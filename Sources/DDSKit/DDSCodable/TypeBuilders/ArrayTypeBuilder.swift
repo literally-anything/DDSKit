@@ -7,81 +7,115 @@
  */
 internal import _CFastDDS
 
-/// A builder for creating DDS array and sequence types.
-internal struct DDSArrayTypeBuilder {
-    /// The type of the elements in the array or sequence.
-    internal let elementType: DDSTypeDescriptor
-    /// The size of the array. If `nil`, the type is a sequence (unbounded).
-    internal let size: UInt32?
-
-    /// Creates a new array type builder with the given element type and size.
-    /// - Parameters:
-    ///   - elementType: The type descriptor of the element type in the array or sequence.
-    ///   - size: The size of the array. If `nil`, the type is a sequence (unbounded).
-    internal init(elementType: DDSTypeDescriptor, size: UInt32?) {
-        self.elementType = elementType
-        self.size = size
-    }
-
-    /// The name of the array or sequence type using the standard FastDDS naming convention.
-    internal var name: String {
-        var elementName = elementType.name
-        if elementName.starts(with: "_") { elementName.removeFirst() } // We don't want the leading underscore in private names.
-
-        if let size {
-            return "anonymous_array_\(elementName)_\(size)"
-        } else {
-            return "anonymous_sequence_\(elementName)_unbounded"
-        }
-    }
-
-    /// Builds and registers the array or sequence type.
-    /// - Returns: The identifier pair for the array or sequence type.
-    /// - Note: This method will throw a fatal error if the type cannot be created.
-    internal func build() -> DDSTypeDescriptor {
-        var identifier = FastDDS.Types.TypeIdentifierPair()
-
-        if let size {
-            let ret = if size <= UInt8.max {
-                // When using a size that fits in a UInt8, we can use smaller bounds for the array.
-                FastDDS.Types.createArray(name: .init(name), shape: [UInt8(size)], element: elementType.identifier, identifiers: &identifier)
-            } else {
-                FastDDS.Types.createArray(name: .init(name), shape: [size], element: elementType.identifier, identifiers: &identifier)
-            }
-            guard ret else {
-                fatalError("Failed to build DDS array type: \(name). Another type with the same name already exists.")
-            }
-        } else {
-            let ret = FastDDS.Types.createSequence(name: .init(name), element: elementType.identifier, identifiers: &identifier)
-            guard ret else {
-                fatalError("Failed to build DDS sequence type: \(name). Another type with the same name already exists.")
-            }
-        }
-
-        return DDSTypeDescriptor(identifier: identifier, name: name)
-    }
-}
-
 extension DDSTypeDescriptor {
-    /// Creates a new array type descriptor by building it with the given element type and size.
+    /// Creates a new unbounded array type (sequence) descriptor by building it with the given element type.
     /// - Parameters:
     ///   - elementType: The type descriptor of the element type in the array or sequence.
-    ///   - size: The size of the array. If `nil`, the type is a sequence (unbounded).
-    /// - Returns: The array or sequence type descriptor.
+    ///   - primitive: Whether the element is a primitive type.
+    /// - Returns: The sequence type descriptor.
     /// - Note: This method will throw a fatal error if the type cannot be created.
     @usableFromInline
-    internal static func createArray(of elementType: DDSTypeDescriptor, size: UInt32? = nil) -> DDSTypeDescriptor {
+    internal static func createUnboundedArray(of elementType: DDSTypeDescriptor, primitive: Bool) -> DDSTypeDescriptor {
+        var elementName = elementType.name
+        if elementName.starts(with: "_") { elementName.removeFirst() } // We don't want the leading underscore in primitive names.
+
+        // Figure out what the type name should be using the standard FastDDS naming convention.
+        let name = "anonymous_sequence_\(elementName)_unbounded"
+
         if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
         defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
         return DDSTypeDescriptor.$isBuilding.withValue(true) {
-            let builder = DDSArrayTypeBuilder(elementType: elementType, size: size)
-
             var identifier = FastDDS.Types.TypeIdentifierPair()
-            if FastDDS.Types.getIdentifiersForName(name: .init(builder.name), identifiers: &identifier) {
-                return DDSTypeDescriptor(identifier: identifier, name: builder.name)
+
+            let foundExistingType = FastDDS.Types.getIdentifiersForName(name: .init(name), identifiers: &identifier)
+
+            // If the type is not found, we need to build it.
+            if !foundExistingType {
+                let ret = FastDDS.Types.createSequence(name: .init(name), element: elementType.identifier, identifiers: &identifier)
+                guard ret else {
+                    fatalError("Failed to build DDS sequence type: \(name). Another type with the same name already exists.")
+                }
             }
 
-            return builder.build()
+            return DDSTypeDescriptor(
+                identifier: identifier, name: name,
+                isBounded: false, isPlain: false
+            ) { initialAlignment in
+                var alignment = initialAlignment
+
+                if !primitive {
+                    alignment += 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+                }
+                alignment += 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+
+                return alignment - initialAlignment
+            }
+        }
+    }
+
+    /// Creates a new array type descriptor by building it with the given element type and size.
+    /// - Parameters:
+    ///   - elementType: The type descriptor of the element type in the array or sequence.
+    ///   - primitive: Whether the element is a primitive type.
+    ///   - shape: The shape of the array.
+    /// - Returns: The array type descriptor.
+    /// - Note: This method will throw a fatal error if the type cannot be created.
+    @usableFromInline
+    internal static func createArray(of elementType: DDSTypeDescriptor, primitive: Bool, shape: [UInt32]) -> DDSTypeDescriptor {
+        assert(shape.count > 0, "Array shape must be non-empty")
+        assert(shape.allSatisfy { $0 > 0 }, "Array shape elements must be greater than 0")
+
+        var elementName = elementType.name
+        if elementName.starts(with: "_") { elementName.removeFirst() } // We don't want the leading underscore in primitive names.
+
+        // Figure out what the type name should be using the standard FastDDS naming convention.
+        let name = "anonymous_array_\(elementName)_\(shape.map({ String($0) }).joined(separator: "_"))"
+
+        if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
+        defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }
+        return DDSTypeDescriptor.$isBuilding.withValue(true) {
+            var identifier = FastDDS.Types.TypeIdentifierPair()
+
+            var foundExistingType = false
+            #if !DEBUG
+                foundExistingType = FastDDS.Types.getIdentifiersForName(name: .init(name), identifiers: &identifier)
+            #endif
+
+            // If the type is not found, we need to build it.
+            if !foundExistingType {
+                // When using a size that fits in a UInt8, we can use UInt8 bounds for the array.
+                let ret = if shape.allSatisfy({ $0 <= UInt8.max }) {
+                    FastDDS.Types.createArray(name: .init(name), shape: .init(shape.map { UInt8($0) }), element: elementType.identifier, identifiers: &identifier)
+                } else {
+                    FastDDS.Types.createArray(name: .init(name), shape: .init(shape), element: elementType.identifier, identifiers: &identifier)
+                }
+                guard ret else {
+                    fatalError("Failed to build DDS array type: \(name). Another type with the same name already exists.")
+                }
+            }
+
+            return DDSTypeDescriptor(
+                identifier: identifier, name: name,
+                isBounded: elementType.isBounded, isPlain: elementType.isBounded && elementType.isPlain && primitive
+            ) { initialAlignment in
+                var alignment = initialAlignment
+
+                if primitive {
+                    alignment += 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
+                }
+                
+                // Multiply all elements together to get the total size of the array.
+                let totalSize: Int = shape.reduce(1) { $0 &* Int($1) }
+                assert(totalSize > 0, "Array size must be greater than 0")
+
+                alignment += elementType.calculateMaxSize(alignment)
+                if totalSize > 1 {
+                    let elementSizeAfterFirst = elementType.calculateMaxSize(alignment)
+                    alignment += elementSizeAfterFirst &* (totalSize &- 1)
+                }
+
+                return alignment - initialAlignment
+            }
         }
     }
 }

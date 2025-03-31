@@ -17,18 +17,37 @@ public struct DDSTypeSupport: Sendable {
     /// The underlying FastDDS `TypeSupport` object.
     internal let typeSupport: FastDDS.Types.TypeSupport
 
-    /// Creates a new topic type support object.
-    /// - Parameter typeSupport: The underlying FastDDS `TypeSupport` object.
-    // internal init(typeSupport: FastDDS.Types.TypeSupport) {
-    //     self.typeSupport = typeSupport
-    // }
-
+    /// Creates a new topic type support object with the given name and type descriptor.
+    /// This function sets isBounded, isPlain, and maxSize automatically based on the type descriptor.
+    /// - Parameters:
+    ///   - name: The name of the type. This must be unique and the same as the name on the other end.
+    ///   - type: The type of the message. This must be a `DDSCodable` type.
     @inlinable
     @inline(__always)
     public init<Message: DDSCodable>(
-        message: Message.Type,
         name: String,
-        isBounded: Bool = false, isPlain: Bool = false, maxSize: UInt32 = 0
+        type: Message.Type
+    ) {
+        /// Just used so the value is copied when used in createType, and the type descriptor can be deallocated.
+        let isPlain = Message.ddsTypeDescriptor.isPlain
+
+        self.init(name: name, type: type, isBounded: Message.ddsTypeDescriptor.isBounded, isPlain: isPlain, maxSize: UInt32(Message.ddsTypeDescriptor.maxSize))
+    }
+
+    /// Creates a new topic type support object with the given name and type descriptor.
+    /// This function allows you to manually specify whether the type is bounded or unbounded, plain or not, and the maximum size of the type.
+    /// - Parameters:
+    ///   - name: The name of the type. This must be unique and the same as the name on the other end.
+    ///   - type: The type of the message. This must be a `DDSCodable` type.
+    ///   - isBounded: Whether the type is bounded or unbounded. Defaults to `false`.
+    ///   - isPlain: Whether the serialization is plain or not (can be loaned). Defaults to `false`.
+    ///   - maxSize: The maximum size of the type.
+    @inlinable
+    @inline(__always)
+    public init<Message: DDSCodable>(
+        name: String,
+        type: Message.Type,
+        isBounded: Bool = false, isPlain: Bool = false, maxSize: UInt32
     ) {
         self.init(
             name: name,
@@ -58,6 +77,21 @@ public struct DDSTypeSupport: Sendable {
         }
     }
 
+    /// Creates a new topic type support object with the given name and type descriptor.
+    /// This function exposes all of the underlying functions and parameters in the FastDDS `TypeSupport` object.
+    /// - Note: This function is used for advanced use cases where you need to manually specify the type support functions. For most cases just use `.init(name:type:)`.
+    /// - Parameters:
+    ///   - name: The name of the type. This must be unique and the same as the name on the other end.
+    ///   - isBounded: Whether the type is bounded or unbounded. Defaults to `false`.
+    ///   - isPlain: Whether the serialization is plain or not (can be loaned). Defaults to `false`.
+    ///   - maxSize: The maximum size of the type.
+    ///   - registerType: A closure that returns the type descriptor for the type.
+    ///   - createType: A closure that creates the type. (Allocates memory for it)
+    ///   - deleteType: A closure that deletes the type. (Deallocates memory for it)
+    ///   - initializeType: A closure that initializes the type. (Initializes memory in-place)
+    ///   - serialize: A closure that serializes the type.
+    ///   - deserialize: A closure that deserializes the type.
+    ///   - calculateSize: A closure that calculates the size of the type.
     public init(
         name: String,
         isBounded: Bool = false, isPlain: Bool = false, maxSize: UInt32 = 0,

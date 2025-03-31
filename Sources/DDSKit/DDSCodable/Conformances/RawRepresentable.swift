@@ -29,7 +29,7 @@ extension DDSRawRepresentable {
     @inline(__always)
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         .createStruct(name: ddsName) { builder in
-            builder.addMember(type: RawValue.self, name: "rawValue", memberId: 0)
+            builder.addMember(name: "rawValue", memberId: 0, type: RawValue.self)
         }
     }
 

@@ -12,9 +12,9 @@ extension Duration: DDSCodable, DDSLoaningCodable {
     }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createStruct(name: "Swift.Duration") { builder in
-            builder.addMember(type: Int64.self, name: "seconds", memberId: 0)
-            builder.addMember(type: Int64.self, name: "attoseconds", memberId: 1)
+        .createStruct(name: "Swift.Duration", isBounded: true, isPlain: true) { builder in
+            builder.addMember(name: "seconds", memberId: 0, type: Int64.self)
+            builder.addMember(name: "attoseconds", memberId: 1, type: Int64.self)
         }
     }
 
