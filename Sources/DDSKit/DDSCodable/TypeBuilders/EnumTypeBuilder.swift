@@ -99,6 +99,7 @@ extension DDSTypeDescriptor {
     /// - Parameters:
     ///   - name: The name of the type to build.
     ///   - descriminator: The type descriptor of the descriminator type.
+    ///   - isBounded: Override whether the type is bounded or unbounded. Defaults to `nil`, which means the type will be determined by the members.
     ///   - build: The closure to build the type with.
     /// - Returns: The built type descriptor.
     public static func createEnum(

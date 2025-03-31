@@ -34,16 +34,21 @@ The following code publishes a message on a topic
 ```swift
 import DDSKit
 
+struct HelloWorld {
+    var index: Int
+    var message: String
+}
+
 let participant = DDSParticipant()
-let publisher = participant.publish(to: "hello/world")
+let publisher = participant.publish(to: "hello/world", type: HelloWorld.self)
 publisher.publish(message)
 ```
-To recieve this message, the following code subscribers to the topic
+To recieve this message, the following code subscribes to the topic and prints each message as it arrives
 ```swift
 import DDSKit
 
 let participant = DDSParticipant()
-let subscriber = participant.subscribe(to: "hello/world")
+let subscriber = participant.subscribe(to: "hello/world", type: HelloWorld.self)
 for await message in subscriber.messages {
     print(message)
 }
@@ -55,12 +60,12 @@ DDSKit is available as a Swift Package Manager package. To use it in a package, 
 ```swift
 .package(
     url: "https://github.com/literally-anything/DDSKit.git",
-    from: "tag"
-),
+    from: "1.0.0"
+)
 ```
 Replace "tag" with any release number: [tags](https://github.com/literally-anything/DDSKit/tags).
 To use the `DDSKit` library, add
 ```swift
-.product(name: "DDSKit", package: "DDSKit"),
+.product(name: "DDSKit", package: "DDSKit")
 ```
 to your target's dependencies.

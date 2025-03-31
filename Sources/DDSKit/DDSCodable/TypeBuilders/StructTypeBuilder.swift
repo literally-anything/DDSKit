@@ -94,8 +94,8 @@ extension DDSTypeDescriptor {
     /// The closure is only called the first time the type is created. All subsequent calls will look up the type by name.
     /// - Parameters:
     ///   - name: The name of the type to build.
-    ///   - isBounded: Whether the type is bounded or unbounded. Defaults to `nil`, which means is is determined based on the members.
-    ///   - isPlain: Whether the serialization is plain or not (can be loaned). Defaults to `nil`, which means is is determined based on the members.
+    ///   - isBounded: Overrides whether the type is bounded or unbounded. Defaults to `nil`, which means is is determined based on the members.
+    ///   - isPlain: Overrides whether the serialization is plain or not (can be loaned). Defaults to `nil`, which means is is determined based on the members.
     ///   - build: The closure to build the type with.
     public static func createStruct(name: String, isBounded: Bool? = nil, isPlain: Bool? = nil, build: (inout DDSStructTypeBuilder) -> Void) -> DDSTypeDescriptor {
         // Lock the building process to avoid data races, but no need to lock if the task we are running on is already building this type.
