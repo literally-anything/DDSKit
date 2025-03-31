@@ -419,6 +419,42 @@ extension UInt64: DDSCodable, DDSLoaningCodable {
     }
 }
 
+#if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+extension Float16: DDSCodable, DDSLoaningCodable {
+    @inlinable
+    public static var ddsInitialized: Float16 { .nan }
+
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        let descriptor = DDSTypeDescriptor(lookup: "_uint16") { alignment in
+            2 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 2)
+        }
+        guard let descriptor else {
+            fatalError("Failed to lookup type descriptor for Float: _uint16")
+        }
+        return descriptor
+    }
+
+    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
+        let calculatedSize = 2 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
+        calculator.alignment += calculatedSize
+        calculator.size += calculatedSize
+    }
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(bitPattern) else {
+            throw .notEnoughStorage
+        }
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        var bitPattern: UInt16 = self.bitPattern
+        guard decoder.deserializer.deserialize(&bitPattern) else {
+            throw .outOfBounds
+        }
+        self = Float16(bitPattern: bitPattern)
+    }
+}
+#endif
 extension Float: DDSCodable, DDSLoaningCodable {
     @inlinable
     public static var ddsInitialized: Float { .nan }

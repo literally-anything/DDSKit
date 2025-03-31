@@ -675,6 +675,53 @@ extension Array where Element == UInt64 {
         }
     }
 }
+#if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+extension Array where Element == Float16 {
+    public static var ddsTypeDescriptor: DDSTypeDescriptor {
+        .createUnboundedArray(of: Float16.ddsTypeDescriptor, primitive: true)
+    }
+
+    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
+        addPrimitiveHeaderSize(calculator: &calculator)
+
+        let calculatedSize = (count &* 2) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
+        calculator.alignment += calculatedSize
+        calculator.size += calculatedSize
+
+        setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
+    }
+
+    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        guard encoder.serializer.serialize(UInt32(count)) else {
+            throw .notEnoughStorage
+        }
+        let success = withUnsafeBufferPointer { bufferPtr in
+            bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
+                encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+            }
+        }
+        guard success else {
+            throw .notEnoughStorage
+        }
+        setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
+    }
+
+    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
+
+        reserveLengthDDSDecode(length: length)
+
+        let success = withUnsafeMutableBufferPointer { bufferPtr in
+            bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
+                decoder.deserializer.deserializeArray(bufferPtr.baseAddress, length)
+            }
+        }
+        guard success else {
+            throw .outOfBounds
+        }
+    }
+}
+#endif
 extension Array where Element == Float {
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         .createUnboundedArray(of: Float.ddsTypeDescriptor, primitive: true)
