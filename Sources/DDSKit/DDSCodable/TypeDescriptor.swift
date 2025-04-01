@@ -74,6 +74,6 @@ public struct DDSTypeDescriptor: Sendable, CustomStringConvertible {
     }
 
     public var description: String {
-        "DDSTypeDescriptor(name: \(name))"
+        "DDSTypeDescriptor(name: \(name), isBounded: \(isBounded), isPlain: \(isPlain), maxSize: \(maxSize))"
     }
 }

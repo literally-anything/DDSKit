@@ -114,7 +114,12 @@ namespace FastDDS {
             fastddsxtypes::CompleteMemberDetail detail = TypeObjectUtils::build_complete_member_detail(name, {}, {});
             member = TypeObjectUtils::build_complete_struct_member(common, detail);
 
-            TypeObjectUtils::add_complete_struct_member(info.member_seq, member);
+            try {
+                TypeObjectUtils::add_complete_struct_member(info.member_seq, member);
+            } catch (eprosima::fastdds::dds::xtypes::InvalidArgumentError &e) {
+                EPROSIMA_LOG_ERROR(Types.addStructMember, "Failed to add struct member \"" << name << "\": " << e.what());
+                return false;
+            }
             return true;
         }
 
@@ -209,7 +214,12 @@ namespace FastDDS {
 
             fastddsxtypes::CompleteMemberDetail detail = TypeObjectUtils::build_complete_member_detail(name, {}, {});
             fastddsxtypes::CompleteUnionMember member = TypeObjectUtils::build_complete_union_member(common, detail);
-            TypeObjectUtils::add_complete_union_member(info.member_seq, member);
+            try {
+                TypeObjectUtils::add_complete_union_member(info.member_seq, member);
+            } catch (eprosima::fastdds::dds::xtypes::InvalidArgumentError &e) {
+                EPROSIMA_LOG_ERROR(Types.addStructMember, "Failed to add union member \"" << name << "\": " << e.what());
+                return false;
+            }
 
             return true;
         }
