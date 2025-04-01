@@ -57,7 +57,8 @@ extension DDSDecoder {
                 }
                 return true
             }
-            if let error {
+            // We don't throw if there is an unknown member, because in certain encodings, the body is called with incrementing member ids until it returns false.
+            if let error = error, error != .unknownMember {
                 throw error
             } else if !ret {
                 throw DecodingError.outOfBounds
