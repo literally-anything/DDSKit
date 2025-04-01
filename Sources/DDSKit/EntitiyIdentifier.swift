@@ -53,24 +53,24 @@ public struct DDSEntityIdentifier: Sendable {
     }
 
     /// Whether the entity identifier is from an entity on this host.
-    public var isThisHost: Bool {
+    public var onThisHost: Bool {
         guid.is_from_this_host()
     }
     /// Whether the entity identifier is from an entity in this process.
-    public var isThisProcess: Bool {
+    public var onThisProcess: Bool {
         guid.is_from_this_process()
     }
 
     /// Check if the entity identifier is from the same host as another entity identifier.
     /// - Parameter other: The other entity identifier.
     /// - Returns: Whether the entity identifiers are from the same host.
-    public func isSameHost(as other: DDSEntityIdentifier) -> Bool {
+    public func onSameHost(as other: DDSEntityIdentifier) -> Bool {
         guid.is_on_same_host_as(other.guid)
     }
     /// Check if the entity identifier is from the same process as another entity identifier.
     /// - Parameter other: The other entity identifier.
     /// - Returns: Whether the entity identifiers are from the same process.
-    public func isSameProcess(as other: DDSEntityIdentifier) -> Bool {
+    public func onSameProcess(as other: DDSEntityIdentifier) -> Bool {
         guid.is_on_same_process_as(other.guid)
     }
 }
@@ -81,6 +81,7 @@ extension DDSEntityIdentifier: Hashable {
     }
     public func hash(into hasher: inout Hasher) {
         hasher.combine(prefix)
+        hasher.combine(entity)
     }
 }
 
@@ -179,7 +180,9 @@ extension DDSEntityIdentifier {
             lhs.guidPrefix == rhs.guidPrefix
         }
         public func hash(into hasher: inout Hasher) {
-            hasher.combine(value)
+            hasher.combine(unsafeBitCast(vendorId, to: UInt16.self))
+            hasher.combine(unsafeBitCast(hostId, to: UInt16.self))
+            hasher.combine(unsafeBitCast(processId, to: UInt32.self))
         }
 
         public var description: String {
@@ -248,7 +251,7 @@ extension DDSEntityIdentifier {
             lhs.entityId == rhs.entityId
         }
         public func hash(into hasher: inout Hasher) {
-            hasher.combine(value)
+            hasher.combine(uint32)
         }
 
         public var description: String {

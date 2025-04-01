@@ -15,6 +15,8 @@
 
 #include "common.h"
 
+#include "guid.hpp"
+
 #include <cstdint>
 #include <fastdds/rtps/common/SampleIdentity.hpp>
 
@@ -34,16 +36,12 @@ namespace FastDDS {
             return sampleIdentity == rhs.sampleIdentity;
         }
 
-        INLINE int32_t getHigh() const SWIFT_COMPUTED_PROPERTY {
-            return sampleIdentity.sequence_number().high;
+        INLINE GUID getWriterGuid() const SWIFT_COMPUTED_PROPERTY {
+            return sampleIdentity.writer_guid();
         }
-        INLINE uint32_t getLow() const SWIFT_COMPUTED_PROPERTY {
-            return sampleIdentity.sequence_number().low;
-        }
-        INLINE uint64_t getU64Long() const SWIFT_COMPUTED_PROPERTY {
+        INLINE uint64_t getSequenceU64Long() const SWIFT_COMPUTED_PROPERTY {
             return sampleIdentity.sequence_number().to64long();
         }
-
         INLINE bool getIsUnknown() const SWIFT_COMPUTED_PROPERTY {
             return sampleIdentity.sequence_number() == SequenceNumber::unknown();
         }

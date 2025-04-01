@@ -14,17 +14,16 @@ public struct DDSMessageIdentifier: Sendable {
     /// The underlying fastdds SampleIdentity.
     internal let sampleIdentity: FastDDS.SampleIdentity
 
-    /// The high value of the message identifier.
-    public var high: Int32 {
-        sampleIdentity.high
+    /// The writer identifier of the message.
+    /// In Fast-DDS terms, this is the writer GUID.
+    public var writerIdentifier: DDSEntityIdentifier {
+        .init(guid: sampleIdentity.writerGuid)
     }
-    /// The low value of the message identifier.
-    public var low: UInt32 {
-        sampleIdentity.low
-    }
-    /// The UInt64 representation of the identifer.
-    public var full: UInt64 {
-        sampleIdentity.u64Long
+
+    /// The sequence number of the message.
+    /// This is the U64 long representation.
+    public var sequenceNumber: UInt64 {
+        sampleIdentity.sequenceu64Long
     }
 }
 
@@ -52,7 +51,8 @@ extension DDSMessageIdentifier: Hashable {
         lhs.sampleIdentity == rhs.sampleIdentity
     }
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(sampleIdentity.u64Long)
+        hasher.combine(writerIdentifier)
+        hasher.combine(sampleIdentity.sequenceu64Long)
     }
 }
 
