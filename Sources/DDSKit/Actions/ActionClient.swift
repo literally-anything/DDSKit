@@ -8,6 +8,10 @@
 public import Synchronization
 internal import Logging
 
+/// An action client with support for throwing errors as the result.
+/// This is actually just a type alias for DDSActionClient<Request, Result<Success, Failure>>.
+public typealias DDSThrowingActionClient<Request: DDSMessage, Success: DDSCodable, Failure: DDSCodable & Error> = DDSActionClient<Request, Result<Success, Failure>>
+
 /// A client for an action server.
 /// Actions are an implementation of the request reply pattern using topics.
 public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Sendable {
@@ -156,6 +160,19 @@ extension DDSActionClient {
     public func waitForServer() async {
         await subscriber.waitForPublisher()
         await publisher.waitForSubscriber()
+    }
+}
+
+extension DDSActionClient where Reply: DDSActionResult /* This just means that it is a Result where both Failure and Success are DDSCodable */ {
+    /// Sends a request to the action server and asynchronously waits for the reply.
+    /// This can be cancelled by the caller.
+    /// The reply is a Result, so it will be upacked into a success or it will throw a failure.
+    /// - Parameter request: The request to send.
+    /// - Returns: The reply from the action server if it is a success.
+    /// - Throws: If the request cannot be sent. Or if the reply is a failure.
+    @inlinable
+    public func send(request: borrowing Request) async throws -> Reply.Success {
+        try await send(request: request).get()
     }
 }
 

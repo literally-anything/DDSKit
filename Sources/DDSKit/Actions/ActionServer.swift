@@ -15,6 +15,10 @@ internal func getActionTopicNames(base: String) -> (request: String, reply: Stri
     return ("rq/" + base, "rr/" + base)
 }
 
+/// An action server with support for throwing errors as the result.
+/// This is actually just a type alias for DDSActionServer<Request, Result<Success, Failure>>.
+public typealias DDSThrowingActionServer<Request: DDSMessage, Success: DDSCodable, Failure: DDSCodable & Error> = DDSActionServer<Request, Result<Success, Failure>>
+
 /// A server for an action client.
 /// Actions are an implementation of the request reply pattern using topics.
 public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Sendable {
@@ -107,6 +111,33 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     deinit {
         subscriber.dataCallbacks.withLock { callbacks in
             callbacks.removeAll()
+        }
+    }
+}
+
+extension DDSActionServer where Reply: DDSActionResult /* This just means that it is a Result where both Failure and Success are DDSCodable */ {
+    /// Initializes a new action server for a Reply that is a Result,
+    /// - Parameters:
+    ///   - participant: The participant to use for the action.
+    ///   - actionName: The base name of the action.
+    ///   - publisherSettings: A list of settings to apply to the request publisher.
+    ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    ///   - handler: The handler for the request. This should return a Reply.Succes and can throw a Reply.Failure.
+    /// - Throws: If the subscriber cannot be created.
+    public convenience init(
+        participant: DDSParticipant, name actionName: String,
+        subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
+        handler: @escaping @Sendable (borrowing Request) throws(Reply.Failure) -> Reply.Success
+    ) throws(DDSError) {
+        let (requestTopic, replyTopic) = getActionTopicNames(base: actionName)
+
+        self.init(
+            requestSubscriber: try participant.subscribe(to: requestTopic, type: Request.self, settings: subscriberSettings),
+            replyPublisher: try participant.publish(to: replyTopic, type: Reply.self, settings: publisherSettings)
+        ) { message throws(Never) in
+            Reply { () throws(Reply.Failure) in
+                try handler(message)
+            }
         }
     }
 }
