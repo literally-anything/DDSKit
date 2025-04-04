@@ -34,6 +34,7 @@ The following code publishes a message on a topic
 ```swift
 import DDSKit
 
+@DDSMessage // ToDo: This macro isn't actually done yet
 struct HelloWorld {
     var index: Int
     var message: String
