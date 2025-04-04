@@ -53,7 +53,6 @@ let package = Package(
     ],
     dependencies: applePlatformDependencies + [
         // .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
-        .package(url: "https://github.com/tayloraswift/swift-ip.git", from: "0.3.3"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0")
     ],
     targets: [
@@ -62,8 +61,7 @@ let package = Package(
             dependencies: [
                 // "DDSKitMacros",
                 "_CFastDDS",
-                .product(name: "Logging", package: "swift-log"),
-                .product(name: "IP", package: "swift-ip")
+                .product(name: "Logging", package: "swift-log")
             ],
             cxxSettings: cxxSettings,
             swiftSettings: swiftSettings
