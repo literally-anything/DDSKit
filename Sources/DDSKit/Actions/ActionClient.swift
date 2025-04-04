@@ -5,8 +5,9 @@
  * Created by Hunter Baker on 1/23/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+public import Logging
 public import Synchronization
-internal import Logging
+internal import _CFastDDS
 
 /// An action client with support for throwing errors as the result.
 /// This is actually just a type alias for DDSActionClient<Request, Result<Success, Failure>>.
@@ -16,7 +17,8 @@ public typealias DDSThrowingActionClient<Request: DDSMessage, Success: DDSCodabl
 /// Actions are an implementation of the request reply pattern using topics.
 public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Sendable {
     /// The logger for the action client.
-    private let logger: Logger
+    @usableFromInline
+    internal let logger: Logger
     /// The publisher for the request.
     @usableFromInline
     internal let publisher: DDSPublisher<Request>
@@ -40,16 +42,18 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     /// - Throws: If the subscriber cannot be created.
+    @inlinable
     public convenience init(
         participant: DDSParticipant, name actionName: String,
         publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []
     ) throws(DDSError) {
         let (requestTopic, replyTopic) = getActionTopicNames(base: actionName)
 
-        // Needs publish mode async because, when using intra-process communication, the publisher and subscriber are on the same thread.
-        self.init(
-            requestPublisher: try participant.publish(to: requestTopic, type: Request.self, settings: publisherSettings + [.publishMode(.async)]),
-            replySubscriber: try participant.subscribe(to: replyTopic, type: Reply.self, settings: subscriberSettings)
+        try self.init(
+            requestTopic: try participant.getTopic(named: requestTopic, type: Request.self),
+            replyTopic: try participant.getTopic(named: replyTopic, type: Reply.self),
+            publisherSettings: publisherSettings,
+            subscriberSettings: subscriberSettings
         )
     }
 
@@ -60,35 +64,29 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     /// - Throws: If the subscriber cannot be created.
-    public convenience init(
+    @inlinable
+    public init(
         requestTopic: DDSTopic<Request>, replyTopic: DDSTopic<Reply>,
         publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []
     ) throws(DDSError) {
-        self.init(
-            requestPublisher: try requestTopic.publish(settings: publisherSettings + [.publishMode(.async)]),
-            replySubscriber: try replyTopic.subscribe(settings: subscriberSettings)
-        )
-    }
+        logger = Logger(label: "DDSActionClient(\(requestTopic.name), \(replyTopic.name))")
 
-    /// Initializes a new action client.
-    /// - Parameters:
-    ///   - requestPublisher: The publisher for the request.
-    ///   - replySubscriber: The subscriber for the reply.
-    /// - Throws: If the subscriber cannot be created.
-    public init(requestPublisher: DDSPublisher<Request>, replySubscriber: DDSSubscriber<Reply>) {
-        logger = Logger(label: "DDSActionClient(\(requestPublisher.topic.name), \(replySubscriber.topic.name))")
+        logger.trace("Creating action client with request topic: \(requestTopic.name), and reply topic: \(replyTopic.name)")
 
-        publisher = requestPublisher
-        subscriber = replySubscriber
+        // Setup the reply content filter so that we only get replies that are related to our request
+        Self.setupReplyFilter(logger: logger, topic: replyTopic)
+
+        publisher = try requestTopic.publish(settings: publisherSettings + [.publishMode(.async)])
+        subscriber = try replyTopic.subscribe(settings: subscriberSettings + [.enableFilter])
 
         subscriber.registerMessageCallback { [unowned self] message, metadata in
             activeActions.withLock { [unowned self] actions in
                 guard let related = metadata.relatedIdentifier else {
-                    logger.warning("A message was recieved with no realated message identifier")
+                    logger.info("A message was recieved with no realated message identifier")
                     return
                 }
                 guard let continuation = actions[related] else {
-                    logger.warning("A message was recieved with an unknown related message identifier")
+                    logger.trace("A message was recieved with an unknown related message identifier")
                     return
                 }
                 actions.removeValue(forKey: related)
@@ -98,7 +96,29 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
         }
     }
 
+    @usableFromInline
+    internal static func setupReplyFilter(logger: Logger, topic: DDSTopic<Reply>) {
+        // Try to register the content filter factory
+        let ret = FastDDS.Actions.registerContentFilterFactory(&topic.participant.raw);
+        if let error = FastDDSErrorCode.check(ret) {
+            logger.warning("Failed to register content filter factory: \(error), falling back to normal topic")
+            return
+        }
+
+        // Register the content filter if this doesn't work, we just use a normal topic
+        let success = topic.raw.setContentFilter(
+            name: .init("\(topic.name)_ActionReplyFiltered"),
+            expression: " ",
+            params: [],
+            filter: FastDDS.Actions.getContentFilterName()
+        )
+        if !success {
+            logger.warning("Failed to register content filter for \(self), falling back to normal topic")
+        }
+    }
+
     deinit {
+        logger.trace("Destroying action client \(description)")
         subscriber.dataCallbacks.withLock { callbacks in
             callbacks.removeAll()
         }
@@ -113,6 +133,8 @@ extension DDSActionClient {
     /// - Throws: If the request cannot be sent.
     @inlinable
     public func send(request: borrowing Request) async throws(DDSError) -> Reply {
+        logger.trace("Sending request")
+
         let identifier = try publisher.publishWithMetadata(request)
 
         let reply = await withTaskCancellationHandler {
@@ -178,7 +200,7 @@ extension DDSActionClient where Reply: DDSActionResult /* This just means that i
 
 extension DDSActionClient: CustomStringConvertible {
     public var description: String {
-        "DDSActionClient(request: (\(publisher.topic.name), type: \(publisher.topic.typeName)), reply: (\(subscriber.topic.name), type: \(subscriber.topic.typeName)))"
+        "DDSActionClient(request: \(publisher.topic), reply: \(subscriber.topic))"
     }
 }
 

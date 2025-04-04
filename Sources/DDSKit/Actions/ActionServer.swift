@@ -5,12 +5,13 @@
  * Created by Hunter Baker on 1/23/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+public import Logging
 internal import Synchronization
-internal import Logging
 
 /// Takes the base name of an action and returns the request and reply topic names.
 /// - Parameter base: The name of the action.
 /// - Returns: A tuple with the request and reply topic names (in that order).
+@usableFromInline
 internal func getActionTopicNames(base: String) -> (request: String, reply: String) {
     return ("rq/" + base, "rr/" + base)
 }
@@ -26,13 +27,17 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     public typealias RequestHandler = @Sendable (borrowing Request) -> Reply
 
     /// The logger for the action server.
-    private let logger: Logger
+    @usableFromInline
+    internal let logger: Logger
     /// The subscriber for the request.
-    private let subscriber: DDSSubscriber<Request>
+    @usableFromInline
+    internal let subscriber: DDSSubscriber<Request>
     /// The publisher for the reply.
-    private let publisher: DDSPublisher<Reply>
+    @usableFromInline
+    internal let publisher: DDSPublisher<Reply>
     /// The handler callback for the request.
-    private let requestHandler: RequestHandler
+    @usableFromInline
+    internal let requestHandler: RequestHandler
 
     /// The participant for the action server.
     public var participant: DDSParticipant {
@@ -47,6 +52,7 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     ///   - handler: The handler for the request.
     /// - Throws: If the subscriber cannot be created.
+    @inlinable
     public convenience init(
         participant: DDSParticipant, name actionName: String,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
@@ -54,9 +60,10 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     ) throws(DDSError) {
         let (requestTopic, replyTopic) = getActionTopicNames(base: actionName)
 
-        self.init(
-            requestSubscriber: try participant.subscribe(to: requestTopic, type: Request.self, settings: subscriberSettings),
-            replyPublisher: try participant.publish(to: replyTopic, type: Reply.self, settings: publisherSettings),
+        try self.init(
+            requestTopic: try participant.getTopic(named: requestTopic, type: Request.self),
+            replyTopic: try participant.getTopic(named: replyTopic, type: Reply.self),
+            subscriberSettings: subscriberSettings, publisherSettings: publisherSettings,
             handler: handler
         )
     }
@@ -69,36 +76,24 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     ///   - publisherSettings: A list of settings to apply to the reply publisher.
     ///   - handler: The handler for the request.
     /// - Throws: If the subscriber cannot be created.
-    public convenience init(
+    @inlinable
+    public init(
         requestTopic: DDSTopic<Request>, replyTopic: DDSTopic<Reply>,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
         handler: @escaping RequestHandler
     ) throws(DDSError) {
-        self.init(
-            requestSubscriber: try requestTopic.subscribe(settings: subscriberSettings),
-            replyPublisher: try replyTopic.publish(settings: publisherSettings),
-            handler: handler
-        )
-    }
+        logger = Logger(label: "DDSActionServer(\(requestTopic.name), \(replyTopic.name))")
 
-    /// Initializes a new action server.
-    /// - Parameters:
-    ///   - requestSubscriber: The subscriber for the request.
-    ///   - replyPublisher: The publisher for the reply.
-    ///   - handler: The handler for the request.
-    /// - Throws: If the subscriber cannot be created.
-    public init(
-        requestSubscriber: DDSSubscriber<Request>, replyPublisher: DDSPublisher<Reply>,
-        handler: @escaping RequestHandler
-    ) {
-        logger = Logger(label: "DDSActionServer(\(requestSubscriber.topic.name), \(replyPublisher.topic.name))")
+        logger.trace("Creating action server with request topic: \(requestTopic.name), and reply topic: \(replyTopic.name)")
 
-        subscriber = requestSubscriber
-        publisher = replyPublisher
+        subscriber = try requestTopic.subscribe(settings: subscriberSettings)
+        publisher = try replyTopic.publish(settings: publisherSettings)
 
         requestHandler = handler
 
-        requestSubscriber.registerMessageCallback { [unowned self] message, metadata in
+        subscriber.registerMessageCallback { [unowned self] message, metadata in
+            logger.trace("Got request from client: \(metadata.senderEntityIdentifier)")
+
             let reply = requestHandler(message)
             do throws(DDSError) {
                 try publisher.publishWithMetadata(reply, metadata: .init(relatedIdentifier: metadata.identifier))
@@ -109,6 +104,7 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     }
 
     deinit {
+        logger.trace("Deinitializing action server: \(description)")
         subscriber.dataCallbacks.withLock { callbacks in
             callbacks.removeAll()
         }
@@ -124,16 +120,15 @@ extension DDSActionServer where Reply: DDSActionResult /* This just means that i
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     ///   - handler: The handler for the request. This should return a Reply.Succes and can throw a Reply.Failure.
     /// - Throws: If the subscriber cannot be created.
+    @inlinable
     public convenience init(
         participant: DDSParticipant, name actionName: String,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
         handler: @escaping @Sendable (borrowing Request) throws(Reply.Failure) -> Reply.Success
     ) throws(DDSError) {
-        let (requestTopic, replyTopic) = getActionTopicNames(base: actionName)
-
-        self.init(
-            requestSubscriber: try participant.subscribe(to: requestTopic, type: Request.self, settings: subscriberSettings),
-            replyPublisher: try participant.publish(to: replyTopic, type: Reply.self, settings: publisherSettings)
+        try self.init(
+            participant: participant, name: actionName,
+            subscriberSettings: subscriberSettings, publisherSettings: publisherSettings
         ) { message throws(Never) in
             Reply { () throws(Reply.Failure) in
                 try handler(message)
@@ -158,7 +153,7 @@ extension DDSParticipant {
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
     ///   - handler: The handler for the request.
     /// - Throws: If the subscriber cannot be created.
-    public func createActionClient<Request: DDSMessage, Reply: DDSMessage>(
+    public func createActionServer<Request: DDSMessage, Reply: DDSMessage>(
         name: String,
         request: Request.Type, reply: Reply.Type,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],

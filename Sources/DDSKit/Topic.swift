@@ -45,15 +45,20 @@ public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
             throw .dataTypeError(error)
         }
 
-        var success = false
+        var ret: Int32 = 0
         raw = FastDDS.Topic(
             participant: participant.raw,
             topic: .init(topic), typeSupport: typeSupport.typeSupport,
             // profile: FastDDS.Topic.Qos(participant: participant.raw),
-            success: &success
+            ret: &ret
         )
-        if !success {
-            throw DDSError.initializationError(from: .topic)
+        if let error = FastDDSErrorCode.check(ret) {
+            switch error {
+                case .preconditionFailed:
+                    throw .typeMismatch(topic: topic, type: .init(typeSupport.typeSupport.name), existingType: .init(raw.typeName))
+                default:
+                    throw .initializationError(from: .topic)
+            }
         }
     }
 

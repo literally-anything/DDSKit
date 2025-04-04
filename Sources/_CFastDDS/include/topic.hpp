@@ -31,6 +31,8 @@ namespace FastDDS {
         using StatusMask = eprosima::fastdds::dds::StatusMask;
         using TypeSupport = eprosima::fastdds::dds::TypeSupport;
 
+        using _ContentFilteredTopic = eprosima::fastdds::dds::ContentFilteredTopic;
+
 
         // class Qos final {
         // public:
@@ -50,8 +52,8 @@ namespace FastDDS {
         INLINE Topic(
             const Participant &participantWrapper, const std::string &topicName, const Types::TypeSupport &typeSupport,
             // const Qos &qos,
-            bool &success
-        ) SWIFT_NAME(init(participant:topic:typeSupport:success:)) : participant(participantWrapper.participant) {
+            eprosima::fastdds::dds::ReturnCode_t &ret
+        ) SWIFT_NAME(init(participant:topic:typeSupport:ret:)) : participant(participantWrapper.participant) {
 
             // Stops two threads from creating the same topic at the same time
             // This is a problem because one will fail after it has already verified the topic does not exist
@@ -59,6 +61,14 @@ namespace FastDDS {
             std::lock_guard<std::mutex> lock(mutex);
             
             topic = participant->find_topic(topicName, eprosima::fastdds::dds::Duration_t(0));
+
+            // If the topic exists but the type is different, then it is not the same topic, so we destroy out proxy
+            if (topic != nullptr && typeSupport.getName() != topic->get_type_name()) {
+                ret = eprosima::fastdds::dds::RETCODE_PRECONDITION_NOT_MET;
+                return;
+            }
+
+            // If the topic does not exist, create it
             if (topic == nullptr) {
                 topic = participant->create_topic(
                     topicName, typeSupport.typeSupport.get_type_name(),
@@ -66,7 +76,9 @@ namespace FastDDS {
                     nullptr, StatusMask::none()
                 );
             }
-            success = topic != nullptr;
+
+            bool success = topic != nullptr;
+            ret = success ? eprosima::fastdds::dds::RETCODE_OK : eprosima::fastdds::dds::RETCODE_ERROR;
             destroyed = !success;
         }
 
@@ -76,6 +88,10 @@ namespace FastDDS {
 
         NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t destroy() {
             if (!destroyed) {
+                if (contentFilteredTopic != nullptr) {
+                    participant->delete_contentfilteredtopic(contentFilteredTopic);
+                }
+
                 topic->close();
 
                 auto ret = participant->delete_topic(topic);
@@ -101,9 +117,34 @@ namespace FastDDS {
             return topic;
         }
 
+        NODISCARD INLINE bool setContentFiler(
+            const std::string &name, const std::string &expression, const std::vector<std::string> &params, const std::string &filter
+        ) SWIFT_NAME(setContentFilter(name:expression:params:filter:)) {
+            // Stops two threads from creating the same content filtered topic at the same time
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lock(mutex);
+
+            // If the content filtered topic is already set, delete it
+            if (contentFilteredTopic != nullptr) {
+                participant->delete_contentfilteredtopic(contentFilteredTopic);
+            }
+
+            // Lookup the content filtered topic, but if it does not exist, create it
+            contentFilteredTopic = dynamic_cast<_ContentFilteredTopic *>(participant->lookup_topicdescription(name));
+            if (contentFilteredTopic == nullptr) {
+                contentFilteredTopic = participant->create_contentfilteredtopic(
+                    name, topic, expression, params, filter.c_str()
+                );
+            }
+
+            return contentFilteredTopic != nullptr;
+        }
+
     private:
         _Topic * _Nonnull topic;
         Participant::DomainParticipant * _Nonnull participant;
+
+        _ContentFilteredTopic * _Nullable contentFilteredTopic = nullptr;
 
         bool destroyed = false;
 

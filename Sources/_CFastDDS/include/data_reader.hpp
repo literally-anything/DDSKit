@@ -27,6 +27,7 @@ namespace FastDDS {
 
     class DataReader final {
     public:
+        using TopicDescription = eprosima::fastdds::dds::TopicDescription;
         using _DataReader = eprosima::fastdds::dds::DataReader;
         using DataReaderQos = eprosima::fastdds::dds::DataReaderQos;
         using StatusMask = eprosima::fastdds::dds::StatusMask;
@@ -94,8 +95,15 @@ namespace FastDDS {
         INLINE DataReader(
             const Topic &topicWrapper, const Subscriber &subscriberWrapper,
             const Qos &qos, bool loanable,
-            bool &success
-        ) SWIFT_NAME(init(topic:subscriber:profile:loanable:success:)) : topic(topicWrapper.topic), subscriber(subscriberWrapper.subscriber), loanable(loanable) {
+            bool &success,
+            bool enableFilter = true
+        ) SWIFT_NAME(init(topic:subscriber:profile:loanable:success:enableFilter:)) : subscriber(subscriberWrapper.subscriber), loanable(loanable) {
+            // If we ask for a filtered reader, we want to try to use the filtered topic, but fall back to the normal topic if it doesn't exist
+            if (enableFilter && topicWrapper.contentFilteredTopic != nullptr) {
+                topic = topicWrapper.contentFilteredTopic;
+            } else {
+                topic = topicWrapper.topic;
+            }
             dataReader = subscriber->create_datareader(topic, qos.get(), nullptr, StatusMask::none());
             success = dataReader != nullptr;
             destroyed = !success;
@@ -162,7 +170,7 @@ namespace FastDDS {
 
         const bool loanable;
 
-        Topic::_Topic * _Nonnull topic;
+        TopicDescription * _Nonnull topic;
         Subscriber::_Subscriber * _Nonnull subscriber;
         _DataReader * _Nonnull dataReader;
         std::unique_ptr<Listener> listener;

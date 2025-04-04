@@ -29,5 +29,7 @@ module _CFastDDS {
     header "data_writer.hpp"
     header "data_reader.hpp"
 
+    header "actions/contentfilter.hpp"
+
     export *
 }

@@ -300,6 +300,10 @@ namespace FastDDS {
             return participant;
         }
 
+        INLINE DomainParticipant * _Nonnull getParticipant() const {
+            return participant;
+        }
+
     private:
         static INLINE DomainParticipantFactory * _Nonnull getFactory() {
             return DomainParticipantFactory::get_instance();

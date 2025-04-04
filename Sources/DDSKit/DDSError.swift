@@ -42,6 +42,14 @@ public enum DDSError: Error {
     /// - Parameter DDSTypeError: The error that occurred while registering the type.
     case dataTypeError(DDSTypeError)
 
+    /// A type mismatch occurred while creating a topic.
+    /// An existing topic with the same name and a different type was found.
+    /// - Parameters:
+    ///   - topic: The name of the topic that caused the error.
+    ///   - type: The type that was expected.
+    ///   - existingType: The type that was already used for this topic.
+    case typeMismatch(topic: String, type: String, existingType: String)
+
     /// An error while publishing data.
     /// - Parameter FastDDSErrorCode: The error code returned from the DDS API.
     case publishError(FastDDSErrorCode)

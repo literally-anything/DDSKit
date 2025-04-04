@@ -45,6 +45,7 @@ public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
 
         var qos = FastDDS.DataReader.Qos(subscriber: topic.participant.rawSubscriber)
 
+        var enableFilter = false
         for setting in settings {
             switch setting {
                 case .loadProfile(let name):
@@ -73,6 +74,8 @@ public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
                     qos.setMaxBlockingTime(Int32(timeout.components.seconds), UInt32(Double(timeout.components.attoseconds) * 1e-9))
                 case .reliability(let reliability):
                     qos.setReliability(reliability == .reliable)
+                case .enableFilter:
+                    enableFilter = true
             }
         }
 
@@ -81,7 +84,8 @@ public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
             topic: topic.raw, subscriber: topic.participant.rawSubscriber,
             profile: qos,
             loanable: Self.isLoaningCompatible,
-            success: &success
+            success: &success,
+            enableFilter: enableFilter
         )
         if !success {
             throw DDSError.initializationError(from: .dataReader)
@@ -182,10 +186,7 @@ extension DDSSubscriber {
         // Use a continuation to wait for the next call to the match callback.
         return await withUnsafeContinuation { continuation in
             matchCallbacks.withLock { callbacks in
-                // Don't actually escape because the callback is removed before we exit this context.
-                withoutActuallyEscaping({ @Sendable in continuation.resume(returning: $0) }) { callback in
-                    callbacks.append(callback)
-                }
+                callbacks.append { @Sendable in continuation.resume(returning: $0) }
             }
         }
     }
@@ -245,7 +246,8 @@ extension DDSSubscriber {
         }
     }
 
-    internal func registerMessageCallback(
+    @inlinable
+    public func registerMessageCallback(
         _ callback: @escaping @Sendable (borrowing Message, borrowing MessageMetadata) throws(UnregisterCallbackError) -> Void
     ) {
         dataCallbacks.withLock { callbacks in
@@ -396,6 +398,14 @@ public enum DDSSubscriberSettings {
     /// - Parameters:
     ///   - reliability: The reliability to set.
     case reliability(Reliability)
+
+    /// Sets whether the subscriber will use the topic or the content filtered topic.
+    /// - Note: This is currently only used internally for Actions and has no effect normally.
+    /// - Parameter enableFilter: Whether to use the content filtered topic.
+    
+    /// Enables the content filtered topic instead of the normal topic. This has no effect on subsribers that aren't part of an action.
+    /// - Note: This is currently only used internally for Actions; it is not intended for normal use and will almost always do nothing.
+    case enableFilter
 
     /// The data sharing mode of the subscriber.
     /// When this is on, the subscriber will share it's history with publisher through shared memory.

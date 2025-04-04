@@ -145,10 +145,7 @@ extension DDSPublisher {
         // Use a continuation to wait for the next call to the match callback.
         return await withUnsafeContinuation { continuation in
             matchCallbacks.withLock { callbacks in
-                // Don't actually escape because the callback is removed before we exit this context.
-                withoutActuallyEscaping({ @Sendable in continuation.resume(returning: $0) }) { callback in
-                    callbacks.append(callback)
-                }
+                callbacks.append { @Sendable in continuation.resume(returning: $0) }
             }
         }
     }
