@@ -92,6 +92,10 @@ namespace FastDDS {
                 qos.properties().properties().emplace_back("fastdds.type_propagation", mode);
             }
 
+            INLINE void setEnabledStatistics(std::string names) {
+                qos.properties().properties().emplace_back("fastdds.statistics", names);
+            }
+
             INLINE void setBuiltinTransports(const BuiltinTransports &transports) {
                 qos.setup_transports(transports);
                 qos.transport().use_builtin_transports = transports != BuiltinTransports::NONE;

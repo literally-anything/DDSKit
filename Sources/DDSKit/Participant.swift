@@ -69,6 +69,7 @@ public final class DDSParticipant: @unchecked Sendable {
         var identifierPrefixMethod: Setting.IdentifierPrefixMethod = .internallyAssigned
         var builtinTransportsMode: FastDDS.BuiltinTransports = .NONE
         var userTransports: [DDSTransport] = []
+        var enabledStatistics: [String] = []
         for setting in settings {
             switch setting {
                 case .loadProfile(let name):
@@ -120,6 +121,8 @@ public final class DDSParticipant: @unchecked Sendable {
                         case .custom(let customTransports):
                             userTransports.append(contentsOf: customTransports)
                     }
+                case .enableStatistics(let names):
+                    enabledStatistics += names
             }
         }
         if userTransports.isEmpty {
@@ -138,6 +141,7 @@ public final class DDSParticipant: @unchecked Sendable {
                     qos.addUserTransportCustom(descriptor: .init(descriptor))
             }
         }
+        qos.setEnabledStatistics(.init(enabledStatistics.joined(separator: ";")))
 
         var success = false
 
@@ -357,6 +361,11 @@ extension DDSParticipant {
         /// If this is provided multiple times, all of the custom transports will be used, but only the last built-in transport will be used.
         /// If custom transports are provided, the built-in transports will be disabled, unless built-in transports are also explicitly provided.
         case transports(Transports)
+
+        /// Enables the specified statistics module topics.
+        /// The names are documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/statistics/dds_layer/topic_names.html#statistics-topic-names
+        /// This stacks if multiple settings are provided.
+        case enableStatistics([String])
 
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
