@@ -66,10 +66,14 @@ public final class DDSParticipant: @unchecked Sendable {
             qos.setName(cString)
         }
 
+        var ignoreLocalEndpoints = false
+        var typePropagationMode: Setting.TypePropagationMode = .enabled
         var identifierPrefixMethod: Setting.IdentifierPrefixMethod = .internallyAssigned
+        var maxMessageSize: UInt32? = nil
         var builtinTransportsMode: FastDDS.BuiltinTransports = .NONE
         var userTransports: [DDSTransport] = []
         var enabledStatistics: [String] = []
+        var persistencePlugin: Setting.PersistencePlugin? = nil
         for setting in settings {
             switch setting {
                 case .loadProfile(let name):
@@ -79,28 +83,13 @@ public final class DDSParticipant: @unchecked Sendable {
                         throw .profileError(name: name, error)
                     }
                 case .ignoreLocalEndpoints(let ignore):
-                    qos.setIgnoreLocalEndpoints(ignore)
+                    ignoreLocalEndpoints = ignore
                 case .identiferPrefixMethod(let method):
                     identifierPrefixMethod = method
-                case .maxMessageSize(let sizeMode):
-                    switch sizeMode {
-                        case .minTransport:
-                            logger.warning(".minTransport is not implemented yet")
-                            // qos.setMaxMessageSizeToMinTransportSize()
-                        case .size(let size):
-                            qos.setMaxMessageSize(size)
-                    }
+                case .maxMessageSize(let size):
+                    maxMessageSize = size
                 case .typePropagation(let mode):
-                    switch mode {
-                        case .enabled:
-                            qos.setTypePropagation("enabled")
-                        case .disabled:
-                            qos.setTypePropagation("disabled")
-                        case .minimal:
-                            qos.setTypePropagation("minimal_bandwidth")
-                        case .registrationOnly:
-                            qos.setTypePropagation("registration_only")
-                    }
+                    typePropagationMode = mode
                 case .discovery(let mode):
                     switch mode {
                         case .simple(let enableMulticast, let initialPeers):
@@ -121,10 +110,32 @@ public final class DDSParticipant: @unchecked Sendable {
                         case .custom(let customTransports):
                             userTransports.append(contentsOf: customTransports)
                     }
-                case .enableStatistics(let names):
+                case .statistics(let names):
                     enabledStatistics += names
+                case .persistence(let plugin):
+                    persistencePlugin = plugin
             }
         }
+
+        qos.setIgnoreLocalEndpoints_ONCE(ignoreLocalEndpoints)
+
+        // Set the type propagation mode
+        switch typePropagationMode {
+            case .enabled:
+                qos.setTypePropagation_ONCE("enabled")
+            case .disabled:
+                qos.setTypePropagation_ONCE("disabled")
+            case .minimal:
+                qos.setTypePropagation_ONCE("minimal_bandwidth")
+            case .registrationOnly:
+                qos.setTypePropagation_ONCE("registration_only")
+        }
+
+        if let maxMessageSize {
+            qos.setMaxMessageSize_ONCE(maxMessageSize)
+        }
+
+        // If there are no user transports, we use the built-in transports, but otherwise we only use built-in transports if they are explicitly enabled.
         if userTransports.isEmpty {
             builtinTransportsMode = .DEFAULT
         }
@@ -141,7 +152,17 @@ public final class DDSParticipant: @unchecked Sendable {
                     qos.addUserTransportCustom(descriptor: .init(descriptor))
             }
         }
-        qos.setEnabledStatistics(.init(enabledStatistics.joined(separator: ";")))
+
+        // Statistics are a comma separated list of enabled statistics topics.
+        qos.setEnabledStatistics_ONCE(.init(enabledStatistics.joined(separator: ";")))
+
+        // Set the persistence plugin
+        switch persistencePlugin {
+            case .sqlite3(let filename):
+                qos.setPersistenceSqlite_ONCE(.init(filename))
+            case .none:
+                break
+        }
 
         var success = false
 
@@ -345,7 +366,7 @@ extension DDSParticipant {
 
         /// The maximum size of a message that can be sent or received.
         /// Defaults to 4294967295 if no value is provided.
-        case maxMessageSize(MaxMessageSizeMode)
+        case maxMessageSize(UInt32)
 
         /// Sets mode to use to propagate data types to other participants.
         /// This shoild really only need to be changed if you are very bandwidth constrained.
@@ -365,7 +386,12 @@ extension DDSParticipant {
         /// Enables the specified statistics module topics.
         /// The names are documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/statistics/dds_layer/topic_names.html#statistics-topic-names
         /// This stacks if multiple settings are provided.
-        case enableStatistics([String])
+        case statistics([String])
+
+        /// Sets the persistence plugin to use for the participant.
+        /// The last one will be used if multiple are provided.
+        /// `nil` is the default and means that persistence is disabled.
+        case persistence(PersistencePlugin?)
 
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
@@ -379,21 +405,6 @@ extension DDSParticipant {
             /// The prefix is assigned by the user.
             /// - Note: The fastdds documentation says which bytes are used for what, so follow this or data-sharing and intra-process delivery will not work.
             case userAssigned(DDSEntityIdentifier.Prefix)
-        }
-
-        /// The maximum size of a message that can be sent or received.
-        public enum MaxMessageSizeMode: ExpressibleByIntegerLiteral {
-            /// Set the maximum message size to max size of the transport with the lowest size.
-            /// - Warning: This is not implemented yet.
-            case minTransport
-            /// Set the maximum message size to the specified size.
-            case size(UInt32)
-
-            /// Creates a new MaxMessageSizeMode from an integer literal.
-            /// - Parameter value: The maximum size of a message that can be sent or received.
-            public init(integerLiteral value: UInt32) {
-                self = .size(value)
-            }
         }
 
         /// The mode to use to propagate data types to other participants.
@@ -469,6 +480,13 @@ extension DDSParticipant {
             public init(arrayLiteral elements: DDSTransport...) {
                 self = .custom(elements)
             }
+        }
+
+        /// The persistence plugin to use for the participant.
+        public enum PersistencePlugin {
+            /// Use sqlite3 for persistence.
+            /// - Parameter filename: The name of the sqlite3 file to use for persistence.
+            case sqlite3(filename: String)
         }
     }
 }

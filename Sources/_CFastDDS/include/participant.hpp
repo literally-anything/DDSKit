@@ -77,23 +77,25 @@ namespace FastDDS {
                 qos.name(eprosima::fastcdr::string_255(name));
             }
 
-            INLINE void setIgnoreLocalEndpoints(bool ignore) {
+            INLINE void setIgnoreLocalEndpoints_ONCE(bool ignore) {
                 qos.properties().properties().emplace_back("fastdds.ignore_local_endpoints", ignore ? "true" : "false");
             }
 
-            INLINE void setMaxMessageSize(uint32_t size) {
+            INLINE void setMaxMessageSize_ONCE(uint32_t size) {
                 qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
             }
-            // INLINE void setMaxMessageSizeToMinTransportSize() {
-            //     qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
-            // }
 
-            INLINE void setTypePropagation(std::string mode) {
+            INLINE void setTypePropagation_ONCE(std::string mode) {
                 qos.properties().properties().emplace_back("fastdds.type_propagation", mode);
             }
 
-            INLINE void setEnabledStatistics(std::string names) {
+            INLINE void setEnabledStatistics_ONCE(std::string names) {
                 qos.properties().properties().emplace_back("fastdds.statistics", names);
+            }
+            
+            INLINE void setPersistenceSqlite_ONCE(std::string filename) {
+                qos.properties().properties().emplace_back("dds.persistence.plugin", "builtin.SQLITE3");
+                qos.properties().properties().emplace_back("dds.persistence.sqlite3.filename", filename);
             }
 
             INLINE void setBuiltinTransports(const BuiltinTransports &transports) {

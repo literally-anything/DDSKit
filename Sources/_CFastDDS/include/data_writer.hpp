@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <sstream>
 #if __has_include(<swift/bridging>)
 # include <swift/bridging>
 #else
@@ -50,7 +51,7 @@ namespace FastDDS {
                 ret = publisherWrapper.publisher->get_datawriter_qos_from_profile(profile, qos);
             }
 
-            INLINE void setOperatingMode(bool push) SWIFT_NAME(setOperatingMode(push:)) {
+            INLINE void setOperatingMode_ONCE(bool push) SWIFT_NAME(setOperatingMode_ONCE(push:)) {
                 qos.properties().properties().emplace_back("fastdds.push_mode", push ? "true" : "false");
             }
 
@@ -85,6 +86,12 @@ namespace FastDDS {
             }
             INLINE void setReliability(bool reliable) {
                 qos.reliability().kind = reliable ? eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS : eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS;
+            }
+
+            INLINE void setPersistanceGUID_ONCE(GUID guid) {
+                std::stringstream stream;
+                stream << guid;
+                qos.properties().properties().emplace_back("dds.persistence.guid", stream.str());
             }
 
             INLINE const DataWriterQos &get() const {

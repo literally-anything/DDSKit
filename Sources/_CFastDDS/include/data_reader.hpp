@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <sstream>
 #if __has_include(<swift/bridging>)
 # include <swift/bridging>
 #else
@@ -81,6 +82,12 @@ namespace FastDDS {
             }
             INLINE void setReliability(bool reliable) {
                 qos.reliability().kind = reliable ? eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS : eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS;
+            }
+
+            INLINE void setPersistanceGUID_ONCE(GUID guid) {
+                std::stringstream stream;
+                stream << guid;
+                qos.properties().properties().emplace_back("dds.persistence.guid", stream.str());
             }
 
             INLINE const DataReaderQos &get() const {

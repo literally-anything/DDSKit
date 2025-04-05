@@ -37,6 +37,7 @@ public final class DDSPublisher<Message: DDSMessage> : @unchecked Sendable {
 
         var qos = FastDDS.DataWriter.Qos(publisher: topic.participant.rawPublisher)
 
+        var operatingMode: Setting.OperatingMode? = nil
         for setting in settings {
             switch setting {
                 case .loadProfile(let name):
@@ -46,7 +47,7 @@ public final class DDSPublisher<Message: DDSMessage> : @unchecked Sendable {
                         throw .profileError(name: name, error)
                     }
                 case .operatingMode(let mode):
-                    qos.setOperatingMode(push: mode == .push)
+                    operatingMode = mode
                 case .dataSharing(let mode):
                     switch mode {
                         case .on(let dir):
@@ -72,6 +73,10 @@ public final class DDSPublisher<Message: DDSMessage> : @unchecked Sendable {
                 case .reliability(let reliability):
                     qos.setReliability(reliability == .reliable)
             }
+        }
+
+        if let operatingMode {
+            qos.setOperatingMode_ONCE(push: operatingMode == .push)
         }
 
         var success = false
