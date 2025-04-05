@@ -480,10 +480,14 @@ extension DDSParticipant {
     ///   - topicName: The name of the topic to subscribe to.
     ///   - type: The message data type of the topic.
     ///   - settings: A list of settings to apply to the subscriber.
+    ///   - convention: The naming convention to use for the topic. If this is `.ros2`, the topic will interop with ROS2 topics.
     /// - Throws: If the subscriber cannot be created.
-    public func subscribe<T: DDSMessage>(to topicName: String, type: T.Type, settings: [DDSSubscriber<T>.Setting] = []) throws(DDSError) -> DDSSubscriber<T> {
+    public func subscribe<T: DDSMessage>(
+        to topicName: String, type: T.Type, settings: [DDSSubscriber<T>.Setting] = [],
+        convention: DDSNamespace.NamingConvention = .default
+    ) throws(DDSError) -> DDSSubscriber<T> {
         try DDSSubscriber(
-            topic: DDSTopic<T>(participant: self, topic: topicName),
+            topic: DDSTopic<T>(participant: self, topic: topicName, convention: convention),
             settings: settings
         )
     }

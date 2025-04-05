@@ -78,6 +78,8 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
         requestTopic: DDSTopic<Request>, replyTopic: DDSTopic<Reply>,
         publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []
     ) throws(DDSError) {
+        assert(requestTopic.participant === replyTopic.participant, "Request and reply topics should be on the same participant")
+
         logger = Logger(label: "DDSActionClient(\(requestTopic.name), \(replyTopic.name))")
 
         logger.trace("Creating action client with request topic: \(requestTopic.name), and reply topic: \(replyTopic.name)")

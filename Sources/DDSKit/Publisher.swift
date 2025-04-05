@@ -500,10 +500,14 @@ extension DDSParticipant {
     ///   - topicName: The name of the topic to publish to.
     ///   - type: The message data type of the topic.
     ///   - settings: A list of settings to apply to the publisher.
+    ///   - convention: The naming convention to use for the topic. If this is `.ros2`, the topic will interop with ROS2 topics.
     /// - Throws: If the publisher cannot be created.
-    public func publish<T: DDSMessage>(to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = []) throws(DDSError) -> DDSPublisher<T> {
+    public func publish<T: DDSMessage>(
+        to topicName: String, type: T.Type, settings: [DDSPublisher<T>.Setting] = [],
+        convention: DDSNamespace.NamingConvention = .default
+    ) throws(DDSError) -> DDSPublisher<T> {
         try DDSPublisher(
-            topic: DDSTopic<T>(participant: self, topic: topicName),
+            topic: DDSTopic<T>(participant: self, topic: topicName, convention: convention),
             settings: settings
         )
     }
