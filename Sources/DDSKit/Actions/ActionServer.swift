@@ -8,14 +8,6 @@
 public import Logging
 internal import Synchronization
 
-/// Takes the base name of an action and returns the request and reply topic names.
-/// - Parameter base: The name of the action.
-/// - Returns: A tuple with the request and reply topic names (in that order).
-@usableFromInline
-internal func getActionTopicNames(base: String) -> (request: String, reply: String) {
-    return ("rq/" + base, "rr/" + base)
-}
-
 /// An action server with support for throwing errors as the result.
 /// This is actually just a type alias for DDSActionServer<Request, Result<Success, Failure>>.
 public typealias DDSThrowingActionServer<Request: DDSMessage, Success: DDSCodable, Failure: DDSCodable & Error> = DDSActionServer<Request, Result<Success, Failure>>
@@ -50,19 +42,28 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     ///   - actionName: The base name of the action.
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    ///   - convention: The naming convention to use for the action. If this is `.ros2`, the action will interop with ROS2 services.
     ///   - handler: The handler for the request.
     /// - Throws: If the subscriber cannot be created.
     @inlinable
     public convenience init(
         participant: DDSParticipant, name actionName: String,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
+        convention: DDSNamespace.NamingConvention = .default,
         handler: @escaping RequestHandler
     ) throws(DDSError) {
-        let (requestTopic, replyTopic) = getActionTopicNames(base: actionName)
+        let requestTopic = try DDSTopic<Request>(
+            participant: participant, topic: actionName, typeSupport: Request.ddsTypeSupport,
+            nameInfo: (.actionRequest, convention)
+        )
+        let replyTopic = try DDSTopic<Reply>(
+            participant: participant, topic: actionName, typeSupport: Reply.ddsTypeSupport,
+            nameInfo: (.actionReply, convention)
+        )
 
         try self.init(
-            requestTopic: try participant.getTopic(named: requestTopic, type: Request.self),
-            replyTopic: try participant.getTopic(named: replyTopic, type: Reply.self),
+            requestTopic: requestTopic,
+            replyTopic: replyTopic,
             subscriberSettings: subscriberSettings, publisherSettings: publisherSettings,
             handler: handler
         )
@@ -151,18 +152,21 @@ extension DDSParticipant {
     ///   - reply: The message reply data type.
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    ///   - convention: The naming convention to use for the action. If this is `.ros2`, the action will interop with ROS2 services.
     ///   - handler: The handler for the request.
     /// - Throws: If the subscriber cannot be created.
     public func createActionServer<Request: DDSMessage, Reply: DDSMessage>(
         name: String,
         request: Request.Type, reply: Reply.Type,
         subscriberSettings: [DDSSubscriber<Request>.Setting] = [], publisherSettings: [DDSPublisher<Reply>.Setting] = [],
+        convention: DDSNamespace.NamingConvention = .default,
         handler: @escaping DDSActionServer<Request, Reply>.RequestHandler
     ) throws(DDSError) -> DDSActionServer<Request, Reply> {
         try DDSActionServer(
             participant: self,
             name: name,
             subscriberSettings: subscriberSettings, publisherSettings: publisherSettings,
+            convention: convention,
             handler: handler
         )
     }

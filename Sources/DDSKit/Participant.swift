@@ -43,7 +43,7 @@ public final class DDSParticipant: @unchecked Sendable {
     ///   - name: The user-defined name for the participant. Defaults to the name of the function that intialized the participant.
     ///   - settings: An optional list of settings for the participant.
     /// - Throws: DDSError if the participant fails to initialize.
-    public init(domain: UInt32 = 0, name: String = #function, settings: [Setting] = []) throws(DDSError) {
+    public init(domain: UInt32 = 0, name: String = DDSNamespace.current.appending(relative: #function).description, settings: [Setting] = []) throws(DDSError) {
         /// In C++, this is represented as a fixed-size string, so it must be less than 256 characters.
         assert(name.count < 256, "Name must be less than 256 characters")
 

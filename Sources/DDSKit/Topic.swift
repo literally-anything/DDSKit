@@ -22,10 +22,11 @@ public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
     /// - Parameters:
     ///   - participant: The participant to use for the topic.
     ///   - topic: The name of the topic.
+    ///   - convention: The naming convention to use for the topic. Default is `.default`.
     /// - Throws: If the topic cannot be created.
     @inlinable
-    public convenience init(participant: DDSParticipant, topic: String) throws(DDSError) {
-        try self.init(participant: participant, topic: topic, typeSupport: Message.ddsTypeSupport)
+    public convenience init(participant: DDSParticipant, topic: String, convention: DDSNamespace.NamingConvention = .default) throws(DDSError) {
+        try self.init(participant: participant, topic: topic, typeSupport: Message.ddsTypeSupport, nameInfo: (.topic, convention))
     }
 
     /// Creates a new topic.
@@ -34,9 +35,13 @@ public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
     ///   - participant: The participant to use for the topic.
     ///   - topic: The name of the topic.
     ///   - typeSupport: The type support object for the topic.
+    ///   - nameInfo: The name type and naming convention of the topic.
     /// - Throws: If the topic cannot be created.
     @usableFromInline
-    internal init(participant: DDSParticipant, topic: String, typeSupport: borrowing DDSTypeSupport) throws(DDSError) {
+    internal init(
+        participant: DDSParticipant, topic: String, typeSupport: borrowing DDSTypeSupport,
+        nameInfo: (type: DDSNamespace.NameType, convention: DDSNamespace.NamingConvention)
+    ) throws(DDSError) {
         self.participant = participant
 
         do {
@@ -45,10 +50,12 @@ public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
             throw .dataTypeError(error)
         }
 
+        let qualifiedName = DDSNamespace.current.appending(relative: topic).getName(type: nameInfo.type, convention: nameInfo.convention)
+
         var ret: Int32 = 0
         raw = FastDDS.Topic(
             participant: participant.raw,
-            topic: .init(topic), typeSupport: typeSupport.typeSupport,
+            topic: .init(qualifiedName), typeSupport: typeSupport.typeSupport,
             // profile: FastDDS.Topic.Qos(participant: participant.raw),
             ret: &ret
         )
@@ -111,10 +118,11 @@ extension DDSParticipant {
     /// - Parameters:
     ///   - name: The name of the topic.
     ///   - type: The message data type of the topic.
+    ///   - convention: The naming convention to use for the topic. Default is `.default`.
     /// - Throws: If the topic cannot be created.
     /// - Returns: The new topic.
     @inlinable
-    public func getTopic<T: DDSMessage>(named name: String, type: T.Type) throws(DDSError) -> DDSTopic<T> {
-        try DDSTopic<T>(participant: self, topic: name)
+    public func getTopic<T: DDSMessage>(named name: String, type: T.Type, convention: DDSNamespace.NamingConvention = .default) throws(DDSError) -> DDSTopic<T> {
+        try DDSTopic<T>(participant: self, topic: name, convention: convention)
     }
 }

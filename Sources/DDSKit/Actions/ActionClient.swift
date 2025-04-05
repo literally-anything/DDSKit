@@ -41,17 +41,26 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
     ///   - actionName: The base name of the action.
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    ///   - convention: The naming convention to use for the action. If this is `.ros2`, the action will interop with ROS2 services.
     /// - Throws: If the subscriber cannot be created.
     @inlinable
     public convenience init(
         participant: DDSParticipant, name actionName: String,
-        publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []
+        publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = [],
+        convention: DDSNamespace.NamingConvention = .default
     ) throws(DDSError) {
-        let (requestTopic, replyTopic) = getActionTopicNames(base: actionName)
+        let requestTopic = try DDSTopic<Request>(
+            participant: participant, topic: actionName, typeSupport: Request.ddsTypeSupport,
+            nameInfo: (.actionRequest, convention)
+        )
+        let replyTopic = try DDSTopic<Reply>(
+            participant: participant, topic: actionName, typeSupport: Reply.ddsTypeSupport,
+            nameInfo: (.actionReply, convention)
+        )
 
         try self.init(
-            requestTopic: try participant.getTopic(named: requestTopic, type: Request.self),
-            replyTopic: try participant.getTopic(named: replyTopic, type: Reply.self),
+            requestTopic: requestTopic,
+            replyTopic: replyTopic,
             publisherSettings: publisherSettings,
             subscriberSettings: subscriberSettings
         )
@@ -200,7 +209,7 @@ extension DDSActionClient where Reply: DDSActionResult /* This just means that i
 
 extension DDSActionClient: CustomStringConvertible {
     public var description: String {
-        "DDSActionClient(request: \(publisher.topic), reply: \(subscriber.topic))"
+        "DDSActionClient(request: (\(publisher.topic.name), type: \(publisher.topic.typeName)), reply: (\(subscriber.topic.name), type: \(subscriber.topic.typeName)))"
     }
 }
 
@@ -212,16 +221,19 @@ extension DDSParticipant {
     ///   - reply: The message reply data type.
     ///   - publisherSettings: A list of settings to apply to the request publisher.
     ///   - subscriberSettings: A list of settings to apply to the reply subscriber.
+    ///   - convention: The naming convention to use for the action. If this is `.ros2`, the action will interop with ROS2 services.
     /// - Throws: If the subscriber cannot be created.
     public func createActionClient<Request: DDSMessage, Reply: DDSMessage>(
         name: String,
         request: Request.Type, reply: Reply.Type,
-        publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = []
+        publisherSettings: [DDSPublisher<Request>.Setting] = [], subscriberSettings: [DDSSubscriber<Reply>.Setting] = [],
+        convention: DDSNamespace.NamingConvention = .default
     ) throws(DDSError) -> DDSActionClient<Request, Reply> {
         try DDSActionClient(
             participant: self,
             name: name,
-            publisherSettings: publisherSettings, subscriberSettings: subscriberSettings
+            publisherSettings: publisherSettings, subscriberSettings: subscriberSettings,
+            convention: convention
         )
     }
 }
