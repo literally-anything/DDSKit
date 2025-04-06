@@ -37,7 +37,11 @@ public final class DDSPublisher<Message: DDSMessage> : @unchecked Sendable {
 
         var qos = FastDDS.DataWriter.Qos(publisher: topic.participant.rawPublisher)
 
-        try Self.parseSettings(settings: settings, publisher: topic.participant.rawPublisher, qos: &qos)
+        do throws(DDSError.ConfigurationError) {
+            try Self.parseSettings(settings: settings, publisher: topic.participant.rawPublisher, qos: &qos)
+        } catch let error {
+            throw .configuration(error)
+        }
 
         var success = false
         raw = FastDDS.DataWriter(
@@ -436,8 +440,10 @@ extension DDSPublisher {
     ///   - settings: The settings to parse.
     ///   - publisher: The publisher that is the parent of the data writer that is being configured.
     ///   - qos: The qos to apply the settings to.
-    /// - Throws: DDSError if a loadProfile setting fails to load.
-    private static func parseSettings(settings: [Setting], publisher: borrowing FastDDS.Publisher, qos: inout FastDDS.DataWriter.Qos) throws(DDSError) {
+    /// - Throws: If an error occurs while parsing the settings.
+    private static func parseSettings(
+        settings: [Setting], publisher: borrowing FastDDS.Publisher, qos: inout FastDDS.DataWriter.Qos
+    ) throws(DDSError.ConfigurationError) {
         guard !settings.isEmpty else {
             return
         }
@@ -477,7 +483,7 @@ extension DDSPublisher {
             var ret: Int32 = 0
             qos = .init(publisher: publisher, profileName: .init(profileName), ret: &ret)
             if let error = FastDDSErrorCode.check(ret) {
-                throw .profileError(name: profileName, error)
+                throw .profile(name: profileName, error)
             }
         }
 

@@ -45,7 +45,12 @@ public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
 
         var qos = FastDDS.DataReader.Qos(subscriber: topic.participant.rawSubscriber)
 
-        let enableFilteredTopic = try Self.parseSettings(settings: settings, subscriber: topic.participant.rawSubscriber, qos: &qos)
+        let enableFilteredTopic: Bool
+        do throws(DDSError.ConfigurationError) {
+            enableFilteredTopic = try Self.parseSettings(settings: settings, subscriber: topic.participant.rawSubscriber, qos: &qos)
+        } catch let error {
+            throw .configuration(error)
+        }
 
         var success = false
         raw = FastDDS.DataReader(
@@ -427,7 +432,7 @@ extension DDSSubscriber {
     /// - Throws: If an error occurs while parsing the settings.
     private static func parseSettings(
         settings: [Setting], subscriber: borrowing FastDDS.Subscriber, qos: inout FastDDS.DataReader.Qos
-    ) throws(DDSError) -> Bool {
+    ) throws(DDSError.ConfigurationError) -> Bool {
         guard !settings.isEmpty else {
             return false
         }
@@ -461,7 +466,7 @@ extension DDSSubscriber {
             var ret: Int32 = 0
             qos = .init(subscriber: subscriber, profileName: .init(profileName), ret: &ret)
             if let error = FastDDSErrorCode.check(ret) {
-                throw .profileError(name: profileName, error)
+                throw .profile(name: profileName, error)
             }
         }
 

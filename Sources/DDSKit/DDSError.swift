@@ -22,9 +22,9 @@ public enum DDSError: Error {
     /// - Parameter FastDDSErrorCode: The error code returned from the DDS API.
     case unknownError(from: FastDDSEntityType, FastDDSErrorCode?)
 
-    /// Thrown when the library fails to load an XML profile.
-    /// - Parameter name: The name of the profile that failed to load.
-    case profileError(name: String, FastDDSErrorCode)
+    /// Thrown when the library fails to configure an entity.
+    /// This can be caused by invalid settings.
+    case configuration(ConfigurationError)
 
     /// An error during the initialization of an entity.
     /// This does not have to be thrown from an initializer. Some entities are lazily initialized, so this could be thrown when the entity is first used.
@@ -53,6 +53,13 @@ public enum DDSError: Error {
     /// An error while publishing data.
     /// - Parameter FastDDSErrorCode: The error code returned from the DDS API.
     case publishError(FastDDSErrorCode)
+
+    /// Thrown when the library fails to load a configuration.
+    public enum ConfigurationError: Error {
+        /// Thrown when the library fails to load an XML profile.
+        /// - Parameter name: The name of the profile that failed to load.
+        case profile(name: String, FastDDSErrorCode)
+    }
 
     /// A type of FastDDS entity.
     public enum FastDDSEntityType: Sendable {

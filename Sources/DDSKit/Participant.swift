@@ -66,7 +66,12 @@ public final class DDSParticipant: @unchecked Sendable {
             qos.setName(cString)
         }
 
-        let postSetup = try Self.parseSettings(settings: settings, qos: &qos, logger: logger)
+        let postSetup: (inout FastDDS.Participant, borrowing Logger) throws(DDSError) -> Void
+        do throws(DDSError.ConfigurationError) {
+            postSetup = try Self.parseSettings(settings: settings, qos: &qos, logger: logger)
+        } catch let error {
+            throw .configuration(error)
+        }
 
         var success = false
 
@@ -414,7 +419,7 @@ extension DDSParticipant {
     /// - Throws: DDSError if a loadProfile setting fails to load.
     private static func parseSettings(
         settings: [Setting], qos: inout FastDDS.Participant.Qos, logger: borrowing Logger
-    ) throws(DDSError) -> (inout FastDDS.Participant, borrowing Logger) throws(DDSError) -> Void {
+    ) throws(DDSError.ConfigurationError) -> (inout FastDDS.Participant, borrowing Logger) throws(DDSError) -> Void {
         guard !settings.isEmpty else {
             return { _, _ in }
         }
@@ -483,7 +488,7 @@ extension DDSParticipant {
             var ret: Int32 = 0
             qos = .init(profileName: .init(profileName), ret: &ret)
             if let error = FastDDSErrorCode.check(ret) {
-                throw .profileError(name: profileName, error)
+                throw .profile(name: profileName, error)
             }
         }
 
