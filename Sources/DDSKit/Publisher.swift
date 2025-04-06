@@ -37,47 +37,7 @@ public final class DDSPublisher<Message: DDSMessage> : @unchecked Sendable {
 
         var qos = FastDDS.DataWriter.Qos(publisher: topic.participant.rawPublisher)
 
-        var operatingMode: Setting.OperatingMode? = nil
-        for setting in settings {
-            switch setting {
-                case .loadProfile(let name):
-                    var ret: Int32 = 0
-                    qos = .init(publisher: topic.participant.rawPublisher, profileName: .init(name), ret: &ret)
-                    if let error = FastDDSErrorCode.check(ret) {
-                        throw .profileError(name: name, error)
-                    }
-                case .operatingMode(let mode):
-                    operatingMode = mode
-                case .dataSharing(let mode):
-                    switch mode {
-                        case .on(let dir):
-                            qos.setDataSharingMode(dir: dir ?? "")
-                        case .off:
-                            qos.setDataSharingModeOff()
-                        case .auto:
-                            qos.setDataSharingModeAuto()
-                    }
-                case .publishMode(let mode):
-                    qos.setPublishMode(async: mode == .async)
-                case .priority(let priority):
-                    qos.setPriority(priority.value)
-                case .historyDepth(let depth):
-                    switch depth {
-                        case .endless:
-                            qos.setHistoryDepthEndless()
-                        case .depth(let depth):
-                            qos.setHistoryDepth(depth)
-                    }
-                case .timeout(let timeout):
-                    qos.setMaxBlockingTime(Int32(timeout.components.seconds), UInt32(Double(timeout.components.attoseconds) * 1e-9))
-                case .reliability(let reliability):
-                    qos.setReliability(reliability == .reliable)
-            }
-        }
-
-        if let operatingMode {
-            qos.setOperatingMode_ONCE(push: operatingMode == .push)
-        }
+        try Self.parseSettings(settings: settings, publisher: topic.participant.rawPublisher, qos: &qos)
 
         var success = false
         raw = FastDDS.DataWriter(
@@ -359,7 +319,8 @@ public enum DDSPublisherSetting {
     /// Whether publish calls should block.
     case publishMode(PublishMode)
 
-    /// Sets the priority of the publisher.
+    /// Sets the priority of the publisher on the transports.
+    /// Higher priority means the data will be sent first.
     /// - Parameters:
     ///   - priority: The priority to set.
     case priority(Priority)
@@ -469,6 +430,104 @@ public enum DDSPublisherSetting {
 extension DDSPublisher {
     /// Settings for the publisher.
     public typealias Setting = DDSPublisherSetting
+
+    /// Parses the settings and applies them to the qos.
+    /// - Parameters:
+    ///   - settings: The settings to parse.
+    ///   - publisher: The publisher that is the parent of the data writer that is being configured.
+    ///   - qos: The qos to apply the settings to.
+    /// - Throws: DDSError if a loadProfile setting fails to load.
+    private static func parseSettings(settings: [Setting], publisher: borrowing FastDDS.Publisher, qos: inout FastDDS.DataWriter.Qos) throws(DDSError) {
+        guard !settings.isEmpty else {
+            return
+        }
+
+        // The name of the XML profile to load.
+        var profileName: String?
+        // The operating mode of the publisher.
+        var operatingMode: Setting.OperatingMode?
+        // The data sharing mode of the publisher.
+        var dataSharingMode: Setting.DataSharingMode?
+        // The publish mode of the publisher.
+        var publishMode: Setting.PublishMode?
+        // The priority of the publisher.
+        var priority: Setting.Priority?
+        // The history depth of the publisher.
+        var historyDepth: Setting.HistoryDepth?
+        // The timeout of the publisher.
+        var timeout: Duration?
+        // The reliability of the publisher.
+        var reliability: Setting.Reliability?
+
+        for setting in settings {
+            switch setting {
+                case .loadProfile(let name): profileName = name
+                case .operatingMode(let mode): operatingMode = mode
+                case .dataSharing(let mode): dataSharingMode = mode
+                case .publishMode(let mode): publishMode = mode
+                case .priority(let p): priority = p
+                case .historyDepth(let depth): historyDepth = depth
+                case .timeout(let t): timeout = t
+                case .reliability(let r): reliability = r
+            }
+        }
+
+        // If a profile name is set, load the profile.
+        if let profileName {
+            var ret: Int32 = 0
+            qos = .init(publisher: publisher, profileName: .init(profileName), ret: &ret)
+            if let error = FastDDSErrorCode.check(ret) {
+                throw .profileError(name: profileName, error)
+            }
+        }
+
+        // Set the operating mode.
+        if let operatingMode {
+            qos.setOperatingMode(push: operatingMode == .push)
+        }
+
+        // Set the data sharing mode.
+        if let dataSharingMode {
+            switch dataSharingMode {
+                case .on(let dir):
+                    qos.setDataSharingMode(dir: dir ?? "")
+                case .off:
+                    qos.setDataSharingModeOff()
+                case .auto:
+                    qos.setDataSharingModeAuto()
+            }
+        }
+
+        // Set the publish mode.
+        if let publishMode {
+            qos.setPublishMode(async: publishMode == .async)
+        }
+
+        // Set the priority.
+        if let priority {
+            qos.setPriority(priority.value)
+        }
+
+        // Set the history depth.
+        if let historyDepth {
+            switch historyDepth {
+                case .endless:
+                    qos.setHistoryDepthEndless()
+                case .depth(let depth):
+                    qos.setHistoryDepth(depth)
+            }
+        }
+
+        // Set the timeout.
+        if let timeout {
+            qos.setMaxBlockingTime(Int32(timeout.components.seconds), UInt32(Double(timeout.components.attoseconds) * 1e-9))
+        }
+
+        // Set the reliability.
+        if let reliability {
+            qos.setReliability(reliability == .reliable)
+        }
+    }
 }
 
 extension DDSPublisher {

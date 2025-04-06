@@ -51,8 +51,8 @@ namespace FastDDS {
                 ret = publisherWrapper.publisher->get_datawriter_qos_from_profile(profile, qos);
             }
 
-            INLINE void setOperatingMode_ONCE(bool push) SWIFT_NAME(setOperatingMode_ONCE(push:)) {
-                qos.properties().properties().emplace_back("fastdds.push_mode", push ? "true" : "false");
+            INLINE void setOperatingMode(bool push) SWIFT_NAME(setOperatingMode(push:)) {
+                qos.properties().properties().emplace(qos.properties().properties().begin(), "fastdds.push_mode", push ? "true" : "false");
             }
 
             INLINE void setDataSharingModeOn(const char * _Nonnull dir) SWIFT_NAME(setDataSharingMode(dir:)) {
@@ -88,7 +88,7 @@ namespace FastDDS {
                 qos.reliability().kind = reliable ? eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS : eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS;
             }
 
-            INLINE void setPersistanceGUID_ONCE(GUID guid) {
+            INLINE void setPersistanceGUID(GUID guid) {
                 std::stringstream stream;
                 stream << guid;
                 qos.properties().properties().emplace_back("dds.persistence.guid", stream.str());

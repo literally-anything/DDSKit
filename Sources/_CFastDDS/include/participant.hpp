@@ -77,25 +77,55 @@ namespace FastDDS {
                 qos.name(eprosima::fastcdr::string_255(name));
             }
 
-            INLINE void setIgnoreLocalEndpoints_ONCE(bool ignore) {
+            INLINE void setIgnoreLocalEndpoints(bool ignore) {
                 qos.properties().properties().emplace_back("fastdds.ignore_local_endpoints", ignore ? "true" : "false");
             }
 
-            INLINE void setMaxMessageSize_ONCE(uint32_t size) {
+            INLINE void setMaxMessageSize(uint32_t size) {
                 qos.properties().properties().emplace_back("fastdds.max_message_size", std::to_string(size));
             }
 
-            INLINE void setTypePropagation_ONCE(std::string mode) {
+            INLINE void setTypePropagation(const std::string &mode) {
                 qos.properties().properties().emplace_back("fastdds.type_propagation", mode);
             }
 
-            INLINE void setEnabledStatistics_ONCE(std::string names) {
+            INLINE void setEnabledStatistics(const std::string &names) {
                 qos.properties().properties().emplace_back("fastdds.statistics", names);
             }
             
-            INLINE void setPersistenceSqlite_ONCE(std::string filename) {
+            INLINE void setPersistenceSqlite(const std::string &filename) {
                 qos.properties().properties().emplace_back("dds.persistence.plugin", "builtin.SQLITE3");
                 qos.properties().properties().emplace_back("dds.persistence.sqlite3.filename", filename);
+            }
+
+            INLINE void enableAuthentication(
+                const std::string &identityCa, const std::string &identityCert, const std::string &identityCrl,
+                const std::string &privateKey, const std::string &password, const std::string &preferredKeyAlgorithm
+            ) SWIFT_NAME(enableAuthentication(identityCa:identityCert:identityCrl:privateKey:password:preferredKeyAlgorithm:)) {
+                // enable authentication
+                qos.properties().properties().emplace_back("dds.sec.auth.plugin", "builtin.PKI-DH");
+
+                // setup identity
+                qos.properties().properties().emplace_back("dds.sec.auth.builtin.PKI-DH.identity_ca", identityCa);
+                qos.properties().properties().emplace_back("dds.sec.auth.builtin.PKI-DH.identity_certificate", identityCert);
+                qos.properties().properties().emplace_back("dds.sec.auth.builtin.PKI-DH.private_key", privateKey);
+
+                // optional parameters
+                qos.properties().properties().emplace_back("dds.sec.auth.builtin.PKI-DH.identity_crl", identityCrl);
+                qos.properties().properties().emplace_back("dds.sec.auth.builtin.PKI-DH.password", password);
+                qos.properties().properties().emplace_back("dds.sec.auth.builtin.PKI-DH.prefered_key_algorithm", preferredKeyAlgorithm);
+            }
+
+            INLINE void enableAccessControl(
+                const std::string &permissionsCa, const std::string &governance, const std::string &permissions
+            ) SWIFT_NAME(enableAccessControl(permissionsCa:governance:permissions:)) {
+                // enable access control
+                qos.properties().properties().emplace_back("dds.sec.access.plugin", "builtin.Access-Permissions");
+
+                // setup permissions
+                qos.properties().properties().emplace_back("dds.sec.access.builtin.Access-Permissions.permissions_ca", permissionsCa);
+                qos.properties().properties().emplace_back("dds.sec.access.builtin.Access-Permissions.governance", governance);
+                qos.properties().properties().emplace_back("dds.sec.access.builtin.Access-Permissions.permissions", permissions);
             }
 
             INLINE void setBuiltinTransports(const BuiltinTransports &transports) {

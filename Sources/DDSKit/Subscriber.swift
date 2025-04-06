@@ -45,39 +45,7 @@ public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
 
         var qos = FastDDS.DataReader.Qos(subscriber: topic.participant.rawSubscriber)
 
-        var enableFilter = false
-        for setting in settings {
-            switch setting {
-                case .loadProfile(let name):
-                    var ret: Int32 = 0
-                    qos = .init(subscriber: topic.participant.rawSubscriber, profileName: .init(name), ret: &ret)
-                    if let error = FastDDSErrorCode.check(ret) {
-                        throw .profileError(name: name, error)
-                    }
-                case .dataSharing(let mode):
-                    switch mode {
-                        case .on(let dir):
-                            qos.setDataSharingMode(dir: dir ?? "")
-                        case .off:
-                            qos.setDataSharingModeOff()
-                        case .auto:
-                            qos.setDataSharingModeAuto()
-                    }
-                case .historyDepth(let depth):
-                    switch depth {
-                        case .endless:
-                            qos.setHistoryDepthEndless()
-                        case .depth(let depth):
-                            qos.setHistoryDepth(depth)
-                    }
-                case .timeout(let timeout):
-                    qos.setMaxBlockingTime(Int32(timeout.components.seconds), UInt32(Double(timeout.components.attoseconds) * 1e-9))
-                case .reliability(let reliability):
-                    qos.setReliability(reliability == .reliable)
-                case .enableFilter:
-                    enableFilter = true
-            }
-        }
+        let enableFilteredTopic = try Self.parseSettings(settings: settings, subscriber: topic.participant.rawSubscriber, qos: &qos)
 
         var success = false
         raw = FastDDS.DataReader(
@@ -85,7 +53,7 @@ public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
             profile: qos,
             loanable: Self.isLoaningCompatible,
             success: &success,
-            enableFilter: enableFilter
+            enableFilter: enableFilteredTopic
         )
         if !success {
             throw DDSError.initializationError(from: .dataReader)
@@ -449,6 +417,88 @@ public enum DDSSubscriberSettings {
 extension DDSSubscriber {
     /// Settings for the subscriber.
     public typealias Setting = DDSSubscriberSettings
+
+    /// Parses the settings for the subscriber.
+    /// - Parameters:
+    ///   - settings: The settings to parse.
+    ///   - subscriber: The subscriber that is the parent of the data reader that is being configured.
+    ///   - qos: The qos to apply the settings to.
+    /// - Returns: Whether to try to use the content filtered topic instead of the normal topic.
+    /// - Throws: If an error occurs while parsing the settings.
+    private static func parseSettings(
+        settings: [Setting], subscriber: borrowing FastDDS.Subscriber, qos: inout FastDDS.DataReader.Qos
+    ) throws(DDSError) -> Bool {
+        guard !settings.isEmpty else {
+            return false
+        }
+
+        // The name of the XML profile to load.
+        var profileName: String?
+        // The data sharing mode of the subscriber.
+        var dataSharingMode: Setting.DataSharingMode?
+        // The history depth of the subscriber.
+        var historyDepth: Setting.HistoryDepth?
+        // The timeout for the subscriber.
+        var timeout: Duration?
+        // The reliability of the subscriber.
+        var reliability: Setting.Reliability?
+        // Whether to use the content filtered topic instead of the normal topic.
+        var enableFilter = false
+
+        for setting in settings {
+            switch setting {
+                case .loadProfile(let name): profileName = name
+                case .dataSharing(let mode): dataSharingMode = mode
+                case .historyDepth(let depth): historyDepth = depth
+                case .timeout(let t): timeout = t
+                case .reliability(let r): reliability = r
+                case .enableFilter: enableFilter = true
+            }
+        }
+
+        // If a profile name is set, load the profile.
+        if let profileName {
+            var ret: Int32 = 0
+            qos = .init(subscriber: subscriber, profileName: .init(profileName), ret: &ret)
+            if let error = FastDDSErrorCode.check(ret) {
+                throw .profileError(name: profileName, error)
+            }
+        }
+
+        // If a data sharing mode is set, set it.
+        if let dataSharingMode {
+            switch dataSharingMode {
+                case .on(let dir):
+                    qos.setDataSharingMode(dir: dir ?? "")
+                case .off:
+                    qos.setDataSharingModeOff()
+                case .auto:
+                    qos.setDataSharingModeAuto()
+            }
+        }
+
+        // If a history depth is set, set it.
+        if let historyDepth {
+            switch historyDepth {
+                case .endless:
+                    qos.setHistoryDepthEndless()
+                case .depth(let depth):
+                    qos.setHistoryDepth(depth)
+            }
+        }
+
+        // If a timeout is set, set it.
+        if let timeout {
+            qos.setMaxBlockingTime(Int32(timeout.components.seconds), UInt32(Double(timeout.components.attoseconds) * 1e-9))
+        }
+
+        // If a reliability is set, set it.
+        if let reliability {
+            qos.setReliability(reliability == .reliable)
+        }
+
+        return enableFilter
+    }
 }
 
 extension DDSSubscriber {

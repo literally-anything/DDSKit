@@ -84,7 +84,7 @@ namespace FastDDS {
                 qos.reliability().kind = reliable ? eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS : eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS;
             }
 
-            INLINE void setPersistanceGUID_ONCE(GUID guid) {
+            INLINE void setPersistanceGUID(GUID guid) {
                 std::stringstream stream;
                 stream << guid;
                 qos.properties().properties().emplace_back("dds.persistence.guid", stream.str());

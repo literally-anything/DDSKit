@@ -66,103 +66,7 @@ public final class DDSParticipant: @unchecked Sendable {
             qos.setName(cString)
         }
 
-        var ignoreLocalEndpoints = false
-        var typePropagationMode: Setting.TypePropagationMode = .enabled
-        var identifierPrefixMethod: Setting.IdentifierPrefixMethod = .internallyAssigned
-        var maxMessageSize: UInt32? = nil
-        var builtinTransportsMode: FastDDS.BuiltinTransports = .NONE
-        var userTransports: [DDSTransport] = []
-        var enabledStatistics: [String] = []
-        var persistencePlugin: Setting.PersistencePlugin? = nil
-        for setting in settings {
-            switch setting {
-                case .loadProfile(let name):
-                    var ret: Int32 = 0
-                    qos = .init(profileName: .init(name), ret: &ret)
-                    if let error = FastDDSErrorCode.check(ret) {
-                        throw .profileError(name: name, error)
-                    }
-                case .ignoreLocalEndpoints(let ignore):
-                    ignoreLocalEndpoints = ignore
-                case .identiferPrefixMethod(let method):
-                    identifierPrefixMethod = method
-                case .maxMessageSize(let size):
-                    maxMessageSize = size
-                case .typePropagation(let mode):
-                    typePropagationMode = mode
-                case .discovery(let mode):
-                    switch mode {
-                        case .simple(let enableMulticast, let initialPeers):
-                            qos.setDiscoveryModeSIMPLE()
-                            qos.setDiscoveryMulticast(enableMulticast)
-                            qos.setDiscoveryInitialPeers(.init(initialPeers.map { $0.locator }))
-                    }
-                case .transports(let transports):
-                    switch transports {
-                        case .default:
-                            builtinTransportsMode = .DEFAULT
-                        case .defaultv6:
-                            builtinTransportsMode = .DEFAULTv6
-                        case .largeData:
-                            builtinTransportsMode = .LARGE_DATA
-                        case .largeDatav6:
-                            builtinTransportsMode = .LARGE_DATAv6
-                        case .custom(let customTransports):
-                            userTransports.append(contentsOf: customTransports)
-                    }
-                case .statistics(let names):
-                    enabledStatistics += names
-                case .persistence(let plugin):
-                    persistencePlugin = plugin
-            }
-        }
-
-        qos.setIgnoreLocalEndpoints_ONCE(ignoreLocalEndpoints)
-
-        // Set the type propagation mode
-        switch typePropagationMode {
-            case .enabled:
-                qos.setTypePropagation_ONCE("enabled")
-            case .disabled:
-                qos.setTypePropagation_ONCE("disabled")
-            case .minimal:
-                qos.setTypePropagation_ONCE("minimal_bandwidth")
-            case .registrationOnly:
-                qos.setTypePropagation_ONCE("registration_only")
-        }
-
-        if let maxMessageSize {
-            qos.setMaxMessageSize_ONCE(maxMessageSize)
-        }
-
-        // If there are no user transports, we use the built-in transports, but otherwise we only use built-in transports if they are explicitly enabled.
-        if userTransports.isEmpty {
-            builtinTransportsMode = .DEFAULT
-        }
-        qos.setBuiltinTransports(builtinTransportsMode)
-        for transport in userTransports {
-            switch transport {
-                case .sharedMemory(let segmentSize, let queueCapacity, let healthTimeout, let common):
-                    qos.addUserTransportSHM(segmentSize: segmentSize, queueCapacity: queueCapacity, healthTimeout: healthTimeout, common: .init(common))
-                case .udp4(let outPort, let common, let networkSettings):
-                    qos.addUserTransportUDPv4(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
-                case .udp6(let outPort, let common, let networkSettings):
-                    qos.addUserTransportUDPv6(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
-                case .custom(let descriptor):
-                    qos.addUserTransportCustom(descriptor: .init(descriptor))
-            }
-        }
-
-        // Statistics are a comma separated list of enabled statistics topics.
-        qos.setEnabledStatistics_ONCE(.init(enabledStatistics.joined(separator: ";")))
-
-        // Set the persistence plugin
-        switch persistencePlugin {
-            case .sqlite3(let filename):
-                qos.setPersistenceSqlite_ONCE(.init(filename))
-            case .none:
-                break
-        }
+        let postSetup = try Self.parseSettings(settings: settings, qos: &qos, logger: logger)
 
         var success = false
 
@@ -175,31 +79,7 @@ public final class DDSParticipant: @unchecked Sendable {
             throw DDSError.initializationError(from: .participant)
         }
 
-        // Set after creating the participant but before enabling, so the base of the GUID will be generated, but can still be modified.
-        switch identifierPrefixMethod {
-            case .internallyAssigned:
-                break
-            case .hostUnique:
-                let hostIdentifier = FastDDS.getMachineId()
-#if DEBUG
-                // When debugging, check that the host identifier doesn't change between calls to passively ensure that this mechanism works.
-                struct MachineIDDebug { static let uniqueId: Mutex<UInt16?> = .init(nil) }
-                MachineIDDebug.uniqueId.withLock { uniqueId in
-                    if uniqueId == nil {
-                        uniqueId = hostIdentifier
-                    } else {
-                        assert(uniqueId == hostIdentifier, "Host identifier changed between calls")
-                    }
-                }
-#endif
-                guard hostIdentifier != 0 else {
-                    logger.warning("Failed to get host identifier, falling back to .internallyAssigned prefix")
-                    break
-                }
-                try FastDDSErrorCode.checkThrowInternal(raw.setGuidPrefix(hostInfo: hostIdentifier))
-            case .userAssigned(let userPrefix):
-                try FastDDSErrorCode.checkThrowInternal(raw.setGuidPrefix(prefix: userPrefix.guidPrefix))
-        }
+        try postSetup(&raw, logger)
 
         // If this isn't enabled before creating the publisher and subscriber, it segfaults when creating a reader or witer.
         try FastDDSErrorCode.checkThrow(raw.enable(), from: .participant)
@@ -350,6 +230,7 @@ extension DDSParticipant {
     /// If multiple settings of the same type are provided, the last one will be used unless otherwise specified.
     public enum Setting {
         /// Loads a profile with the specified name from an XML file.
+        /// This will be loaded before applying any other settings, and only the last one will be used.
         /// These are documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/xml_configuration/xml_configuration.html
         /// - Warning: This is not recommended because there are many settings that aren't accounted for in this library, and messing with them can cause undefined behavior.
         /// - Parameter name: The name of the profile to load.
@@ -392,6 +273,32 @@ extension DDSParticipant {
         /// The last one will be used if multiple are provided.
         /// `nil` is the default and means that persistence is disabled.
         case persistence(PersistencePlugin?)
+
+        /// Enables and configures the authentication plugin for the participant.
+        /// The last setting to be applied will be used.
+        /// - Parameters:
+        ///   - identityCA: The path to the identity CA certificate.
+        ///   - identityCertificate: The path to the signed identity certificate.
+        ///   - privateKey: The path to the private key. This can either be a file path or a PKCS#11 URL (which is stored on the HSM).
+        ///   - password: The password to decrypt the private key. This is optional and will be ignored if the private key is a PKCS#11 URL.
+        ///   - identityCrl: The path to a CRL (Certificate Revocation List). This is optional.
+        ///   - prefferedKeyAlgorithm: The preferred key algorithm to use. If this is not provided, this will decided automatically.
+        case authentication(
+            identityCA: String, identityCertificate: String,
+            privateKey: String, password: String? = nil,
+            identityCrl: String? = nil, prefferedKeyAlgorithm: AuthenticationPreferedKeyAlgorithm? = nil
+        )
+
+        /// Enables and configures the access control plugin for the participant.
+        /// The last setting to be applied will be used.
+        /// - Parameters:
+        ///   - permissionsCA: The path to the permissions CA certificate.
+        ///   - governance: The path to the governance file in S/MIME format signed by the permissions CA.
+        ///   - permissions: The path to the permissions file in S/MIME format signed by the permissions CA.
+        case accessControl(
+            permissionsCA: String,
+            governance: String, permissions: String
+        )
 
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
@@ -487,6 +394,211 @@ extension DDSParticipant {
             /// Use sqlite3 for persistence.
             /// - Parameter filename: The name of the sqlite3 file to use for persistence.
             case sqlite3(filename: String)
+        }
+
+        /// The preffered key algorithm to use for authentication.
+        public enum AuthenticationPreferedKeyAlgorithm: String {
+            /// The DH key algorithm (Diffie-Hellman Ephemeral with 2048-bit MODP Group parameters).
+            case dh = "DH+MODP-2048-256"
+            /// The ECDH key algorithm (Elliptic Curve Diffie-Hellman Ephemeral with the NIST P-256 curve).
+            case ecdh = "ECDH+prime256v1-CEUM"
+        }
+    }
+
+    /// Parses the settings and applies them to the qos.
+    /// - Parameters:
+    ///   - settings: The settings to parse.
+    ///   - qos: The qos to apply the settings to.
+    ///   - logger: The logger to use for logging.
+    /// - Returns: A post-setup function that will be called after the participant is created.
+    /// - Throws: DDSError if a loadProfile setting fails to load.
+    private static func parseSettings(
+        settings: [Setting], qos: inout FastDDS.Participant.Qos, logger: borrowing Logger
+    ) throws(DDSError) -> (inout FastDDS.Participant, borrowing Logger) throws(DDSError) -> Void {
+        guard !settings.isEmpty else {
+            return { _, _ in }
+        }
+
+        // The name of the XML profile to load.
+        var profileName: String?
+        // Whether to ignore local participants.
+        var ignoreLocalEndpoints: Bool?
+        // The method to use to get the entity identifier prefix for the participant.
+        // This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
+        var identifierPrefixMethod: Setting.IdentifierPrefixMethod = .internallyAssigned
+        // The maximum size of a message that can be sent or received.
+        var maxMessageSize: UInt32?
+        // The mode to use to propagate data types to other participants.
+        var typePropagationMode: Setting.TypePropagationMode?
+        // The mode to use for discovery.
+        var discoveryMode: Setting.DiscoveryMode?
+        // The built-in transports mode and the user-defined transports.
+        var builtinTransportsMode: FastDDS.BuiltinTransports = .NONE
+        var userTransports: [DDSTransport] = []
+        // The enabled statistics module topics.
+        var enabledStatistics: [String] = []
+        // The persistence plugin to use for the participant.
+        var persistencePlugin: Setting.PersistencePlugin?
+        // The authentication settings to use for the participant.
+        var authenticationSettings: (ca: String, cert: String, key: String, pass: String?, crl: String?, keyAlgorithm: String?)? = nil
+        // The access control settings to use for the participant.
+        var accessControlSettings: (ca: String, governance: String, permissions: String)? = nil
+
+        for setting in settings {
+            switch setting {
+                case .loadProfile(let name): profileName = name
+                case .ignoreLocalEndpoints(let ignore): ignoreLocalEndpoints = ignore
+                case .identiferPrefixMethod(let method): identifierPrefixMethod = method
+                case .maxMessageSize(let size): maxMessageSize = size
+                case .typePropagation(let mode): typePropagationMode = mode
+                case .discovery(let mode): discoveryMode = mode
+                case .transports(let transports):
+                    switch transports {
+                        case .default:
+                            builtinTransportsMode = .DEFAULT
+                        case .defaultv6:
+                            builtinTransportsMode = .DEFAULTv6
+                        case .largeData:
+                            builtinTransportsMode = .LARGE_DATA
+                        case .largeDatav6:
+                            builtinTransportsMode = .LARGE_DATAv6
+                        case .custom(let customTransports):
+                            userTransports.append(contentsOf: customTransports)
+                    }
+                case .statistics(let names): enabledStatistics += names
+                case .persistence(let plugin): persistencePlugin = plugin
+                case .authentication(
+                    let identityCA, let identityCertificate,
+                    let privateKey, let password,
+                    let identityCrl, let prefferedKeyAlgorithm
+                ):
+                    authenticationSettings = (identityCA, identityCertificate, privateKey, password, identityCrl, prefferedKeyAlgorithm?.rawValue)
+                case .accessControl(let permissionsCA, let governance, let permissions):
+                    accessControlSettings = (permissionsCA, governance, permissions)
+            }
+        }
+
+        // Load the profile if it was specified.
+        if let profileName {
+            var ret: Int32 = 0
+            qos = .init(profileName: .init(profileName), ret: &ret)
+            if let error = FastDDSErrorCode.check(ret) {
+                throw .profileError(name: profileName, error)
+            }
+        }
+
+        // Set the ignore local endpoints setting.
+        if let ignoreLocalEndpoints {
+            qos.setIgnoreLocalEndpoints(ignoreLocalEndpoints)
+        }
+
+        // Set the maximum message size.
+        if let maxMessageSize {
+            qos.setMaxMessageSize(maxMessageSize)
+        }
+
+        // Set the type propagation mode.
+        if let typePropagationMode {
+            switch typePropagationMode {
+                case .enabled:
+                    qos.setTypePropagation("enabled")
+                case .disabled:
+                    qos.setTypePropagation("disabled")
+                case .minimal:
+                    qos.setTypePropagation("minimal_bandwidth")
+                case .registrationOnly:
+                    qos.setTypePropagation("registration_only")
+            }
+        }
+
+        // Set the discovery mode.
+        if let discoveryMode {
+            switch discoveryMode {
+                case .simple(let enableMulticast, let initialPeers):
+                    qos.setDiscoveryModeSIMPLE()
+                    qos.setDiscoveryMulticast(enableMulticast)
+                    qos.setDiscoveryInitialPeers(.init(initialPeers.map { $0.locator }))
+            }
+        }
+
+        // If there are no user transports, we use the built-in transports, but otherwise we only use built-in transports if they are explicitly enabled.
+        if userTransports.isEmpty {
+            builtinTransportsMode = .DEFAULT
+        }
+        qos.setBuiltinTransports(builtinTransportsMode)
+        for transport in userTransports {
+            switch transport {
+                case .sharedMemory(let segmentSize, let queueCapacity, let healthTimeout, let common):
+                    qos.addUserTransportSHM(segmentSize: segmentSize, queueCapacity: queueCapacity, healthTimeout: healthTimeout, common: .init(common))
+                case .udp4(let outPort, let common, let networkSettings):
+                    qos.addUserTransportUDPv4(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
+                case .udp6(let outPort, let common, let networkSettings):
+                    qos.addUserTransportUDPv6(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
+                case .custom(let descriptor):
+                    qos.addUserTransportCustom(descriptor: .init(descriptor))
+            }
+        }
+
+        // Setup statistics.
+        if !enabledStatistics.isEmpty {
+            // Statistics are a comma separated list of enabled statistics topics.
+            qos.setEnabledStatistics(.init(enabledStatistics.joined(separator: ";")))
+        }
+
+        // Set the persistence plugin.
+        if let persistencePlugin {
+            switch persistencePlugin {
+                case .sqlite3(let filename):
+                    qos.setPersistenceSqlite(.init(filename))
+            }
+        }
+
+        // Setup the authentication plugin.
+        if let authenticationSettings {
+            qos.enableAuthentication(
+                identityCa: .init(authenticationSettings.ca),
+                identityCert: .init(authenticationSettings.cert),
+                identityCrl: .init(authenticationSettings.crl ?? ""),
+                privateKey: .init(authenticationSettings.key),
+                password: .init(authenticationSettings.pass ?? ""),
+                preferredKeyAlgorithm: .init(authenticationSettings.keyAlgorithm ?? "")
+            )
+        }
+
+        // Setup the access control plugin.
+        if let accessControlSettings {
+            qos.enableAccessControl(
+                permissionsCa: .init(accessControlSettings.ca),
+                governance: .init(accessControlSettings.governance),
+                permissions: .init(accessControlSettings.permissions)
+            )
+        }
+
+        return { participant, logger throws(DDSError) in
+            // Set after creating the participant but before enabling, so the base of the GUID will be generated, but can still be modified.
+            switch identifierPrefixMethod {
+                case .internallyAssigned: break // Nothing to do here, this is the default
+                case .hostUnique:
+                    let hostIdentifier = FastDDS.getMachineId()
+                    #if DEBUG
+                        // When debugging, check that the host identifier doesn't change between calls to passively ensure that this mechanism works.
+                        struct MachineIDDebug { static let uniqueId: Mutex<UInt16?> = .init(nil) }
+                        MachineIDDebug.uniqueId.withLock { uniqueId in
+                            if uniqueId == nil {
+                                uniqueId = hostIdentifier
+                            } else {
+                                assert(uniqueId == hostIdentifier, "Host identifier changed between calls")
+                            }
+                        }
+                    #endif
+                    guard hostIdentifier != 0 else {
+                        logger.warning("Failed to get host identifier, falling back to .internallyAssigned prefix")
+                        break
+                    }
+                    try FastDDSErrorCode.checkThrowInternal(participant.setGuidPrefix(hostInfo: hostIdentifier))
+                case .userAssigned(let userPrefix):
+                    try FastDDSErrorCode.checkThrowInternal(participant.setGuidPrefix(prefix: userPrefix.guidPrefix))
+            }
         }
     }
 }
