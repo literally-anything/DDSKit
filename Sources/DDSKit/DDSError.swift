@@ -59,6 +59,13 @@ public enum DDSError: Error {
         /// Thrown when the library fails to load an XML profile.
         /// - Parameter name: The name of the profile that failed to load.
         case profile(name: String, FastDDSErrorCode)
+
+        /// Thrown when a setting's requirements are not satisfied when the setting is set.
+        /// - Parameters:
+        ///   - setting: The setting that failed to satisfy the requirements.
+        ///   - requirements: The requirements that were not satisfied.
+        ///   - message: A message to describe the reason why the error occurred.
+        case requirementUnsatisfied(setting: String, requirements: String, message: String)
     }
 
     /// A type of FastDDS entity.

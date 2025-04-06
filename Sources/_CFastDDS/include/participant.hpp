@@ -128,6 +128,10 @@ namespace FastDDS {
                 qos.properties().properties().emplace_back("dds.sec.access.builtin.Access-Permissions.permissions", permissions);
             }
 
+            INLINE void enableEncryption() {
+                qos.properties().properties().emplace_back("dds.sec.crypto.plugin", "builtin.AES-GCM-GMAC");
+            }
+
             INLINE void setBuiltinTransports(const BuiltinTransports &transports) {
                 qos.setup_transports(transports);
                 qos.transport().use_builtin_transports = transports != BuiltinTransports::NONE;

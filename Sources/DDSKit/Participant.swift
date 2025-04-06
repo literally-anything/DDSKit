@@ -282,11 +282,11 @@ extension DDSParticipant {
         /// Enables and configures the authentication plugin for the participant.
         /// The last setting to be applied will be used.
         /// - Parameters:
-        ///   - identityCA: The path to the identity CA certificate.
-        ///   - identityCertificate: The path to the signed identity certificate.
-        ///   - privateKey: The path to the private key. This can either be a file path or a PKCS#11 URL (which is stored on the HSM).
+        ///   - identityCA: The path to the identity CA certificate. This should be a full url (i.e. `file://`).
+        ///   - identityCertificate: The path to the signed identity certificate. This should be a full url (i.e. `file://`).
+        ///   - privateKey: The path to the private key. This can either be a file path or a PKCS#11 URL (stored on an HSM). This should be a full url (i.e. `file://`).
         ///   - password: The password to decrypt the private key. This is optional and will be ignored if the private key is a PKCS#11 URL.
-        ///   - identityCrl: The path to a CRL (Certificate Revocation List). This is optional.
+        ///   - identityCrl: The path to a CRL (Certificate Revocation List). This should be a full url (i.e. `file://`). This is optional.
         ///   - prefferedKeyAlgorithm: The preferred key algorithm to use. If this is not provided, this will decided automatically.
         case authentication(
             identityCA: String, identityCertificate: String,
@@ -297,13 +297,18 @@ extension DDSParticipant {
         /// Enables and configures the access control plugin for the participant.
         /// The last setting to be applied will be used.
         /// - Parameters:
-        ///   - permissionsCA: The path to the permissions CA certificate.
-        ///   - governance: The path to the governance file in S/MIME format signed by the permissions CA.
-        ///   - permissions: The path to the permissions file in S/MIME format signed by the permissions CA.
+        ///   - permissionsCA: The path to the permissions CA certificate. This should be a full url (i.e. `file://`).
+        ///   - governance: The path to the governance file in S/MIME format signed by the permissions CA. This should be a full url (i.e. `file://`).
+        ///   - permissions: The path to the permissions file in S/MIME format signed by the permissions CA. This should be a full url (i.e. `file://`).
         case accessControl(
             permissionsCA: String,
             governance: String, permissions: String
         )
+
+        /// Enables and configures the encryption plugin for the participant.
+        /// Both the authentication and access control plugins must be enabled for this to work.
+        /// This uses the identity from the authentication plugin and the permissions from the access control plugin.
+        case encryption
 
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
@@ -397,7 +402,7 @@ extension DDSParticipant {
         /// The persistence plugin to use for the participant.
         public enum PersistencePlugin {
             /// Use sqlite3 for persistence.
-            /// - Parameter filename: The name of the sqlite3 file to use for persistence.
+            /// - Parameter filename: The name of the sqlite3 file to use for persistence. This should be a full url (i.e. `file://`).
             case sqlite3(filename: String)
         }
 
@@ -448,6 +453,8 @@ extension DDSParticipant {
         var authenticationSettings: (ca: String, cert: String, key: String, pass: String?, crl: String?, keyAlgorithm: String?)? = nil
         // The access control settings to use for the participant.
         var accessControlSettings: (ca: String, governance: String, permissions: String)? = nil
+        // Whether to enable the encryption plugin.
+        var encryptionEnabled: Bool = false
 
         for setting in settings {
             switch setting {
@@ -480,6 +487,7 @@ extension DDSParticipant {
                     authenticationSettings = (identityCA, identityCertificate, privateKey, password, identityCrl, prefferedKeyAlgorithm?.rawValue)
                 case .accessControl(let permissionsCA, let governance, let permissions):
                     accessControlSettings = (permissionsCA, governance, permissions)
+                case .encryption: encryptionEnabled = true
             }
         }
 
@@ -577,6 +585,24 @@ extension DDSParticipant {
                 governance: .init(accessControlSettings.governance),
                 permissions: .init(accessControlSettings.permissions)
             )
+        }
+
+        // Setup the encryption plugin.
+        if encryptionEnabled {
+            guard authenticationSettings != nil && accessControlSettings != nil else {
+                let requirementsEnabled = [
+                    authenticationSettings != nil ? ".authentication" : nil,
+                    accessControlSettings != nil ? ".accessControl" : nil
+                ]
+                let requirements = requirementsEnabled.compactMap { $0 != nil ? $0! : nil }.joined(separator: ", ")
+                throw .requirementUnsatisfied(
+                    setting: ".encryption",
+                    requirements: requirements,
+                    message: "The encryption plugin requires the authentication and access control plugins to be enabled."
+                )
+            }
+
+            qos.enableEncryption()
         }
 
         return { participant, logger throws(DDSError) in
