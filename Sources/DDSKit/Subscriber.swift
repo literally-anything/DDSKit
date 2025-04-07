@@ -466,7 +466,7 @@ extension DDSSubscriber {
             var ret: Int32 = 0
             qos = .init(subscriber: subscriber, profileName: .init(profileName), ret: &ret)
             if let error = FastDDSErrorCode.check(ret) {
-                throw .profile(name: profileName, error)
+                throw .profile(name: profileName, message: "Failed to load Subscriber QOS profile: \(error)")
             }
         }
 

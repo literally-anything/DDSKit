@@ -483,7 +483,7 @@ extension DDSPublisher {
             var ret: Int32 = 0
             qos = .init(publisher: publisher, profileName: .init(profileName), ret: &ret)
             if let error = FastDDSErrorCode.check(ret) {
-                throw .profile(name: profileName, error)
+                throw .profile(name: profileName, message: "Failed to load DataWriter QOS profile: \(error)")
             }
         }
 

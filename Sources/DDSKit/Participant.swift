@@ -282,11 +282,11 @@ extension DDSParticipant {
         /// Enables and configures the authentication plugin for the participant.
         /// The last setting to be applied will be used.
         /// - Parameters:
-        ///   - identityCA: The path to the identity CA certificate. This should be a full url (i.e. `file://`).
-        ///   - identityCertificate: The path to the signed identity certificate. This should be a full url (i.e. `file://`).
-        ///   - privateKey: The path to the private key. This can either be a file path or a PKCS#11 URL (stored on an HSM). This should be a full url (i.e. `file://`).
+        ///   - identityCA: The path to the identity CA certificate.
+        ///   - identityCertificate: The path to the signed identity certificate.
+        ///   - privateKey: The path to the private key. This can either be a file path or a PKCS#11 URL (stored on an HSM).
         ///   - password: The password to decrypt the private key. This is optional and will be ignored if the private key is a PKCS#11 URL.
-        ///   - identityCrl: The path to a CRL (Certificate Revocation List). This should be a full url (i.e. `file://`). This is optional.
+        ///   - identityCrl: The path to a CRL (Certificate Revocation List). This is optional.
         ///   - prefferedKeyAlgorithm: The preferred key algorithm to use. If this is not provided, this will decided automatically.
         case authentication(
             identityCA: String, identityCertificate: String,
@@ -297,9 +297,9 @@ extension DDSParticipant {
         /// Enables and configures the access control plugin for the participant.
         /// The last setting to be applied will be used.
         /// - Parameters:
-        ///   - permissionsCA: The path to the permissions CA certificate. This should be a full url (i.e. `file://`).
-        ///   - governance: The path to the governance file in S/MIME format signed by the permissions CA. This should be a full url (i.e. `file://`).
-        ///   - permissions: The path to the permissions file in S/MIME format signed by the permissions CA. This should be a full url (i.e. `file://`).
+        ///   - permissionsCA: The path to the permissions CA certificate.
+        ///   - governance: The path to the governance file in S/MIME format signed by the permissions CA.
+        ///   - permissions: The path to the permissions file in S/MIME format signed by the permissions CA.
         case accessControl(
             permissionsCA: String,
             governance: String, permissions: String
@@ -372,10 +372,46 @@ extension DDSParticipant {
             /// Use the STATIC discovery mode.
             /// 
             /// The Participant Discovery Phase (PDP) will identify the participants in the network using multicast (default) or unicast.
-            /// But, the Endpoint Discovery Phase (EDP) is not used. This means that 
-            // case `static`()
+            /// But, the Endpoint Discovery Phase (EDP) is not used. This means that you have to manually configure the data readers and writers of each participant.
+            /// This is documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/discovery/static.html#static-discovery-settings
+            ///
+            /// To only use unicast for discovery, set `enableMulticast` to false, and add every participant's address to `initialPeers`.
+            /// `initialPeers` can also be used with multicast enabled in situations where multicast is not possible or unreliable (for example, on WiFi).
+            /// 
+            /// If there are multiple discovery mode settings, the last one will be used, but the `initialPeers` will be combined.
+            ///
+            /// - Parameter config: The XML configuration file to use for the static discovery mode.
+            case `static`(config: String, enableMulticast: Bool = true, initialPeers: [SocketAddress] = [])
 
-            //case discoveryServer
+            /// Use the discovery server mode.
+            ///
+            /// All participants will connect to a discovery server, which will handle the exchange of discovery information.
+            /// This is documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/discovery/discovery_server.html
+            ///
+            /// There are three types of discovery server modes: server, client, and backupServer.
+            /// Server makes this participant a discovery server.
+            /// BackupServer makes this participant a discovery server that also stores the discovery information in persistant storage.
+            /// 
+            /// - Parameter mode: The mode to use for the discovery server.
+            case server(mode: DiscoveryServerMode)
+
+            /// The mode to use for the discovery server.
+            public enum DiscoveryServerMode {
+                /// The participant will act as a discovery server.
+                /// - Parameters:
+                ///   - servers: A list of discovery servers' adresses to connect to (as a client).
+                ///   - serverLocators: A list of socket addresses that this server is able to be found at using unicast.
+                case server(servers: [SocketAddress], serverLocators: [SocketAddress])
+                /// The participant will act as a backup discovery server.
+                /// This will store the discovery information in persistant storage.
+                /// - Parameters:
+                ///   - servers: A list of discovery servers' adresses to connect to (as a client).
+                ///   - serverLocators: A list of socket addresses that this server is able to be found at using unicast.
+                case backupServer(servers: [SocketAddress], serverLocators: [SocketAddress])
+                /// The participant will act as a discovery client.
+                /// - Parameter servers: A list of discovery servers' adresses to connect to.
+                case client(servers: [SocketAddress])
+            }
         }
 
         /// The transports to use for the participant and all children.
@@ -415,7 +451,7 @@ extension DDSParticipant {
         /// The persistence plugin to use for the participant.
         public enum PersistencePlugin {
             /// Use sqlite3 for persistence.
-            /// - Parameter filename: The name of the sqlite3 file to use for persistence. This should be a full url (i.e. `file://`).
+            /// - Parameter filename: The name of the sqlite3 file to use for persistence.
             case sqlite3(filename: String)
         }
 
@@ -455,6 +491,7 @@ extension DDSParticipant {
         var typePropagationMode: Setting.TypePropagationMode?
         // The mode to use for discovery.
         var discoveryMode: Setting.DiscoveryMode?
+        var initialPeers: [SocketAddress] = []
         // The built-in transports mode and the user-defined transports.
         var builtinTransportsMode: FastDDS.BuiltinTransports = .NONE
         var userTransports: [DDSTransport] = []
@@ -476,7 +513,13 @@ extension DDSParticipant {
                 case .identiferPrefixMethod(let method): identifierPrefixMethod = method
                 case .maxMessageSize(let size): maxMessageSize = size
                 case .typePropagation(let mode): typePropagationMode = mode
-                case .discovery(let mode): discoveryMode = mode
+                case .discovery(let mode):
+                    discoveryMode = mode
+                    switch mode {
+                        case .simple(_, let peers): initialPeers += peers
+                        case .static(_, _, let peers): initialPeers += peers
+                        case .server(_): break
+                    }
                 case .transports(let transports):
                     switch transports {
                         case .default:
@@ -509,7 +552,7 @@ extension DDSParticipant {
             var ret: Int32 = 0
             qos = .init(profileName: .init(profileName), ret: &ret)
             if let error = FastDDSErrorCode.check(ret) {
-                throw .profile(name: profileName, error)
+                throw .profile(name: profileName, message: "Failed to load Participant QOS profile: \(error)")
             }
         }
 
@@ -548,12 +591,30 @@ extension DDSParticipant {
         // Set the discovery mode.
         if let discoveryMode {
             switch discoveryMode {
-                case .simple(let enableMulticast, let initialPeers):
-                    qos.setDiscoveryModeSIMPLE()
-                    qos.setDiscoveryMulticast(enableMulticast)
-                    qos.setDiscoveryInitialPeers(.init(initialPeers.map { $0.locator }))
+                case .simple(let enableMulticast, _):
+                    qos.setDiscoveryModeSIMPLE(readOnly: false, writeOnly: false)
+                    if !enableMulticast {
+                        qos.disableDiscoveryMulticast()
+                    }
+                case .static(let configFile, let enableMulticast, _):
+                    guard qos.setDiscoveryModeSTATIC(.init(configFile)) else {
+                        throw .profile(name: configFile, message: "Failed to load static EDP XML config file: \(discoveryMode)")
+                    }
+                    if !enableMulticast {
+                        qos.disableDiscoveryMulticast()
+                    }
+                case .server(let mode):
+                    switch mode {
+                        case .server(let servers, let serverLocators):
+                            qos.setDiscoveryModeSERVER(.init(servers.map { $0.locator }), .init(serverLocators.map { $0.locator }))
+                        case .backupServer(let servers, let serverLocators):
+                            qos.setDiscoveryModeBACKUP(.init(servers.map { $0.locator }), .init(serverLocators.map { $0.locator }))
+                        case .client(let servers):
+                            qos.setDiscoveryModeCLIENT(.init(servers.map { $0.locator }))
+                    }
             }
         }
+        qos.setDiscoveryInitialPeers(.init(initialPeers.map { $0.locator }))
 
         // If there are no user transports, we use the built-in transports, but otherwise we only use built-in transports if they are explicitly enabled.
         if userTransports.isEmpty {

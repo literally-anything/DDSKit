@@ -8,8 +8,10 @@
 #pragma once
 
 #include <cstdint>
+#include <fastdds/dds/core/detail/DDSReturnCode.hpp>
 #include <fastdds/dds/log/Log.hpp>
 #include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/common/Locator.hpp>
 #include <fastdds/rtps/transport/TransportInterface.hpp>
 #include <memory>
 #include <string>
@@ -47,10 +49,29 @@ namespace FastDDS {
     using NetmaskFilterKind = eprosima::fastdds::rtps::NetmaskFilterKind;
     using Locator = eprosima::fastdds::rtps::Locator_t;
 
+    INLINE bool Locator_isIPV4(const std::string &address) {
+        return eprosima::fastdds::rtps::IPLocator::isIPv4(address);
+    }
+    INLINE bool Locator_isIPV6(const std::string &address) {
+        return eprosima::fastdds::rtps::IPLocator::isIPv6(address);
+    }
+    INLINE std::pair<bool, std::pair<bool, std::string>> Locator_lookupDNS(const std::string &name) {
+        auto results = eprosima::fastdds::rtps::IPLocator::resolveNameDNS(name);
+
+        if (!results.second.empty()) {
+            return {/*success:*/true, {/*isIPv6:*/true, /*address:*/*results.second.begin()}};
+        } else if (!results.first.empty()) {
+            return {/*success:*/true, {/*isIPv6:*/false, /*address:*/*results.first.begin()}};
+        } else {
+            return {/*success:*/false, {}};
+        }
+    }
     INLINE void Locator_setIPV4(Locator &locator, const std::string &ipv4) {
+        locator.kind = LOCATOR_KIND_UDPv4;
         eprosima::fastdds::rtps::IPLocator::setIPv4(locator, ipv4);
     }
     INLINE void Locator_setIPV6(Locator &locator, const std::string &ipv4) {
+        locator.kind = LOCATOR_KIND_UDPv6;
         eprosima::fastdds::rtps::IPLocator::setIPv4(locator, ipv4);
     }
 
@@ -246,22 +267,54 @@ namespace FastDDS {
                 qos.transport().user_transports.push_back(descriptor);
             }
 
-            INLINE void setDiscoveryModeSIMPLE() {
+            INLINE void setDiscoveryModeSIMPLE(bool readOnly, bool writeOnly) SWIFT_NAME(setDiscoveryModeSIMPLE(readOnly:writeOnly:)) {
                 qos.wire_protocol().builtin.discovery_config.use_SIMPLE_EndpointDiscoveryProtocol = true;
                 qos.wire_protocol().builtin.discovery_config.use_STATIC_EndpointDiscoveryProtocol = false;
                 qos.wire_protocol().builtin.discovery_config.discoveryProtocol = eprosima::fastdds::rtps::DiscoveryProtocol::SIMPLE;
+
+                qos.wire_protocol().builtin.discovery_config.m_simpleEDP.use_PublicationWriterANDSubscriptionReader = !readOnly;
+                qos.wire_protocol().builtin.discovery_config.m_simpleEDP.use_PublicationReaderANDSubscriptionWriter = !writeOnly;
             }
-            INLINE void setDiscoveryModeSTATIC() {
+            NODISCARD INLINE bool setDiscoveryModeSTATIC(const std::string &configFile) {
+                auto ret = getFactory()->check_xml_static_discovery(const_cast<std::string &>(configFile));
+                if (ret != eprosima::fastdds::dds::RETCODE_OK) {
+                    return false;
+                }
+
                 qos.wire_protocol().builtin.discovery_config.use_SIMPLE_EndpointDiscoveryProtocol = false;
                 qos.wire_protocol().builtin.discovery_config.use_STATIC_EndpointDiscoveryProtocol = true;
                 qos.wire_protocol().builtin.discovery_config.discoveryProtocol = eprosima::fastdds::rtps::DiscoveryProtocol::SIMPLE; // There is no STATIC for this
+
+                return true;
             }
-            INLINE void setDiscoveryMulticast(bool useMulticast) {
-                qos.wire_protocol().builtin.metatrafficMulticastLocatorList.clear();
-                if (!useMulticast) {
-                    Locator locator; // Empty locator
-                    qos.wire_protocol().builtin.metatrafficMulticastLocatorList.push_back(locator);
+            INLINE void setDiscoveryModeSERVER(const std::vector<Locator> &servers, const std::vector<Locator> &metatrafficLocators) {
+                qos.wire_protocol().builtin.discovery_config.discoveryProtocol = eprosima::fastdds::rtps::DiscoveryProtocol::SERVER;
+                for (auto &locator : servers) {
+                    qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
                 }
+                for (auto &locator : metatrafficLocators) {
+                    qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
+                }
+            }
+            INLINE void setDiscoveryModeBACKUP(const std::vector<Locator> &servers, const std::vector<Locator> &metatrafficLocators) {
+                qos.wire_protocol().builtin.discovery_config.discoveryProtocol = eprosima::fastdds::rtps::DiscoveryProtocol::BACKUP;
+                for (auto &locator : servers) {
+                    qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
+                }
+                for (auto &locator : metatrafficLocators) {
+                    qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
+                }
+            }
+            INLINE void setDiscoveryModeCLIENT(const std::vector<Locator> &servers) {
+                qos.wire_protocol().builtin.discovery_config.discoveryProtocol = eprosima::fastdds::rtps::DiscoveryProtocol::CLIENT;
+                for (auto &locator : servers) {
+                    qos.wire_protocol().builtin.discovery_config.m_DiscoveryServers.push_back(locator);
+                }
+            }
+            INLINE void disableDiscoveryMulticast() {
+                qos.wire_protocol().builtin.metatrafficMulticastLocatorList.clear();
+                Locator locator; // Empty locator
+                qos.wire_protocol().builtin.metatrafficMulticastLocatorList.push_back(locator);
             }
             INLINE void setDiscoveryInitialPeers(const std::vector<Locator> &peers) {
                 for (auto &peer : peers) {

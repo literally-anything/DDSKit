@@ -58,7 +58,7 @@ public enum DDSError: Error {
     public enum ConfigurationError: Error {
         /// Thrown when the library fails to load an XML profile.
         /// - Parameter name: The name of the profile that failed to load.
-        case profile(name: String, FastDDSErrorCode)
+        case profile(name: String, message: String)
 
         /// Thrown when a setting's requirements are not satisfied when the setting is set.
         /// - Parameters:
