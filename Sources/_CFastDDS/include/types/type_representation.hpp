@@ -52,7 +52,7 @@ namespace FastDDS {
             INLINE TypeIdentifierPair(const TypeIdentifierPair &other) : pair(other.pair) {}
 
             fastddsxtypes::TypeIdentifierPair pair;
-        };
+        } SWIFT_UNCHECKED_SENDABLE;
 
         NODISCARD bool getIdentifiersForName(
             const std::string &name, TypeIdentifierPair &typeIdentifiers

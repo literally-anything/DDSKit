@@ -9,7 +9,7 @@ internal import _CFastDDS
 internal import Dispatch
 
 /// A descriptor for a DDS type.
-public struct DDSTypeDescriptor: Sendable, CustomStringConvertible {
+public struct DDSTypeDescriptor: Sendable {
     /// The internal xtypes identifier pair for the type.
     internal let identifier: FastDDS.Types.TypeIdentifierPair
     /// The registered name of the type.
@@ -72,7 +72,9 @@ public struct DDSTypeDescriptor: Sendable, CustomStringConvertible {
         self.isPlain = isPlain
         self.calculateMaxSize = calculateMaxSize
     }
+}
 
+extension DDSTypeDescriptor: CustomStringConvertible {
     public var description: String {
         "DDSTypeDescriptor(name: \(name), isBounded: \(isBounded), isPlain: \(isPlain), maxSize: \(maxSize))"
     }

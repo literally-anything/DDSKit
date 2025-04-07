@@ -16,6 +16,13 @@ public struct DDSTypeSupport: Sendable {
 
     /// The underlying FastDDS `TypeSupport` object.
     internal let typeSupport: FastDDS.Types.TypeSupport
+    
+    /// The name of the type.
+    public var name: String { .init(typeSupport.name) }
+    /// Whether the type has a maximum size.
+    public var isBounded: Bool { typeSupport.isBounded }
+    /// Whether the type's in-memory representation is the same as its serialized representation.
+    public var isPlain: Bool { typeSupport.isPlain }
 
     /// Creates a new topic type support object with the given name and type descriptor.
     /// This function sets isBounded, isPlain, and maxSize automatically based on the type descriptor.
@@ -137,5 +144,11 @@ public struct DDSTypeSupport: Sendable {
         }
 
         typeSupport = topicType.typeSupport
+    }
+}
+
+extension DDSTypeSupport: CustomStringConvertible {
+    public var description: String {
+        "DDSTypeSupport(name: \(name), isBounded: \(isBounded), isPlain: \(isPlain))"
     }
 }

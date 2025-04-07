@@ -228,7 +228,7 @@ extension DDSPublisher where Message: DDSLoaningCodable {
     /// - Throws: DDSError if the loan fails.
     @usableFromInline
     internal func loan(initializationMode: LoanInitializationMode = .zero) throws(DDSError) -> UnsafeMutableRawPointer {
-        assert(Message.ddsTypeSupport.typeSupport.isPlain(), "loan is only supported for plain and bounded types.")
+        assert(Message.ddsTypeSupport.typeSupport.isPlain, "loan is only supported for plain and bounded types.")
 
         // The LoanInitiationKind enum isn't bridged to swift. This is a painful workaround.
         let initKind: CInt = switch initializationMode {

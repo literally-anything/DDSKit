@@ -32,15 +32,15 @@ namespace FastDDS {
                 return typeSupport.get_type_name();
             }
 
-            INLINE bool isPlain() const SWIFT_COMPUTED_PROPERTY {
+            INLINE bool getIsPlain() const SWIFT_COMPUTED_PROPERTY {
                 return typeSupport.is_plain(eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
             }
-            INLINE bool isBounded() const SWIFT_COMPUTED_PROPERTY {
+            INLINE bool getIsBounded() const SWIFT_COMPUTED_PROPERTY {
                 return typeSupport.is_bounded();
             }
 
             _TypeSupport typeSupport;
-        };
+        } SWIFT_UNCHECKED_SENDABLE;
 
     }
 
