@@ -56,6 +56,7 @@ std::string getMachineIdString() {
         char buf[255];
         if (!CFStringGetCString(uuidCf, buf, sizeof(buf), kCFStringEncodingUTF8))
         {
+            CFRelease(uuidCf);
             return "";
         }
         CFRelease(uuidCf);
