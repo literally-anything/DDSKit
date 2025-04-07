@@ -313,8 +313,9 @@ namespace FastDDS {
             }
             INLINE void disableDiscoveryMulticast() {
                 qos.wire_protocol().builtin.metatrafficMulticastLocatorList.clear();
+                qos.wire_protocol().builtin.metatrafficUnicastLocatorList.clear();
                 Locator locator; // Empty locator
-                qos.wire_protocol().builtin.metatrafficMulticastLocatorList.push_back(locator);
+                qos.wire_protocol().builtin.metatrafficUnicastLocatorList.push_back(locator);
             }
             INLINE void setDiscoveryInitialPeers(const std::vector<Locator> &peers) {
                 for (auto &peer : peers) {
