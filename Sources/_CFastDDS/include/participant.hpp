@@ -8,6 +8,9 @@
 #pragma once
 
 #include <cstdint>
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/transport/TransportInterface.hpp>
 #include <memory>
 #include <string>
 
@@ -77,8 +80,10 @@ namespace FastDDS {
                 qos.name(eprosima::fastcdr::string_255(name));
             }
 
-            INLINE void setIgnoreLocalEndpoints(bool ignore) {
-                qos.properties().properties().emplace_back("fastdds.ignore_local_endpoints", ignore ? "true" : "false");
+            INLINE void setFilter(uint32_t flags, bool ignoreLocal) SWIFT_NAME(setFilter(flags:ignoreLocal:)) {
+                qos.properties().properties().emplace_back("fastdds.ignore_local_endpoints", ignoreLocal ? "true" : "false");
+
+                qos.wire_protocol().builtin.discovery_config.ignoreParticipantFlags = static_cast<eprosima::fastdds::rtps::ParticipantFilteringFlags>(flags);
             }
 
             INLINE void setMaxMessageSize(uint32_t size) {
@@ -158,12 +163,27 @@ namespace FastDDS {
             ) SWIFT_NAME(addUserTransportSHM(segmentSize:queueCapacity:healthTimeout:common:)) {
                 auto descriptor = std::make_shared<eprosima::fastdds::rtps::SharedMemTransportDescriptor>();
 
-                descriptor->segment_size(segmentSize);
-                descriptor->port_queue_capacity(queueCapacity);
-                descriptor->healthy_check_timeout_ms(healthTimeout);
-    
-                descriptor->maxMessageSize = common.maxMessageSize;
-                descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
+                if (segmentSize > 0) {
+                    descriptor->segment_size(segmentSize);
+                } else {
+                    // Calculate a default segment size based on max message size and max samples per instance
+                    descriptor->segment_size(
+                        descriptor->max_message_size() * eprosima::fastdds::dds::DATAWRITER_QOS_DEFAULT.resource_limits().max_samples_per_instance
+                    );
+                }
+                if (queueCapacity > 0) {
+                    descriptor->port_queue_capacity(queueCapacity);
+                }
+                if (healthTimeout > 0) {
+                    descriptor->healthy_check_timeout_ms(healthTimeout);
+                }
+
+                if (common.maxMessageSize > 0) {
+                    descriptor->maxMessageSize = common.maxMessageSize;
+                }
+                if (common.maxInitialPeersRange > 0) {
+                    descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
+                }
 
                 qos.transport().user_transports.push_back(descriptor);
             }
@@ -174,9 +194,6 @@ namespace FastDDS {
 
                 descriptor->m_output_udp_socket = outPort;
 
-                descriptor->maxMessageSize = common.maxMessageSize;
-                descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
-
                 descriptor->sendBufferSize = settings.sendBufferSize;
                 descriptor->receiveBufferSize = settings.receiveBufferSize;
                 descriptor->TTL = settings.timeToLive;
@@ -186,6 +203,13 @@ namespace FastDDS {
                 }
                 for (auto &blockedInterface : settings.blockedInterfaces) {
                     descriptor->interface_blocklist.emplace_back(blockedInterface);
+                }
+
+                if (common.maxMessageSize > 0) {
+                    descriptor->maxMessageSize = common.maxMessageSize;
+                }
+                if (common.maxInitialPeersRange > 0) {
+                    descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
                 }
 
                 qos.transport().user_transports.push_back(descriptor);
@@ -197,9 +221,6 @@ namespace FastDDS {
 
                 descriptor->m_output_udp_socket = outPort;
 
-                descriptor->maxMessageSize = common.maxMessageSize;
-                descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
-
                 descriptor->sendBufferSize = settings.sendBufferSize;
                 descriptor->receiveBufferSize = settings.receiveBufferSize;
                 descriptor->TTL = settings.timeToLive;
@@ -209,6 +230,13 @@ namespace FastDDS {
                 }
                 for (auto &blockedInterface : settings.blockedInterfaces) {
                     descriptor->interface_blocklist.emplace_back(blockedInterface);
+                }
+
+                if (common.maxMessageSize > 0) {
+                    descriptor->maxMessageSize = common.maxMessageSize;
+                }
+                if (common.maxInitialPeersRange > 0) {
+                    descriptor->maxInitialPeersRange = common.maxInitialPeersRange;
                 }
 
                 qos.transport().user_transports.push_back(descriptor);
@@ -335,6 +363,11 @@ namespace FastDDS {
         // NODISCARD INLINE eprosima::fastdds::dds::ReturnCode_t unregisterDataType(const TypeSupportWrapper &typeSupportWrapper) SWIFT_NAME(unregisterType(typeSupport:)) {
         //     return participant->unregister_type(typeSupportWrapper.typeSupport.get_type_name());
         // }
+
+        INLINE void updateNetworkInterfaces() {
+            auto qos = participant->get_qos();
+            (void) participant->set_qos(qos); // This should never fail because I didn't change any qos values. This somehow magically updates the network interfaces.
+        }
 
         INLINE void * _Nonnull getNative() const SWIFT_COMPUTED_PROPERTY {
             return participant;

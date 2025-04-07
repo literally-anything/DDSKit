@@ -241,9 +241,9 @@ extension DDSParticipant {
         /// - Parameter name: The name of the profile to load.
         case loadProfile(name: String)
 
-        /// Sets whether to ingnore DataReaders and DataWriters that are created from the same participant.
-        /// Defaults to false.
-        case ignoreLocalEndpoints(Bool)
+        /// Sets how to filter other participants.
+        /// All of the filters are combined using AND.
+        case filterEndpoints([EndpointFilter])
 
         /// Sets the method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
@@ -309,6 +309,19 @@ extension DDSParticipant {
         /// Both the authentication and access control plugins must be enabled for this to work.
         /// This uses the identity from the authentication plugin and the permissions from the access control plugin.
         case encryption
+
+        /// A filter mode to use for filtering other participants before matching.
+        public enum EndpointFilter {
+            /// Only match participants on a different host.
+            case differentHost
+            /// Only match participants in a different process.
+            case differentProcess
+            /// Only match participants in the same process.
+            case sameProcess
+            /// Stop all communication between entities in the same participant.
+            /// This is useful to stop loopback communication between publishers and subscribers in the same participant.
+            case differentParticipant
+        }
 
         /// The method to use to get the entity identifier prefix for the participant.
         /// This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
@@ -431,8 +444,8 @@ extension DDSParticipant {
 
         // The name of the XML profile to load.
         var profileName: String?
-        // Whether to ignore local participants.
-        var ignoreLocalEndpoints: Bool?
+        // The filters to use for filtering other participants.
+        var endpointFilters: [Setting.EndpointFilter] = []
         // The method to use to get the entity identifier prefix for the participant.
         // This matters because the prefix is used to identify the process and host of the participant for data-sharing and intra-process delivery.
         var identifierPrefixMethod: Setting.IdentifierPrefixMethod = .internallyAssigned
@@ -459,7 +472,7 @@ extension DDSParticipant {
         for setting in settings {
             switch setting {
                 case .loadProfile(let name): profileName = name
-                case .ignoreLocalEndpoints(let ignore): ignoreLocalEndpoints = ignore
+                case .filterEndpoints(let filters): endpointFilters += filters
                 case .identiferPrefixMethod(let method): identifierPrefixMethod = method
                 case .maxMessageSize(let size): maxMessageSize = size
                 case .typePropagation(let mode): typePropagationMode = mode
@@ -501,9 +514,17 @@ extension DDSParticipant {
         }
 
         // Set the ignore local endpoints setting.
-        if let ignoreLocalEndpoints {
-            qos.setIgnoreLocalEndpoints(ignoreLocalEndpoints)
+        var rawFilters: UInt32 = 0
+        var ignoreLocalEndpoints = false
+        for filter in endpointFilters {
+            switch filter {
+                case .differentHost: rawFilters |= eprosima.fastdds.rtps.FILTER_DIFFERENT_HOST.rawValue
+                case .differentProcess: rawFilters |= eprosima.fastdds.rtps.FILTER_DIFFERENT_PROCESS.rawValue
+                case .sameProcess: rawFilters |= eprosima.fastdds.rtps.FILTER_SAME_PROCESS.rawValue
+                case .differentParticipant: ignoreLocalEndpoints = true
+            }
         }
+        qos.setFilter(flags: rawFilters, ignoreLocal: ignoreLocalEndpoints)
 
         // Set the maximum message size.
         if let maxMessageSize {
@@ -542,7 +563,7 @@ extension DDSParticipant {
         for transport in userTransports {
             switch transport {
                 case .sharedMemory(let segmentSize, let queueCapacity, let healthTimeout, let common):
-                    qos.addUserTransportSHM(segmentSize: segmentSize, queueCapacity: queueCapacity, healthTimeout: healthTimeout, common: .init(common))
+                    qos.addUserTransportSHM(segmentSize: segmentSize ?? 0, queueCapacity: queueCapacity ?? 0, healthTimeout: healthTimeout ?? 0, common: .init(common))
                 case .udp4(let outPort, let common, let networkSettings):
                     qos.addUserTransportUDPv4(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
                 case .udp6(let outPort, let common, let networkSettings):

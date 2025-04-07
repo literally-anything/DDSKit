@@ -13,15 +13,15 @@ public enum DDSTransport {
     /// - Note: These values are doumented here: https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/transport_api.html#data-members
     public struct CommonConfig {
         /// Maximum size of a single message in the transport.
-        var maxMessageSize: UInt32
+        var maxMessageSize: UInt32?
         /// Number of channels opened with each initial remote peer.
-        var maxInitialPeersRange: UInt32
+        var maxInitialPeersRange: UInt32?
 
         /// Initializes a new instance of the `CommonConfig` struct.
         /// - Parameters:
         ///   - maxMessageSize: The maximum size of a single message in the transport.
         ///   - maxInitialPeersRange: Number of channels opened with each initial remote peer.
-        public init(maxMessageSize: UInt32 = 0, maxInitialPeersRange: UInt32 = 0) {
+        public init(maxMessageSize: UInt32? = nil, maxInitialPeersRange: UInt32? = nil) {
             self.maxMessageSize = maxMessageSize
             self.maxInitialPeersRange = maxInitialPeersRange
         }
@@ -104,11 +104,13 @@ public enum DDSTransport {
     ///   - common: Common configuration parameters.
     /// - Note: This page explains what each parameter does: https://fast-dds.docs.eprosima.com/en/latest/fastdds/transport/shared_memory/shared_memory.html
     case sharedMemory(
-        segmentSize: UInt32 = 0, queueCapacity: UInt32 = 0, healthTimeout: UInt32 = 0,
+        segmentSize: UInt32? = nil, queueCapacity: UInt32? = nil, healthTimeout: UInt32? = nil,
         common: CommonConfig = .init()
     )
     /// Defines a shared memory transport.
-    public var sharedMemory: Self { .sharedMemory() }
+    public static var sharedMemory: Self { .sharedMemory() }
+    /// Defines a shared memory transport.
+    public static var shm: Self { .sharedMemory() }
 
     /// Defines a UDPv4 transport.
     /// All parameters are optional.
@@ -122,9 +124,9 @@ public enum DDSTransport {
         common: CommonConfig = .init(), networkSettings: NetworkSettings = .init()
     )
     /// Defines a UDPv4 transport.
-    public var udp4: Self { .udp4() }
+    public static var udp4: Self { .udp4() }
     /// Defines a UDPv4 transport.
-    public var udp: Self { .udp4() }
+    public static var udp: Self { .udp4() }
 
     /// Defines a UDPv6 transport.
     /// All parameters are optional.
@@ -138,7 +140,7 @@ public enum DDSTransport {
         common: CommonConfig = .init(), networkSettings: NetworkSettings = .init()
     )
     /// Defines a UDPv6 transport.
-    public var udpv6: Self { .udp6() }
+    public static var udpv6: Self { .udp6() }
 
     // /// Defines a TCPv4 transport.
     // /// All parameters are optional.
@@ -155,9 +157,9 @@ public enum DDSTransport {
     //     common: CommonConfig = .init(), setworkSettings: NetworkSettings = .init()
     // )
     // /// Defines a TCPv4 transport.
-    // public var tcp4: Self { .tcp4() }
+    // public static var tcp4: Self { .tcp4() }
     // /// Defines a TCPv4 transport.
-    // public var tcp: Self { .tcp4() }
+    // public static var tcp: Self { .tcp4() }
 
     // /// Defines a TCPv6 transport.
     // /// All parameters are optional.
@@ -174,7 +176,7 @@ public enum DDSTransport {
     //     common: CommonConfig = .init(), setworkSettings: NetworkSettings = .init()
     // )
     // /// Defines a TCPv6 transport.
-    // public var tcp6: Self { .tcp6() }
+    // public static var tcp6: Self { .tcp6() }
 
     /// Defines a custom transport.
     /// - Parameter descriptor: A pointer to the shared pointer to the custom transport descriptor.
@@ -196,7 +198,7 @@ extension FastDDS.NetmaskFilterKind {
 
 extension FastDDS.Participant.Qos.TransportCommonConfig {
     internal init(_ config: DDSTransport.CommonConfig) {
-        self.init(maxMessageSize: config.maxMessageSize, maxInitialPeersRange: config.maxInitialPeersRange)
+        self.init(maxMessageSize: config.maxMessageSize ?? 0, maxInitialPeersRange: config.maxInitialPeersRange ?? 0)
     }
 }
 
