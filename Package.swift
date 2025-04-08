@@ -52,14 +52,24 @@ let package = Package(
         )
     ],
     dependencies: applePlatformDependencies + [
-        // .package(url: "https://github.com/apple/swift-syntax", from: "509.0.0"),
+        .package(url: "https://github.com/apple/swift-syntax", from: "600.0.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0")
     ],
     targets: [
+        .macro(
+            name: "DDSKitMacros",
+            dependencies: [
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+                .product(name: "SwiftDiagnostics", package: "swift-syntax")
+            ],
+            swiftSettings: swiftSettings
+        ),
         .target(
             name: "DDSKit",
             dependencies: [
-                // "DDSKitMacros",
+                "DDSKitMacros",
                 "_CFastDDS",
                 .product(name: "Logging", package: "swift-log")
             ],
@@ -71,14 +81,7 @@ let package = Package(
             dependencies: applePlatformTargetDependencies,
             cxxSettings: cxxSettings,
             linkerSettings: cfastddsLinkerSettings
-        ),
-        // .macro(
-        //     name: "DDSKitMacros",
-        //     dependencies: [
-        //         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-        //         .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
-        //     ]
-        // )
+        )
     ],
     cxxLanguageStandard: .cxx14
 )
