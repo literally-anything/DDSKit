@@ -16,7 +16,7 @@ public struct DDSTypeSupport: Sendable {
 
     /// The underlying FastDDS `TypeSupport` object.
     internal let typeSupport: FastDDS.Types.TypeSupport
-    
+
     /// The name of the type.
     public var name: String { .init(typeSupport.name) }
     /// Whether the type has a maximum size.

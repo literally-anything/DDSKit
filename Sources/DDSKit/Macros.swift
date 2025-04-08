@@ -9,6 +9,10 @@
 @attached(peer)
 public macro DDSIgnored() = #externalMacro(module: "DDSKitMacros", type: "IgnoredMacro")
 
-@attached(member)
+@attached(
+    member,
+    names: named(ddsInitialized), named(ddsTypeSupport), named(ddsTypeDescriptor),
+           named(calculateDDSSize), named(ddsEncode), named(ddsDecode)
+)
 @attached(extension, conformances: DDSCodable, DDSLoaningCodable, DDSMessage)
 public macro DDSMessage() = #externalMacro(module: "DDSKitMacros", type: "MessageMacro")

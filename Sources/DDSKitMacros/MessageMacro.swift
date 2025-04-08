@@ -14,7 +14,10 @@ public struct MessageMacro {
         of node: AttributeSyntax,
         parent: some DeclSyntaxProtocol,
         context: some MacroExpansionContext
-    ) throws -> (hasDefaultConstructor: Bool, needsDDSInitialized: Bool, members: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]) {
+    ) throws -> (
+        name: String, hasDefaultConstructor: Bool, needsDDSInitialized: Bool,
+        members: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
+    ) {
         guard let typeDecl = parent.as(StructDeclSyntax.self) else {
             let error = DDSKitDiagnosticMessage(
                 message: "DDSMessage can only be applied to structs.",
@@ -31,6 +34,7 @@ public struct MessageMacro {
         }
 
         // Check if the type has a default constructor and a .ddsInitialized static member
+        var hasOtherConstructor = false
         var hasDefaultConstructor = false
         var hasDDSInitialized = false
         for member in typeDecl.memberBlock.members {
@@ -38,6 +42,8 @@ public struct MessageMacro {
                 // Check if the initializer is a default constructor
                 if initializer.signature.parameterClause.parameters.isEmpty {
                     hasDefaultConstructor = true
+                } else {
+                    hasOtherConstructor = true
                 }
             }
 
@@ -65,7 +71,7 @@ public struct MessageMacro {
 
         // Find all member variables that are not ignored
         // Also check if all stored variables have initializers (will a default constructor be created?)
-        var hasImplicitDefaultConstructor = true
+        var hasImplicitDefaultConstructor = !hasOtherConstructor // If there there is another constructor, the implicit default constructor will not be created
         var sentMembers: [(PatternBindingSyntax, IdentifierPatternSyntax)] = []
         memberLoop: for member in typeDecl.memberBlock.members {
             // Find all variable declarations
@@ -132,6 +138,7 @@ public struct MessageMacro {
         }
 
         return (
+            name: typeDecl.name.identifier!.name,
             hasDefaultConstructor: hasDefaultConstructor || hasImplicitDefaultConstructor,
             needsDDSInitialized: !hasDDSInitialized,
             members: sentMemberInfo
@@ -146,14 +153,17 @@ extension MessageMacro: MemberMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        let (hasConstructor, needsInitialized, memberInfo) =  try evaluateType(of: node, parent: declaration, context: context)
+        let (foundName, hasConstructor, needsInitialized, memberInfo) =  try evaluateType(
+            of: node, parent: declaration, context: context
+        )
+        let name = foundName // There should be a name: argument in the macro call that will override this
 
         if !hasConstructor && needsInitialized {
             context.diagnose(
                 Diagnostic(
                     node: Syntax(node),
                     message: DDSKitDiagnosticMessage(
-                        message: "DDSMessage: \(declaration.as(StructDeclSyntax.self)!.name) should have a default constructor or should define ddsInitialized.",
+                        message: "DDSMessage: \(name) should have a default constructor or should define ddsInitialized.",
                         diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.missingConstructor"),
                         severity: .error
                     )
@@ -161,7 +171,167 @@ extension MessageMacro: MemberMacro {
             )
         }
 
-        return []
+        var outputs: [DeclSyntax] = []
+
+        // Create ddsInitialized
+        if needsInitialized {
+            let ddsInitializedDecl = VariableDeclSyntax(
+                modifiers: [.init(name: "public"), .init(name: "static")],
+                bindingSpecifier: "var",
+                bindings: [
+                    PatternBindingSyntax(
+                        pattern: IdentifierPatternSyntax(identifier: "ddsInitialized"),
+                        typeAnnotation: TypeAnnotationSyntax(type: "Self" as TypeSyntax),
+                        accessorBlock: AccessorBlockSyntax(
+                            accessors: .getter("""
+                                .init()
+                            """)
+                        )
+                    )
+                ]
+            )
+            outputs.append(.init(ddsInitializedDecl))
+        }
+
+        // Create ddsTypeDescriptor
+        let typeSupportDecl = VariableDeclSyntax(
+            modifiers: [.init(name: "public"), .init(name: "static")],
+            bindingSpecifier: "var",
+            bindings: [
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: "ddsTypeSupport"),
+                    typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeSupport" as TypeSyntax),
+                    accessorBlock: AccessorBlockSyntax(
+                        accessors: .getter("""
+                            .init(name: \"\(raw: name)\", type: Self.self)
+                        """)
+                    )
+                )
+            ]
+        )
+        outputs.append(.init(typeSupportDecl))
+
+        // Create ddsTypeDescriptor
+        var typeDescriptorMembers: [CodeBlockItemSyntax] = []
+        var calculateSizeMembers: [CodeBlockItemSyntax] = []
+        var encodeMembers: [CodeBlockItemSyntax] = []
+        var decodeMembers: [CodeBlockItemSyntax] = []
+        var currentMemberId: UInt32 = 0
+        for member in memberInfo {
+            typeDescriptorMembers.append(
+                "builder.addMember(name: \"\(member.name)\", memberId: \(raw: currentMemberId), type: (\(member.type.name).self))"
+            )
+            calculateSizeMembers.append(
+                "calculator.add(member: \(raw: currentMemberId), \(member.name))"
+            )
+            encodeMembers.append(
+                "try encoder.encode(member: \(raw: currentMemberId), \(member.name))"
+            )
+            decodeMembers.append(
+                """
+                case \(raw: currentMemberId):
+                    try decoder.decode(&\(member.name))
+                """
+            )
+            currentMemberId += 1
+        }
+        let typeDescriptorDecl = VariableDeclSyntax(
+            modifiers: [.init(name: "public"), .init(name: "static")],
+            bindingSpecifier: "var",
+            bindings: [
+                PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: "ddsTypeDescriptor"),
+                    typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeDescriptor" as TypeSyntax),
+                    accessorBlock: AccessorBlockSyntax(
+                        accessors: .getter("""
+                            .createStruct(name: \"\(raw: name)\") { builder in
+                                \(CodeBlockItemListSyntax(typeDescriptorMembers))
+                            }
+                        """)
+                    )
+                )
+            ]
+        )
+        outputs.append(.init(typeDescriptorDecl))
+        let calculateSizeDecl = FunctionDeclSyntax(
+            modifiers: [.init(name: "public")],
+            name: "calculateDDSSize",
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(parameters: [
+                    FunctionParameterSyntax(
+                        firstName: "calculator",
+                        type: AttributedTypeSyntax(
+                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: "inout"))],
+                            baseType: "DDSKit.DDSSizeCalculator" as TypeSyntax
+                        )
+                    )
+                ])
+            ),
+            body: CodeBlockSyntax(statements: """
+                calculator.withStruct { calculator in
+                    \(CodeBlockItemListSyntax(calculateSizeMembers))
+                }
+            """)
+        )
+        outputs.append(.init(calculateSizeDecl))
+        let encodeDecl = FunctionDeclSyntax(
+            modifiers: [.init(name: "public")],
+            name: "ddsEncode",
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(parameters: [
+                    FunctionParameterSyntax(
+                        firstName: "encoder",
+                        type: AttributedTypeSyntax(
+                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: "inout"))],
+                            baseType: "DDSKit.DDSEncoder" as TypeSyntax
+                        )
+                    )
+                ]),
+                effectSpecifiers: FunctionEffectSpecifiersSyntax(
+                    throwsClause: ThrowsClauseSyntax(
+                        throwsSpecifier: "throws", leftParen: .leftParenToken(), type: "DDSKit.DDSEncoder.EncodingError" as TypeSyntax, rightParen: .rightParenToken()
+                    )
+                )
+            ),
+            body: CodeBlockSyntax(statements: """
+                try encoder.withStruct { encoder throws(DDSKit.DDSEncoder.EncodingError) in
+                    \(CodeBlockItemListSyntax(encodeMembers))
+                }
+            """)
+        )
+        outputs.append(.init(encodeDecl))
+        let decodeDecl = FunctionDeclSyntax(
+            modifiers: [.init(name: "public"), .init(name: "mutating")],
+            name: "ddsDecode",
+            signature: FunctionSignatureSyntax(
+                parameterClause: FunctionParameterClauseSyntax(parameters: [
+                    FunctionParameterSyntax(
+                        firstName: "decoder",
+                        type: AttributedTypeSyntax(
+                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: "inout"))],
+                            baseType: "DDSKit.DDSDecoder" as TypeSyntax
+                        )
+                    )
+                ]),
+                effectSpecifiers: FunctionEffectSpecifiersSyntax(
+                    throwsClause: ThrowsClauseSyntax(
+                        throwsSpecifier: "throws", leftParen: .leftParenToken(), type: "DDSKit.DDSDecoder.DecodingError" as TypeSyntax, rightParen: .rightParenToken()
+                    )
+                )
+            ),
+            body: CodeBlockSyntax(statements: """
+                try decoder.withStruct { decoder, member throws(DDSKit.DDSDecoder.DecodingError) in
+                    switch member {
+                        \(CodeBlockItemListSyntax(decodeMembers))
+                        default:
+                            throw .unknownMember
+                    }
+                }
+            """)
+        )
+        outputs.append(.init(decodeDecl))
+
+        return outputs
     }
 }
 
@@ -173,7 +343,7 @@ extension MessageMacro: ExtensionMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [ExtensionDeclSyntax] {
-        let (_, _, memberInfo) =  try evaluateType(of: node, parent: declaration, context: context)
+        let (_, _, _, memberInfo) =  try evaluateType(of: node, parent: declaration, context: context)
 
         let primitiveTypes = [
             "Bool",
