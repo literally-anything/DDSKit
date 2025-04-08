@@ -91,6 +91,12 @@ public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
     }
 }
 
+extension DDSTopic: Equatable {
+    public static func == (lhs: DDSTopic<Message>, rhs: DDSTopic<Message>) -> Bool {
+        lhs.participant === rhs.participant && lhs.name == rhs.name && lhs.typeName == rhs.typeName
+    }
+}
+
 extension DDSTopic {
     /// Whether the data type supports loaning.
     /// - Note: This is always true if `Message` confroms to `DDSLoanable` and always false otherwise.
