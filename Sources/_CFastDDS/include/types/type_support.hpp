@@ -27,6 +27,17 @@ namespace FastDDS {
 
             INLINE TypeSupport(_TypeSupport &&typeSupport) : typeSupport(typeSupport) {}
             INLINE TypeSupport(const _TypeSupport &typeSupport) : typeSupport(typeSupport) {}
+
+            INLINE TypeSupport(const TypeSupport &other) : typeSupport(other.typeSupport) {}
+            INLINE TypeSupport(TypeSupport &&other) : typeSupport(std::move(other.typeSupport)) {}
+            INLINE TypeSupport &operator=(const TypeSupport &other) {
+                typeSupport = other.typeSupport;
+                return *this;
+            }
+            INLINE TypeSupport &operator=(TypeSupport &&other) {
+                typeSupport = std::move(other.typeSupport);
+                return *this;
+            }
         
             INLINE std::string getName() const SWIFT_COMPUTED_PROPERTY {
                 return typeSupport.get_type_name();
@@ -40,7 +51,7 @@ namespace FastDDS {
             }
 
             _TypeSupport typeSupport;
-        } SWIFT_UNCHECKED_SENDABLE;
+        } SENDABLE;
 
     }
 
