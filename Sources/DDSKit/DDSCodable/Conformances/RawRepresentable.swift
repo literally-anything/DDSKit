@@ -8,83 +8,52 @@
 
 /// A protocol to automatically conform `RawRepresentable` types to `DDSCodable`.
 /// This protocol is used to automatically generate the necessary serialization and deserialization code for `RawRepresentable` types.
-public protocol DDSRawRepresentable: RawRepresentable, DDSMessage where RawValue: DDSCodable {
-    /// The name that the dds type will be registered under.
-    static var ddsName: String { get }
-}
+public protocol DDSRawRepresentable: RawRepresentable where RawValue: DDSCodable {}
 /// A protocol to automatically conform `OptionSet` types to `DDSCodable`.
 /// This protocol is used to automatically generate the necessary serialization and deserialization code for `OptionSet` types.
-public protocol DDSOptionSet: DDSRawRepresentable, OptionSet, DDSMessage where RawValue: DDSCodable {}
+public protocol DDSOptionSet: DDSRawRepresentable, OptionSet where RawValue: DDSCodable {}
 
 extension DDSRawRepresentable {
     @inlinable
     @inline(__always)
-    public static var ddsName: String { "\(Self.self): Swift.RawRepresentable" }
-
-    @inlinable
-    @inline(__always)
-    public static var ddsInitialized: RawValue { .ddsInitialized }
-
-    @inlinable
-    @inline(__always)
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createStruct(name: ddsName) { builder in
-            builder.addMember(name: "rawValue", memberId: 0, type: RawValue.self)
-        }
+        RawValue.ddsTypeDescriptor
     }
 
     @inlinable
     @inline(__always)
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        calculator.withStruct { calculator in
-            calculator.add(member: 0, rawValue)
-        }
+        rawValue.calculateDDSSize(calculator: &calculator)
     }
 
     @inlinable
     @inline(__always)
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        try encoder.withStruct { encoder throws(DDSEncoder.EncodingError) in
-            try encoder.encode(member: 0, rawValue)
-        }
+        try rawValue.ddsEncode(encoder: &encoder)
     }
 
     @inlinable
     @inline(__always)
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        try decoder.withStruct { decoder, memberId throws(DDSDecoder.DecodingError) in
-            switch memberId {
-            case 0:
-                var value: RawValue = rawValue
-                try decoder.decode(&value)
-                guard let value = Self(rawValue: value) else {
-                    throw .badValue
-                }
-                self = value
-            default:
-                throw .unknownMember
-            }
+        var value: RawValue = rawValue
+        try value.ddsDecode(decoder: &decoder)
+        guard let value = Self(rawValue: value) else {
+            throw .badValue
         }
+        self = value
     }
 }
 
 extension DDSOptionSet {
     @inlinable
     @inline(__always)
-    public static var ddsName: String { "\(Self.self): Swift.OptionSet" }
+    public static var ddsInitialized: Self { [] }
 
     @inlinable
     @inline(__always)
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        try decoder.withStruct { decoder, memberId throws(DDSDecoder.DecodingError) in
-            switch memberId {
-            case 0:
-                var value: RawValue = rawValue
-                try decoder.decode(&value)
-                self = Self(rawValue: value)
-            default:
-                throw .unknownMember
-            }
-        }
+        var value: RawValue = rawValue
+        try value.ddsDecode(decoder: &decoder)
+        self = Self(rawValue: value)
     }
 }

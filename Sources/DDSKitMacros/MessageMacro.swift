@@ -5,17 +5,17 @@
  * Created by Hunter Baker on 4/07/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-public import SwiftSyntax
-public import SwiftSyntaxMacros
-internal import SwiftDiagnostics
+import SwiftSyntax
+import SwiftSyntaxMacros
+import SwiftDiagnostics
 
-public struct MessageMacro {
-    internal static func evaluateType(
+struct MessageMacro {
+    private static func evaluateType(
         of node: AttributeSyntax,
         parent: some DeclSyntaxProtocol,
-        context: some MacroExpansionContext
+        context: (any MacroExpansionContext)?
     ) throws -> (
-        name: String, loaningCompatible: Bool, hasDefaultConstructor: Bool, needsDDSInitialized: Bool,
+        type: StructDeclSyntax, name: String, loaningCompatible: Bool, hasDefaultConstructor: Bool, needsDDSInitialized: Bool,
         members: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
     ) {
         guard let typeDecl = parent.as(StructDeclSyntax.self) else {
@@ -24,9 +24,9 @@ public struct MessageMacro {
                 diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.structOnly"),
                 severity: .error
             )
-            context.diagnose(
+            context?.diagnose(
                 Diagnostic(
-                    node: Syntax(node),
+                    node: parent,
                     message: error
                 )
             )
@@ -51,7 +51,7 @@ public struct MessageMacro {
 
             // Find all variable and constant declarations
             guard let variableDecl = member.decl.as(VariableDeclSyntax.self),
-                  variableDecl.bindingSpecifier.text == "var" || variableDecl.bindingSpecifier.text == "let" else {
+                  variableDecl.bindingSpecifier.tokenKind == .keyword(.var) || variableDecl.bindingSpecifier.tokenKind == .keyword(.let) else {
                 continue
             }
 
@@ -60,12 +60,13 @@ public struct MessageMacro {
             }
 
             // We don't send static variables
-            if variableDecl.modifiers.contains(where: { $0.name.text == "static" }) {
+            if variableDecl.modifiers.contains(where: { $0.name.tokenKind == .keyword(.static) }) {
                 // Check if the variable is the ddsInitialized attribute
-                if variableDecl.modifiers.contains(where: { $0.name.text == "public" }) {
+                if variableDecl.modifiers.contains(where: { $0.name.tokenKind == .keyword(.public) }) {
                     let names = identifierPatterns.map { $0.identifier.text }
                     if names.contains("ddsInitialized") {
                         hasDDSInitialized = true
+                        break
                     }
                 }
             }
@@ -82,7 +83,7 @@ public struct MessageMacro {
             }
 
             // We don't send static variables
-            guard !variableDecl.modifiers.contains(where: { $0.name.text == "static" }) else {
+            guard !variableDecl.modifiers.contains(where: { $0.name.tokenKind == .keyword(.static) }) else {
                 continue
             }
 
@@ -100,7 +101,7 @@ public struct MessageMacro {
             }
 
             // We only care about variables, not constants
-            guard variableDecl.bindingSpecifier.text == "var" else {
+            guard variableDecl.bindingSpecifier.tokenKind == .keyword(.var) else {
                 isLoaningCompatible = false
                 continue
             }
@@ -114,19 +115,58 @@ public struct MessageMacro {
                 }
             }
             // Get all pattern bindings that are stored for the variable declaration
-            let storedPatternBindings = patternBindings.filter { $0.0.accessorBlock == nil && $0.0.typeAnnotation != nil }
+            var storedPatternBindings = patternBindings.filter { $0.0.accessorBlock == nil }
+
+            // Check if the variable has a type annotation
+            // If not, we can't use it, but we will show a diagnostic to make it clearer
+            storedPatternBindings = storedPatternBindings.filter { binding in
+                guard binding.0.typeAnnotation != nil else {
+                    context?.diagnose(
+                        Diagnostic(
+                            node: binding.1,
+                            message: DDSKitDiagnosticMessage(
+                                message: """
+                                DDSMessage: This member is ignored because it has no type annotation. \
+                                To silence this warning if this is not intended to be sent, add @DDSIgnored.
+                                """,
+                                diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.noTypeAnnotation"),
+                                severity: .warning
+                            ),
+                            fixIt: FixIt(
+                                message: DDSKitFixItMessage(
+                                    message: "Add @DDSIgnored",
+                                    fixItID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.noTypeAnnotation.addIgnored")
+                                ),
+                                changes: [
+                                    .replace(
+                                        oldNode: Syntax(variableDecl.attributes),
+                                        newNode: Syntax({
+                                            // Add the DDSIgnored attribute to the variable declaration
+                                            var fixedAttributes = variableDecl.attributes
+                                            fixedAttributes.append(.init(AttributeSyntax(leadingTrivia: .newline, attributeName: "DDSIgnored" as TypeSyntax)))
+                                            return fixedAttributes.formatted()
+                                        }())
+                                    )
+                                ]
+                            )
+                        )
+                    )
+                    return false
+                }
+                return true
+            }
 
             sentMembers.append(contentsOf: storedPatternBindings)
         }
 
         if sentMembers.isEmpty {
-            context.diagnose(
+            context?.diagnose(
                 Diagnostic(
-                    node: Syntax(node),
+                    node: typeDecl.name,
                     message: DDSKitDiagnosticMessage(
-                        message: "DDSMessage: \(typeDecl.name) should have at least one member that is sent.",
+                        message: "DDSMessage: \(typeDecl.name.text) should have at least one member that is sent.",
                         diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.noMembers"),
-                        severity: .remark
+                        severity: .warning
                     )
                 )
             )
@@ -142,6 +182,7 @@ public struct MessageMacro {
         }
 
         return (
+            type: typeDecl,
             name: typeDecl.name.identifier!.name,
             loaningCompatible: isLoaningCompatible,
             hasDefaultConstructor: hasDefaultConstructor || hasImplicitDefaultConstructor,
@@ -149,18 +190,71 @@ public struct MessageMacro {
             members: sentMemberInfo
         )
     }
+
+    internal static func getDDSInitializedFixIt(typeName: String, memberBlock: MemberBlockSyntax) -> FixIt {
+        FixIt(
+            message: DDSKitFixItMessage(
+                message: "Add ddsInitialized",
+                fixItID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.missingConstructor.addDDSInitialized")
+            ),
+            changes: [
+                .replace(
+                    oldNode: Syntax(memberBlock.members),
+                    newNode: Syntax({
+                        var fixedMembers = memberBlock.members
+
+                        var variableDecl = VariableDeclSyntax(
+                            modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.static))],
+                            bindingSpecifier: .keyword(.var),
+                            bindings: [
+                                PatternBindingSyntax(
+                                    pattern: IdentifierPatternSyntax(identifier: "ddsInitialized"),
+                                    typeAnnotation: TypeAnnotationSyntax(type: "Self" as TypeSyntax)
+                                )
+                            ]
+                        ).formatted().as(VariableDeclSyntax.self)!
+
+                        // Provided later, so it is not formatted into multiple lines
+                        variableDecl.bindings[variableDecl.bindings.startIndex].accessorBlock = AccessorBlockSyntax(
+                            leadingTrivia: .space,
+                            accessors: .getter(" fatalError(\"Not implemented\") /* ToDo: Implement ddsInitialized for \(raw: typeName) */ ")
+                        )
+
+                        let member = MemberBlockItemSyntax(
+                            leadingTrivia: .init(pieces: [
+                                .newlines(2)
+                            ] + fixedMembers.leadingTrivia.indentation(isOnNewline: true)!.pieces),
+                            decl: variableDecl
+                        )
+                        fixedMembers.append(member)
+                        return fixedMembers
+                    }())
+                )
+            ]
+        )
+    }
 }
 
 extension MessageMacro: MemberMacro {
-    public static func expansion(
+    static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
-    ) throws -> [DeclSyntax] {
-        let (typeName, _, hasConstructor, needsInitialized, memberInfo) =  try evaluateType(
-            of: node, parent: declaration, context: context
-        )
+    ) -> [DeclSyntax] {
+        let typeDecl: StructDeclSyntax
+        let typeName: String
+        let hasConstructor: Bool
+        let needsInitialized: Bool
+        let memberInfo: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
+        do {
+            (typeDecl, typeName, _, hasConstructor, needsInitialized, memberInfo) = try evaluateType(
+                of: node, parent: declaration, context: context
+            )
+        } catch {
+            // If we can't evaluate the type, just return an empty array
+            return []
+        }
         var name: StringLiteralExprSyntax = .init(content: typeName)
         var onlyCodable = false
 
@@ -173,8 +267,8 @@ extension MessageMacro: MemberMacro {
                             diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.nameStringLiteral"),
                             severity: .error
                         )
-                        context.diagnose(Diagnostic(node: Syntax(node), message: error))
-                        throw error
+                        context.diagnose(Diagnostic(node: argument, message: error))
+                        return []
                     }
                     name = value
                 } else if argument.label?.text == "onlyCodable" {
@@ -184,18 +278,18 @@ extension MessageMacro: MemberMacro {
                             diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.onlyCodableBooleanLiteral"),
                             severity: .error
                         )
-                        context.diagnose(Diagnostic(node: Syntax(node), message: error))
-                        throw error
+                        context.diagnose(Diagnostic(node: argument, message: error))
+                        return []
                     }
-                    onlyCodable = value.literal.text == "true"
+                    onlyCodable = value.literal.tokenKind == .keyword(.true)
                 } else {
                     let error = DDSKitDiagnosticMessage(
                         message: "DDSMessage: argument \"\(argument.label?.text ?? "")\" is not recognized.",
                         diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.unrecognizedArgument"),
                         severity: .error
                     )
-                    context.diagnose(Diagnostic(node: Syntax(node), message: error))
-                    throw error
+                    context.diagnose(Diagnostic(node: argument, message: error))
+                    return []
                 }
             }
         }
@@ -203,11 +297,15 @@ extension MessageMacro: MemberMacro {
         if !hasConstructor && needsInitialized {
             context.diagnose(
                 Diagnostic(
-                    node: Syntax(node),
+                    node: typeDecl.name,
                     message: DDSKitDiagnosticMessage(
                         message: "DDSMessage: \(name) should have a default constructor or should define ddsInitialized.",
                         diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.missingConstructor"),
-                        severity: .error
+                        severity: .error,
+                    ),
+                    fixIt: getDDSInitializedFixIt(
+                        typeName: typeName,
+                        memberBlock: typeDecl.memberBlock
                     )
                 )
             )
@@ -218,8 +316,8 @@ extension MessageMacro: MemberMacro {
         // Create ddsInitialized
         if needsInitialized {
             let ddsInitializedDecl = VariableDeclSyntax(
-                modifiers: [.init(name: "public"), .init(name: "static")],
-                bindingSpecifier: "var",
+                modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.static))],
+                bindingSpecifier: .keyword(.var),
                 bindings: [
                     PatternBindingSyntax(
                         pattern: IdentifierPatternSyntax(identifier: "ddsInitialized"),
@@ -239,8 +337,8 @@ extension MessageMacro: MemberMacro {
         if !onlyCodable {
             // Create ddsTypeDescriptor
             let typeSupportDecl = VariableDeclSyntax(
-                modifiers: [.init(name: "public"), .init(name: "static")],
-                bindingSpecifier: "var",
+                modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.static))],
+                bindingSpecifier: .keyword(.var),
                 bindings: [
                     PatternBindingSyntax(
                         pattern: IdentifierPatternSyntax(identifier: "ddsTypeSupport"),
@@ -281,8 +379,8 @@ extension MessageMacro: MemberMacro {
             currentMemberId += 1
         }
         let typeDescriptorDecl = VariableDeclSyntax(
-            modifiers: [.init(name: "public"), .init(name: "static")],
-            bindingSpecifier: "var",
+            modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.static))],
+            bindingSpecifier: .keyword(.var),
             bindings: [
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(identifier: "ddsTypeDescriptor"),
@@ -299,14 +397,14 @@ extension MessageMacro: MemberMacro {
         )
         outputs.append(.init(typeDescriptorDecl))
         let calculateSizeDecl = FunctionDeclSyntax(
-            modifiers: [.init(name: "public")],
+            modifiers: [.init(name: .keyword(.public))],
             name: "calculateDDSSize",
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(parameters: [
                     FunctionParameterSyntax(
                         firstName: "calculator",
                         type: AttributedTypeSyntax(
-                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: "inout"))],
+                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: .keyword(.inout)))],
                             baseType: "DDSKit.DDSSizeCalculator" as TypeSyntax
                         )
                     )
@@ -320,21 +418,22 @@ extension MessageMacro: MemberMacro {
         )
         outputs.append(.init(calculateSizeDecl))
         let encodeDecl = FunctionDeclSyntax(
-            modifiers: [.init(name: "public")],
+            modifiers: [.init(name: .keyword(.public))],
             name: "ddsEncode",
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(parameters: [
                     FunctionParameterSyntax(
                         firstName: "encoder",
                         type: AttributedTypeSyntax(
-                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: "inout"))],
+                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: .keyword(.inout)))],
                             baseType: "DDSKit.DDSEncoder" as TypeSyntax
                         )
                     )
                 ]),
                 effectSpecifiers: FunctionEffectSpecifiersSyntax(
                     throwsClause: ThrowsClauseSyntax(
-                        throwsSpecifier: "throws", leftParen: .leftParenToken(), type: "DDSKit.DDSEncoder.EncodingError" as TypeSyntax, rightParen: .rightParenToken()
+                        throwsSpecifier: .keyword(.throws),
+                        leftParen: .leftParenToken(), type: "DDSKit.DDSEncoder.EncodingError" as TypeSyntax, rightParen: .rightParenToken()
                     )
                 )
             ),
@@ -346,21 +445,22 @@ extension MessageMacro: MemberMacro {
         )
         outputs.append(.init(encodeDecl))
         let decodeDecl = FunctionDeclSyntax(
-            modifiers: [.init(name: "public"), .init(name: "mutating")],
+            modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.mutating))],
             name: "ddsDecode",
             signature: FunctionSignatureSyntax(
                 parameterClause: FunctionParameterClauseSyntax(parameters: [
                     FunctionParameterSyntax(
                         firstName: "decoder",
                         type: AttributedTypeSyntax(
-                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: "inout"))],
+                            specifiers: [.init(SimpleTypeSpecifierSyntax(specifier: .keyword(.inout)))],
                             baseType: "DDSKit.DDSDecoder" as TypeSyntax
                         )
                     )
                 ]),
                 effectSpecifiers: FunctionEffectSpecifiersSyntax(
                     throwsClause: ThrowsClauseSyntax(
-                        throwsSpecifier: "throws", leftParen: .leftParenToken(), type: "DDSKit.DDSDecoder.DecodingError" as TypeSyntax, rightParen: .rightParenToken()
+                        throwsSpecifier: .keyword(.throws),
+                        leftParen: .leftParenToken(), type: "DDSKit.DDSDecoder.DecodingError" as TypeSyntax, rightParen: .rightParenToken()
                     )
                 )
             ),
@@ -381,51 +481,44 @@ extension MessageMacro: MemberMacro {
 }
 
 extension MessageMacro: ExtensionMacro {
-    public static func expansion(
+    static func expansion(
         of node: AttributeSyntax,
         attachedTo declaration: some DeclGroupSyntax,
         providingExtensionsOf type: some TypeSyntaxProtocol,
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
-    ) throws -> [ExtensionDeclSyntax] {
-        let (_, loaningCompatible, _, _, memberInfo) =  try evaluateType(of: node, parent: declaration, context: context)
+    ) -> [ExtensionDeclSyntax] {
+        let loaningCompatible: Bool
+        let memberInfo: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
+        do {
+            let info = try evaluateType(of: node, parent: declaration, context: nil)
+            loaningCompatible = info.loaningCompatible
+            memberInfo = info.members
+        } catch {
+            // If we can't evaluate the type, just return an empty array
+            return []
+        }
 
         var onlyCodable = false
         if case .argumentList(let arguments) = node.arguments {
             for argument in arguments {
                 if argument.label?.text == "onlyCodable" {
                     guard let value = argument.expression.as(BooleanLiteralExprSyntax.self) else {
-                        let error = DDSKitDiagnosticMessage(
-                            message: "DDSMessage: onlyCodable must be a boolean literal.",
-                            diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.onlyCodableBooleanLiteral"),
-                            severity: .error
-                        )
-                        context.diagnose(Diagnostic(node: Syntax(node), message: error))
-                        throw error
+                        return []
                     }
-                    onlyCodable = value.literal.text == "true"
+                    onlyCodable = value.literal.tokenKind == .keyword(.true)
                 }
             }
         }
+        
+        let allPrimitive = memberInfo.allSatisfy { ddsLoaningTypes.contains($0.type.name.text) }
 
-        let primitiveTypes = [
-            "Bool",
-            "Int", "UInt",
-            "Int8", "UInt8",
-            "Int16", "UInt16",
-            "Int32", "UInt32",
-            "Int64", "UInt64",
-            "Float", "Double",
-            "Float16"
-        ]
-        let allPrimitive = memberInfo.allSatisfy { primitiveTypes.contains($0.type.name.text) }
-
-        var extensions: [ExtensionDeclSyntax] = [try ExtensionDeclSyntax("extension \(type): DDSCodable {}")]
+        var extensions: [ExtensionDeclSyntax] = [try! ExtensionDeclSyntax("extension \(type): DDSCodable {}")]
         if !onlyCodable {
-            extensions.append(try ExtensionDeclSyntax("extension \(type): DDSMessage {}"))
+            extensions.append(try! ExtensionDeclSyntax("extension \(type): DDSMessage {}"))
         }
         if allPrimitive && loaningCompatible {
-            extensions.append(try ExtensionDeclSyntax("extension \(type): DDSLoaningCodable {}"))
+            extensions.append(try! ExtensionDeclSyntax("extension \(type): DDSLoaningCodable {}"))
         }
         return extensions
     }

@@ -17,3 +17,8 @@ struct DDSKitDiagnosticMessage: DiagnosticMessage, Error {
 extension DDSKitDiagnosticMessage: FixItMessage {
     var fixItID: MessageID { diagnosticID }
 }
+
+struct DDSKitFixItMessage: FixItMessage {
+    let message: String
+    let fixItID: MessageID
+}

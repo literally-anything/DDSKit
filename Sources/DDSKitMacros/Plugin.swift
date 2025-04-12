@@ -7,15 +7,15 @@
  */
 #if canImport(SwiftCompilerPlugin)
 
-internal import SwiftCompilerPlugin
-internal import SwiftSyntaxMacros
+import SwiftCompilerPlugin
+import SwiftSyntaxMacros
 
 @main
 struct DDSKitMacrosPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         IgnoredMacro.self,
         MessageMacro.self,
-        // DDSEnumMacro.self
+        EnumMacro.self
     ]
 }
 
