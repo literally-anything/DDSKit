@@ -25,7 +25,7 @@ Some use cases for this library are:
 
 [^1]: FastDDS must be installed and it needs to findable using pkg-config for it to work with no exta setup. 
 
-[^2]: Prebuilt dylibs of fastdds and fastcdr are required. This is temporary for MacOS. In the future you should be able to use a global install of FastDDS on MacOS as well.
+[^2]: Prebuilt dylibs of fastdds and fastcdr are used by default on Apple platforms. On MacOS, this can be disabled by disabling the `DarwinDDSPrebuild` package trait.
 
 [^3]: Needs tests
 

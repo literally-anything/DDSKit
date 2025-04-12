@@ -5,7 +5,7 @@
  * Created by Hunter Baker on 8/19/2024
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 
 import PackageDescription
 import CompilerPluginSupport
@@ -25,7 +25,7 @@ let applePlatformDependencies: [Package.Dependency] = [
     .package(url: "https://github.com/literally-anything/Fast-DDS-Prebuild.git", from: "3.0.0")
 ]
 let applePlatformTargetDependencies: [Target.Dependency] = [
-    .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS]))
+    .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS], traits: ["DarwinDDSPrebuild"])),
 ]
 cfastddsLinkerSettings.append(contentsOf: [
     .linkedFramework("CoreFoundation", .when(platforms: [.macOS, .iOS, .visionOS])), // Used for the BlocksRuntime
@@ -50,6 +50,13 @@ let package = Package(
             name: "DDSKit",
             targets: ["DDSKit"]
         )
+    ],
+    traits: [
+        .trait(
+            name: "DarwinDDSPrebuild",
+            description: "Whether or not to use the prebuilt FastDDS library for Darwin platforms. This has no effect on non-Darwin platforms."
+        ),
+        .default(enabledTraits: ["DarwinDDSPrebuild"])
     ],
     dependencies: applePlatformDependencies + [
         .package(url: "https://github.com/apple/swift-syntax", from: "600.0.0"),
