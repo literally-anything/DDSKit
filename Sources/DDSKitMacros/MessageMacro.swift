@@ -15,7 +15,7 @@ public struct MessageMacro {
         parent: some DeclSyntaxProtocol,
         context: some MacroExpansionContext
     ) throws -> (
-        name: String, hasDefaultConstructor: Bool, needsDDSInitialized: Bool,
+        name: String, loaningCompatible: Bool, hasDefaultConstructor: Bool, needsDDSInitialized: Bool,
         members: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
     ) {
         guard let typeDecl = parent.as(StructDeclSyntax.self) else {
@@ -32,6 +32,8 @@ public struct MessageMacro {
             )
             throw error
         }
+
+        var isLoaningCompatible = true
 
         // Check if the type has a default constructor and a .ddsInitialized static member
         var hasOtherConstructor = false
@@ -99,12 +101,14 @@ public struct MessageMacro {
 
             // We only care about variables, not constants
             guard variableDecl.bindingSpecifier.text == "var" else {
+                isLoaningCompatible = false
                 continue
             }
 
             // Check if the variable has the DDSIgnored attribute
             for attribute in variableDecl.attributes {
                 if attribute.as(AttributeSyntax.self)?.attributeName.as(IdentifierTypeSyntax.self)?.name.text == "DDSIgnored" {
+                    isLoaningCompatible = false
                     // Don't include this member
                     continue memberLoop
                 }
@@ -139,6 +143,7 @@ public struct MessageMacro {
 
         return (
             name: typeDecl.name.identifier!.name,
+            loaningCompatible: isLoaningCompatible,
             hasDefaultConstructor: hasDefaultConstructor || hasImplicitDefaultConstructor,
             needsDDSInitialized: !hasDDSInitialized,
             members: sentMemberInfo
@@ -153,10 +158,47 @@ extension MessageMacro: MemberMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        let (foundName, hasConstructor, needsInitialized, memberInfo) =  try evaluateType(
+        let (typeName, _, hasConstructor, needsInitialized, memberInfo) =  try evaluateType(
             of: node, parent: declaration, context: context
         )
-        let name = foundName // There should be a name: argument in the macro call that will override this
+        var name: StringLiteralExprSyntax = .init(content: typeName)
+        var onlyCodable = false
+
+        if case .argumentList(let arguments) = node.arguments {
+            for argument in arguments {
+                if argument.label?.text == "name" {
+                    guard let value = argument.expression.as(StringLiteralExprSyntax.self) else {
+                        let error = DDSKitDiagnosticMessage(
+                            message: "DDSMessage: name must be a string literal.",
+                            diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.nameStringLiteral"),
+                            severity: .error
+                        )
+                        context.diagnose(Diagnostic(node: Syntax(node), message: error))
+                        throw error
+                    }
+                    name = value
+                } else if argument.label?.text == "onlyCodable" {
+                    guard let value = argument.expression.as(BooleanLiteralExprSyntax.self) else {
+                        let error = DDSKitDiagnosticMessage(
+                            message: "DDSMessage: onlyCodable must be a boolean literal.",
+                            diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.onlyCodableBooleanLiteral"),
+                            severity: .error
+                        )
+                        context.diagnose(Diagnostic(node: Syntax(node), message: error))
+                        throw error
+                    }
+                    onlyCodable = value.literal.text == "true"
+                } else {
+                    let error = DDSKitDiagnosticMessage(
+                        message: "DDSMessage: argument \"\(argument.label?.text ?? "")\" is not recognized.",
+                        diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.unrecognizedArgument"),
+                        severity: .error
+                    )
+                    context.diagnose(Diagnostic(node: Syntax(node), message: error))
+                    throw error
+                }
+            }
+        }
 
         if !hasConstructor && needsInitialized {
             context.diagnose(
@@ -193,23 +235,26 @@ extension MessageMacro: MemberMacro {
             outputs.append(.init(ddsInitializedDecl))
         }
 
-        // Create ddsTypeDescriptor
-        let typeSupportDecl = VariableDeclSyntax(
-            modifiers: [.init(name: "public"), .init(name: "static")],
-            bindingSpecifier: "var",
-            bindings: [
-                PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: "ddsTypeSupport"),
-                    typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeSupport" as TypeSyntax),
-                    accessorBlock: AccessorBlockSyntax(
-                        accessors: .getter("""
-                            .init(name: \"\(raw: name)\", type: Self.self)
-                        """)
+        // type support is only needed if we want a DDSMessage conformance
+        if !onlyCodable {
+            // Create ddsTypeDescriptor
+            let typeSupportDecl = VariableDeclSyntax(
+                modifiers: [.init(name: "public"), .init(name: "static")],
+                bindingSpecifier: "var",
+                bindings: [
+                    PatternBindingSyntax(
+                        pattern: IdentifierPatternSyntax(identifier: "ddsTypeSupport"),
+                        typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeSupport" as TypeSyntax),
+                        accessorBlock: AccessorBlockSyntax(
+                            accessors: .getter("""
+                                .init(name: \(name), type: Self.self)
+                            """)
+                        )
                     )
-                )
-            ]
-        )
-        outputs.append(.init(typeSupportDecl))
+                ]
+            )
+            outputs.append(.init(typeSupportDecl))
+        }
 
         // Create ddsTypeDescriptor
         var typeDescriptorMembers: [CodeBlockItemSyntax] = []
@@ -219,7 +264,7 @@ extension MessageMacro: MemberMacro {
         var currentMemberId: UInt32 = 0
         for member in memberInfo {
             typeDescriptorMembers.append(
-                "builder.addMember(name: \"\(member.name)\", memberId: \(raw: currentMemberId), type: (\(member.type.name).self))"
+                "builder.addMember(name: \"\(member.name)\", memberId: \(raw: currentMemberId), type: \(raw: member.type.name.text).self)"
             )
             calculateSizeMembers.append(
                 "calculator.add(member: \(raw: currentMemberId), \(member.name))"
@@ -244,7 +289,7 @@ extension MessageMacro: MemberMacro {
                     typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeDescriptor" as TypeSyntax),
                     accessorBlock: AccessorBlockSyntax(
                         accessors: .getter("""
-                            .createStruct(name: \"\(raw: name)\") { builder in
+                            .createStruct(name: \(name)) { builder in
                                 \(CodeBlockItemListSyntax(typeDescriptorMembers))
                             }
                         """)
@@ -343,10 +388,29 @@ extension MessageMacro: ExtensionMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [ExtensionDeclSyntax] {
-        let (_, _, _, memberInfo) =  try evaluateType(of: node, parent: declaration, context: context)
+        let (_, loaningCompatible, _, _, memberInfo) =  try evaluateType(of: node, parent: declaration, context: context)
+
+        var onlyCodable = false
+        if case .argumentList(let arguments) = node.arguments {
+            for argument in arguments {
+                if argument.label?.text == "onlyCodable" {
+                    guard let value = argument.expression.as(BooleanLiteralExprSyntax.self) else {
+                        let error = DDSKitDiagnosticMessage(
+                            message: "DDSMessage: onlyCodable must be a boolean literal.",
+                            diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.onlyCodableBooleanLiteral"),
+                            severity: .error
+                        )
+                        context.diagnose(Diagnostic(node: Syntax(node), message: error))
+                        throw error
+                    }
+                    onlyCodable = value.literal.text == "true"
+                }
+            }
+        }
 
         let primitiveTypes = [
             "Bool",
+            "Int", "UInt",
             "Int8", "UInt8",
             "Int16", "UInt16",
             "Int32", "UInt32",
@@ -356,8 +420,11 @@ extension MessageMacro: ExtensionMacro {
         ]
         let allPrimitive = memberInfo.allSatisfy { primitiveTypes.contains($0.type.name.text) }
 
-        var extensions: [ExtensionDeclSyntax] = [try ExtensionDeclSyntax("extension \(type): DDSCodable, DDSMessage {}")]
-        if allPrimitive {
+        var extensions: [ExtensionDeclSyntax] = [try ExtensionDeclSyntax("extension \(type): DDSCodable {}")]
+        if !onlyCodable {
+            extensions.append(try ExtensionDeclSyntax("extension \(type): DDSMessage {}"))
+        }
+        if allPrimitive && loaningCompatible {
             extensions.append(try ExtensionDeclSyntax("extension \(type): DDSLoaningCodable {}"))
         }
         return extensions
