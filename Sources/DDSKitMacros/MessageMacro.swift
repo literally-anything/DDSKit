@@ -380,13 +380,13 @@ extension MessageMacro: MemberMacro {
         }
         let typeDescriptorDecl = VariableDeclSyntax(
             modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.static))],
-            bindingSpecifier: .keyword(.var),
+            bindingSpecifier: .keyword(.let),
             bindings: [
                 PatternBindingSyntax(
                     pattern: IdentifierPatternSyntax(identifier: "ddsTypeDescriptor"),
                     typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeDescriptor" as TypeSyntax),
-                    accessorBlock: AccessorBlockSyntax(
-                        accessors: .getter("""
+                    initializer: InitializerClauseSyntax(
+                        value: ExprSyntax("""
                             .createStruct(name: \(name)) { builder in
                                 \(CodeBlockItemListSyntax(typeDescriptorMembers))
                             }

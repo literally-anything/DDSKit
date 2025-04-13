@@ -20,12 +20,12 @@ extension Never: DDSCodable {
 }
 
 extension Result: DDSCodable, DDSMessage where Success: DDSCodable, Failure: DDSCodable {
-    @inlinable
+    @_alwaysEmitIntoClient
     public static var ddsInitialized: Self {
         .success(.ddsInitialized)
     }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         .createEnum(
             name: "Swift.Result<\(Success.ddsTypeDescriptor.name), \(Failure.ddsTypeDescriptor.name)>", descriminator: Bool.ddsTypeDescriptor
@@ -35,7 +35,7 @@ extension Result: DDSCodable, DDSMessage where Success: DDSCodable, Failure: DDS
         }
     }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         calculator.withStruct { calculator in
             calculator.add(member: 0, Bool())
@@ -48,7 +48,7 @@ extension Result: DDSCodable, DDSMessage where Success: DDSCodable, Failure: DDS
         }
     }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         try encoder.withStruct { encoder throws(DDSEncoder.EncodingError) in
             switch self {
@@ -64,7 +64,7 @@ extension Result: DDSCodable, DDSMessage where Success: DDSCodable, Failure: DDS
         }
     }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
         var descriminator: Bool = false
 
@@ -89,7 +89,7 @@ extension Result: DDSCodable, DDSMessage where Success: DDSCodable, Failure: DDS
         }
     }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public static var ddsTypeSupport: DDSTypeSupport {
         DDSTypeSupport(name: ddsTypeDescriptor.name, type: Self.self)
     }

@@ -14,26 +14,22 @@ public protocol DDSRawRepresentable: RawRepresentable where RawValue: DDSCodable
 public protocol DDSOptionSet: DDSRawRepresentable, OptionSet where RawValue: DDSCodable {}
 
 extension DDSRawRepresentable {
-    @inlinable
-    @inline(__always)
+    @_alwaysEmitIntoClient
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         RawValue.ddsTypeDescriptor
     }
 
-    @inlinable
-    @inline(__always)
+    @_alwaysEmitIntoClient
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         rawValue.calculateDDSSize(calculator: &calculator)
     }
 
-    @inlinable
-    @inline(__always)
+    @_alwaysEmitIntoClient
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         try rawValue.ddsEncode(encoder: &encoder)
     }
 
-    @inlinable
-    @inline(__always)
+    @_alwaysEmitIntoClient
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
         var value: RawValue = rawValue
         try value.ddsDecode(decoder: &decoder)
@@ -45,12 +41,10 @@ extension DDSRawRepresentable {
 }
 
 extension DDSOptionSet {
-    @inlinable
-    @inline(__always)
+    @_alwaysEmitIntoClient
     public static var ddsInitialized: Self { [] }
 
-    @inlinable
-    @inline(__always)
+    @_alwaysEmitIntoClient
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
         var value: RawValue = rawValue
         try value.ddsDecode(decoder: &decoder)

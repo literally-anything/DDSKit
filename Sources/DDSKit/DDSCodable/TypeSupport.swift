@@ -29,8 +29,7 @@ public struct DDSTypeSupport: Sendable {
     /// - Parameters:
     ///   - name: The name of the type. This must be unique and the same as the name on the other end.
     ///   - type: The type of the message. This must be a `DDSCodable` type.
-    @inlinable
-    @inline(__always)
+    @_alwaysEmitIntoClient
     public init<Message: DDSCodable>(
         name: String,
         type: Message.Type

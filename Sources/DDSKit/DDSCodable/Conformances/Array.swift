@@ -76,16 +76,107 @@ internal func decodeAndCheckDDSSequenceLength(decoder: inout DDSDecoder) throws(
 }
 
 extension Array: DDSCodable where Element: DDSCodable {
-    @inlinable
+    @_alwaysEmitIntoClient
     public static var ddsInitialized: Array<Element> { .init() }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Element.ddsTypeDescriptor, primitive: false)
+        if Element.self == Bool.self {
+            return .createUnboundedArray(of: Bool.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == Int.self {
+            return .createUnboundedArray(of: Int.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == UInt.self {
+            return .createUnboundedArray(of: UInt.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == Int8.self {
+            return .createUnboundedArray(of: Int8.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == UInt8.self {
+            return .createUnboundedArray(of: UInt8.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == Int16.self {
+            return .createUnboundedArray(of: Int16.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == UInt16.self {
+            return .createUnboundedArray(of: UInt16.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == Int32.self {
+            return .createUnboundedArray(of: Int32.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == UInt32.self {
+            return .createUnboundedArray(of: UInt32.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == Int64.self {
+            return .createUnboundedArray(of: Int64.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == UInt64.self {
+            return .createUnboundedArray(of: UInt64.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == Float.self {
+            return .createUnboundedArray(of: Float.ddsTypeDescriptor, primitive: true)
+        } else if Element.self == Double.self {
+            return .createUnboundedArray(of: Double.ddsTypeDescriptor, primitive: true)
+        }
+        #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+            if Element.self == Float16.self {
+                return .createUnboundedArray(of: Float16.ddsTypeDescriptor, primitive: true)
+            }
+        #endif
+        #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+            if Element.self == Float80.self {
+                return .createUnboundedArray(of: Float80.ddsTypeDescriptor, primitive: true)
+            }
+        #endif
+
+        return .createUnboundedArray(of: Element.ddsTypeDescriptor, primitive: false)
     }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
+        if Element.self == Bool.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Bool.self)
+            return
+        } else if Element.self == Int.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Int.self)
+            return
+        } else if Element.self == UInt.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: UInt.self)
+            return
+        } else if Element.self == Int8.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Int8.self)
+            return
+        } else if Element.self == UInt8.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: UInt8.self)
+            return
+        } else if Element.self == Int16.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Int16.self)
+            return
+        } else if Element.self == UInt16.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: UInt16.self)
+            return
+        } else if Element.self == Int32.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Int32.self)
+            return
+        } else if Element.self == UInt32.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: UInt32.self)
+            return
+        } else if Element.self == Int64.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Int64.self)
+            return
+        } else if Element.self == UInt64.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: UInt64.self)
+            return
+        } else if Element.self == Float.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Float.self)
+            return
+        } else if Element.self == Double.self {
+            calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Double.self)
+            return
+        }
+        #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+            if Element.self == Float16.self {
+                calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Float16.self)
+                return
+            }
+        #endif
+        #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+            if Element.self == Float80.self {
+                calculateDDSSizeSpecialized(calculator: &calculator, count: count, for: Float80.self)
+                return
+            }
+        #endif
+
         withDDSSizeCalculatorComplexSequence(calculator: &calculator) { calculator in
             for element in self {
                 element.calculateDDSSize(calculator: &calculator)
@@ -93,8 +184,152 @@ extension Array: DDSCodable where Element: DDSCodable {
         }
     }
 
-    @inlinable
+    @_alwaysEmitIntoClient
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+        var error: DDSEncoder.EncodingError? = nil
+        if Element.self == Bool.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Bool.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == Int.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Int.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == UInt.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: UInt.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == Int8.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Int8.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == UInt8.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: UInt8.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == Int16.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Int16.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == UInt16.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == Int32.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == UInt32.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == Int64.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == UInt64.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == Float.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Float.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        } else if Element.self == Double.self {
+            withUnsafeBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Double.self) { bufferPtr in
+                    do throws(DDSEncoder.EncodingError) {
+                        try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        }
+        #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+            if Element.self == Float16.self {
+                withUnsafeBufferPointer { bufferPtr in
+                    bufferPtr.withMemoryRebound(to: Float16.self) { bufferPtr in
+                        do throws(DDSEncoder.EncodingError) {
+                            try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                        } catch let e { error = e }
+                    }
+                }
+                if let error { throw error } else { return }
+            }
+        #endif
+        #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+            if Element.self == Float80.self {
+                withUnsafeBufferPointer { bufferPtr in
+                    bufferPtr.withMemoryRebound(to: Float80.self) { bufferPtr in
+                        do throws(DDSEncoder.EncodingError) {
+                            try ddsEncodeSpecialized(encoder: &encoder, count: count, bufferPtr: bufferPtr)
+                        } catch let e { error = e }
+                    }
+                }
+                if let error { throw error } else { return }
+            }
+        #endif
+
         try withDDSEncoderComplexSequence(encoder: &encoder, length: Int32(count)) { encoder throws(DDSEncoder.EncodingError) in
             for element in self {
                 try element.ddsEncode(encoder: &encoder)
@@ -116,14 +351,138 @@ extension Array: DDSCodable where Element: DDSCodable {
             removeLast(capacity - Int(length))
         }
     }
-    @inlinable
+    @_alwaysEmitIntoClient
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
         let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
 
         reserveLengthDDSDecode(length: length)
 
         var error: DDSDecoder.DecodingError? = nil
+        if Element.self == Bool.self {
+            withUnsafeMutableBufferPointer { bufferPtr in
+                bufferPtr.withMemoryRebound(to: Bool.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+            }
+            if let error { throw error } else { return }
+        }
+
         withUnsafeMutableBufferPointer { bufferPtr in
+            if Element.self == Bool.self {
+                bufferPtr.withMemoryRebound(to: Bool.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == Int.self {
+                bufferPtr.withMemoryRebound(to: Int.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == UInt.self {
+                bufferPtr.withMemoryRebound(to: UInt.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == Int8.self {
+                bufferPtr.withMemoryRebound(to: Int8.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == UInt8.self {
+                bufferPtr.withMemoryRebound(to: UInt8.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == Int16.self {
+                bufferPtr.withMemoryRebound(to: Int16.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == UInt16.self {
+                bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == Int32.self {
+                bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == UInt32.self {
+                bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == Int64.self {
+                bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == UInt64.self {
+                bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == Float.self {
+                bufferPtr.withMemoryRebound(to: Float.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            } else if Element.self == Double.self {
+                bufferPtr.withMemoryRebound(to: Double.self) { bufferPtr in
+                    do throws(DDSDecoder.DecodingError) {
+                        try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                    } catch let e { error = e }
+                }
+                return
+            }
+            #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+                if Element.self == Float16.self {
+                    bufferPtr.withMemoryRebound(to: Float16.self) { bufferPtr in
+                        do throws(DDSDecoder.DecodingError) {
+                            try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                        } catch let e { error = e }
+                    }
+                    return
+                }
+            #endif
+            #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
+                if Element.self == Float80.self {
+                    bufferPtr.withMemoryRebound(to: Float80.self) { bufferPtr in
+                        do throws(DDSDecoder.DecodingError) {
+                            try ddsDecodeSpecialized(decoder: &decoder, length: length, bufferPtr: bufferPtr)
+                        } catch let e { error = e }
+                    }
+                    return
+                }
+            #endif
+
             let ptr = bufferPtr.baseAddress.unsafelyUnwrapped // This should always be defined because we reserved capacity above.
             do throws(DDSDecoder.DecodingError) {
                 for i in 0..<Int(length) {
@@ -173,680 +532,623 @@ private func setSerializedMemberSize(encoder: inout DDSEncoder, size: FastDDS.CD
     }
 }
 
-extension Array where Element == Bool {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Bool.ddsTypeDescriptor, primitive: true)
+/// Bool
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Bool.Type) {
+    let calculatedSize = count &+ 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Bool>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
     }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = count &+ 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Bool>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
     }
 }
 
-extension Array where Element == Int {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Int.ddsTypeDescriptor, primitive: true)
+/// Int
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Int.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = if MemoryLayout<Int>.size == 8 {
+        (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+    } else {
+        (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
     }
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
 
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = if MemoryLayout<Int>.size == 8 {
-            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
-        } else {
-            (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
-        }
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        if MemoryLayout<Int>.size == 8 {
-            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
-        } else {
-            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
-        }
-    }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            if MemoryLayout<Int>.size == 8 {
-                bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
-                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-                }
-            } else {
-                bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
-                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-                }
-            }
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        if MemoryLayout<Int>.size == 8 {
-            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
-        } else {
-            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
-        }
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            if MemoryLayout<Int>.size == 8 {
-                bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
-                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-                }
-            } else {
-                bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
-                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-                }
-            }
-        }
-        guard success else {
-            throw .outOfBounds
-        }
-    }
-}
-extension Array where Element == UInt {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: UInt.ddsTypeDescriptor, primitive: true)
-    }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = if MemoryLayout<UInt>.size == 8 {
-            (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
-        } else {
-            (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
-        }
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        if MemoryLayout<UInt>.size == 8 {
-            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
-        } else {
-            setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
-        }
-    }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            if MemoryLayout<UInt>.size == 8 {
-                bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
-                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-                }
-            } else {
-                bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
-                    encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-                }
-            }
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        if MemoryLayout<UInt>.size == 8 {
-            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
-        } else {
-            setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
-        }
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            if MemoryLayout<Int>.size == 8 {
-                bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
-                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-                }
-            } else {
-                bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
-                    decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-                }
-            }
-        }
-        guard success else {
-            throw .outOfBounds
-        }
-    }
-}
-
-extension Array where Element == Int8 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Int8.ddsTypeDescriptor, primitive: true)
-    }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        calculator.alignment += count
-        calculator.size += count
-
-        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE)
-    }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
-    }
-}
-extension Array where Element == UInt8 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: UInt8.ddsTypeDescriptor, primitive: true)
-    }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        calculator.alignment += count
-        calculator.size += count
-
-        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE)
-    }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
-    }
-}
-
-extension Array where Element == Int16 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Int16.ddsTypeDescriptor, primitive: true)
-    }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 2) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
-    }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
-    }
-}
-extension Array where Element == UInt16 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: UInt16.ddsTypeDescriptor, primitive: true)
-    }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 2) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
-    }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
-    }
-}
-
-extension Array where Element == Int32 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Int32.ddsTypeDescriptor, primitive: true)
-    }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
+    if MemoryLayout<Int>.size == 8 {
+        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+    } else {
         setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Int>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = if MemoryLayout<Int>.size == 8 {
+        bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
             encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
         }
-        guard success else {
-            throw .notEnoughStorage
+    } else {
+        bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
+            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
         }
+    }
+    guard success else {
+        throw .notEnoughStorage
+    }
+    if MemoryLayout<Int>.size == 8 {
+        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
+    } else {
         setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
     }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Int>
+) throws(DDSDecoder.DecodingError) {
+    let success = if MemoryLayout<Int>.size == 8 {
+        bufferPtr.withMemoryRebound(to: Int64.self) { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
         }
-        guard success else {
-            throw .outOfBounds
+    } else {
+        bufferPtr.withMemoryRebound(to: Int32.self) { bufferPtr in
+            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
         }
     }
-}
-extension Array where Element == UInt32 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: UInt32.ddsTypeDescriptor, primitive: true)
+    guard success else {
+        throw .outOfBounds
     }
+}
 
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
+/// UInt
 
-        let calculatedSize = (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: UInt.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
 
+    let calculatedSize = if MemoryLayout<UInt>.size == 8 {
+        (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+    } else {
+        (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
+    }
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    if MemoryLayout<UInt>.size == 8 {
+        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+    } else {
         setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<UInt>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = if MemoryLayout<UInt>.size == 8 {
+        bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
             encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
         }
-        guard success else {
-            throw .notEnoughStorage
+    } else {
+        bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
+            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
         }
+    }
+    guard success else {
+        throw .notEnoughStorage
+    }
+    if MemoryLayout<UInt>.size == 8 {
+        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
+    } else {
         setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
     }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<UInt>
+) throws(DDSDecoder.DecodingError) {
+    let success = if MemoryLayout<Int>.size == 8 {
+        bufferPtr.withMemoryRebound(to: UInt64.self) { bufferPtr in
             decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
         }
-        guard success else {
-            throw .outOfBounds
+    } else {
+        bufferPtr.withMemoryRebound(to: UInt32.self) { bufferPtr in
+            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
         }
+    }
+    guard success else {
+        throw .outOfBounds
     }
 }
 
-extension Array where Element == Int64 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Int64.ddsTypeDescriptor, primitive: true)
+/// Int8
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Int8.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    calculator.alignment += count
+    calculator.size += count
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Int8>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
     }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Int8>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
     }
 }
-extension Array where Element == UInt64 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: UInt64.ddsTypeDescriptor, primitive: true)
+
+/// UInt8
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: UInt8.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    calculator.alignment += count
+    calculator.size += count
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<UInt8>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
     }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<UInt8>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
     }
 }
+
+/// Int16
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Int16.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 2) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Int16>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
+    }
+    setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Int16>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
+    }
+}
+
+/// UInt16
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: UInt16.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 2) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<UInt16>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
+    }
+    setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<UInt16>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
+    }
+}
+
+/// UInt16
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Int32.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Int32>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
+    }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Int32>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
+    }
+}
+
+/// UInt32
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: UInt32.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<UInt32>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
+    }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<UInt32>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
+    }
+}
+
+/// Int64
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Int64.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Int64>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
+    }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Int64>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
+    }
+}
+
+/// UInt64
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: UInt64.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<UInt64>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
+    }
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
+    }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<UInt64>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
+    }
+}
+
+/// Float16
+
 #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
-extension Array where Element == Float16 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Float16.ddsTypeDescriptor, primitive: true)
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Float16.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 2) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Float16>
+) throws(DDSEncoder.EncodingError) {
+    assert(
+        MemoryLayout<Float16>.stride == MemoryLayout<UInt16>.stride,
+        "DDSKit: Can't use Float16 because it's memory layout is not the same as UInt16."
+    )
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
     }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 2) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
+    let success = bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
+        encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
-                encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-            }
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
+    guard success else {
+        throw .notEnoughStorage
     }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
-                decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-            }
-        }
-        guard success else {
-            throw .outOfBounds
-        }
+    setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Float16>
+) throws(DDSDecoder.DecodingError) {
+    assert(
+        MemoryLayout<Float16>.stride == MemoryLayout<UInt16>.stride,
+        "DDSKit: Can't use Float16 because it's memory layout is not the same as UInt16."
+    )
+    let success = bufferPtr.withMemoryRebound(to: UInt16.self) { bufferPtr in
+        decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    }
+    guard success else {
+        throw .outOfBounds
     }
 }
 #endif
-extension Array where Element == Float {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Float.ddsTypeDescriptor, primitive: true)
+
+/// Float
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Float.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Float>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
     }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 4) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 4)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_4)
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_4)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Float>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
     }
 }
-extension Array where Element == Double {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Double.ddsTypeDescriptor, primitive: true)
+
+/// Double
+
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Double.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+}
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Double>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
     }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 8) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .SERIALIZED_MEMBER_SIZE_8)
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
+    setSerializedMemberSize(encoder: &encoder, size: .SERIALIZED_MEMBER_SIZE_8)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Double>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
     }
 }
+
+/// Float80
+
 #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
-extension Array where Element == Float80 {
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        .createUnboundedArray(of: Float80.ddsTypeDescriptor, primitive: true)
+@usableFromInline
+internal func calculateDDSSizeSpecialized(calculator: inout DDSSizeCalculator, count: Int, for: Float80.Type) {
+    addPrimitiveHeaderSize(calculator: &calculator)
+
+    let calculatedSize = (count &* 16) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+    calculator.alignment += calculatedSize
+    calculator.size += calculatedSize
+
+    setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+
+@usableFromInline
+internal func ddsEncodeSpecialized(
+    encoder: inout DDSEncoder,
+    count: Int, bufferPtr: UnsafeBufferPointer<Float80>
+) throws(DDSEncoder.EncodingError) {
+    guard encoder.serializer.serialize(Int32(count)) else {
+        throw .notEnoughStorage
     }
-
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        addPrimitiveHeaderSize(calculator: &calculator)
-
-        let calculatedSize = (count &* 16) &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-
-        setSerializedMemberSize(calculator: &calculator, size: .NO_SERIALIZED_MEMBER_SIZE)
+    let success = encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
+    guard success else {
+        throw .notEnoughStorage
     }
-
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(Int32(count)) else {
-            throw .notEnoughStorage
-        }
-        let success = withUnsafeBufferPointer { bufferPtr in
-            encoder.serializer.serializeArray(bufferPtr.baseAddress, UInt32(count))
-        }
-        guard success else {
-            throw .notEnoughStorage
-        }
-        setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
-    }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        let length = try decodeAndCheckDDSSequenceLength(decoder: &decoder)
-
-        reserveLengthDDSDecode(length: length)
-
-        let success = withUnsafeMutableBufferPointer { bufferPtr in
-            decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
-        }
-        guard success else {
-            throw .outOfBounds
-        }
+    setSerializedMemberSize(encoder: &encoder, size: .NO_SERIALIZED_MEMBER_SIZE)
+}
+@usableFromInline
+internal func ddsDecodeSpecialized(
+    decoder: inout DDSDecoder,
+    length: Int32, bufferPtr: UnsafeMutableBufferPointer<Float80>
+) throws(DDSDecoder.DecodingError) {
+    let success = decoder.deserializer.deserializeArray(bufferPtr.baseAddress, UInt32(length))
+    guard success else {
+        throw .outOfBounds
     }
 }
 #endif
