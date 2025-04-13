@@ -90,7 +90,9 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
         publisher = try requestTopic.publish(settings: publisherSettings + [.publishMode(.async)])
         subscriber = try replyTopic.subscribe(settings: subscriberSettings + [.enableFilter])
 
-        subscriber.registerMessageCallback { [unowned self] message, metadata in
+        // Workaround for swift compiler bug
+        let callback: @Sendable (borrowing Reply, borrowing DDSSubscriber<Reply>.MessageMetadata) -> Void
+        callback = { [unowned self] message, metadata in
             activeActions.withLock { [unowned self] actions in
                 guard let related = metadata.relatedIdentifier else {
                     logger.info("A message was recieved with no realated message identifier")
@@ -105,6 +107,7 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
                 continuation.resume(returning: message)
             }
         }
+        subscriber.registerMessageCallback(callback)
     }
 
     @usableFromInline

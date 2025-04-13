@@ -94,7 +94,9 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
 
         requestHandler = handler
 
-        subscriber.registerMessageCallback { [unowned self] message, metadata in
+        // Workaround for swift compiler bug
+        let callback: @Sendable (borrowing Request, borrowing DDSSubscriber<Request>.MessageMetadata) -> Void
+        callback = { [unowned self] message, metadata in
             logger.trace("Got request from client: \(metadata.senderEntityIdentifier)")
 
             let reply = requestHandler(message)
@@ -104,6 +106,7 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
                 logger.error("Error while publishing reply: \(error)")
             }
         }
+        subscriber.registerMessageCallback(callback)
     }
 
     deinit {

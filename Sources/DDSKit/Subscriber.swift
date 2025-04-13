@@ -205,6 +205,8 @@ extension DDSSubscriber {
         case unregister
     }
 
+    /// Registers a callback to be called when a message is received.
+    /// - Parameter callback: The callback to call when a message is received.
     @inlinable
     public func registerMessageCallback(_ callback: @escaping @Sendable (borrowing Message) throws(UnregisterCallbackError) -> Void) {
         dataCallbacks.withLock { callbacks in
@@ -219,6 +221,10 @@ extension DDSSubscriber {
         }
     }
 
+    /// Registers a callback to be called when a message is received.
+    /// The callback will be passed the message and the metadata.
+    /// This is useful for getting the sender info and message identifiers.
+    /// - Parameter callback: The callback to call when a message is received.
     @inlinable
     public func registerMessageCallback(
         _ callback: @escaping @Sendable (borrowing Message, borrowing MessageMetadata) throws(UnregisterCallbackError) -> Void
