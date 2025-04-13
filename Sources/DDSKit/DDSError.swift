@@ -1,10 +1,11 @@
 /**
  * DDSError.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 8/08/2024
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// An error in DDSKit
@@ -16,7 +17,9 @@ public enum DDSError: Error {
     case timeout
 
     /// Thrown when a fastdds operation fails because of what is likely a library bug.
-    case internalError(code: FastDDSErrorCode, from: FastDDSEntityType, file: StaticString, function: StaticString, line: UInt, column: UInt)
+    case internalError(
+        code: FastDDSErrorCode, from: FastDDSEntityType, file: StaticString, function: StaticString, line: UInt, column: UInt
+    )
 
     /// Thrown when an operation fails for an unknown reason.
     /// - Parameter FastDDSErrorCode: The error code returned from the DDS API.

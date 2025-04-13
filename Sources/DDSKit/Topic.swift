@@ -1,17 +1,18 @@
 /**
  * Topic.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 2/05/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// A topic for a message.
-/// 
+///
 /// A topic represents the abstract idea of the single data flow from a Publisher to a Subscriber.
 /// Topics have a name and a type, and they only match with other topics that have the same name and type.
-public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
+public final class DDSTopic<Message: DDSMessage>: @unchecked Sendable {
     /// The participant that this topic is associated with.
     public let participant: DDSParticipant
     /// A wrapper around the underlying FastDDS Topic.
@@ -25,7 +26,9 @@ public final class DDSTopic<Message: DDSMessage> : @unchecked Sendable {
     ///   - convention: The naming convention to use for the topic. Default is `.default`.
     /// - Throws: If the topic cannot be created.
     @inlinable
-    public convenience init(participant: DDSParticipant, topic: String, convention: DDSNamespace.NamingConvention = .default) throws(DDSError) {
+    public convenience init(
+        participant: DDSParticipant, topic: String, convention: DDSNamespace.NamingConvention = .default
+    ) throws(DDSError) {
         try self.init(participant: participant, topic: topic, typeSupport: Message.ddsTypeSupport, nameInfo: (.topic, convention))
     }
 
@@ -128,7 +131,9 @@ extension DDSParticipant {
     /// - Throws: If the topic cannot be created.
     /// - Returns: The new topic.
     @inlinable
-    public func getTopic<T: DDSMessage>(named name: String, type: T.Type, convention: DDSNamespace.NamingConvention = .default) throws(DDSError) -> DDSTopic<T> {
+    public func getTopic<T: DDSMessage>(
+        named name: String, type: T.Type, convention: DDSNamespace.NamingConvention = .default
+    ) throws(DDSError) -> DDSTopic<T> {
         try DDSTopic<T>(participant: self, topic: name, convention: convention)
     }
 }

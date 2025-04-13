@@ -1,7 +1,7 @@
 /**
  * Result.swift
  * Conformances
- * 
+ *
  * Created by Hunter Baker on 3/10/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
@@ -28,7 +28,8 @@ extension Result: DDSCodable, DDSMessage where Success: DDSCodable, Failure: DDS
     @_alwaysEmitIntoClient
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         .createEnum(
-            name: "Swift.Result<\(Success.ddsTypeDescriptor.name), \(Failure.ddsTypeDescriptor.name)>", descriminator: Bool.ddsTypeDescriptor
+            name: "Swift.Result<\(Success.ddsTypeDescriptor.name), \(Failure.ddsTypeDescriptor.name)>",
+            descriminator: Bool.ddsTypeDescriptor
         ) { builder in
             builder.addCase(name: "success", caseId: 1, type: Success.self)
             builder.addCase(name: "failure", caseId: 2, type: Failure.self)
@@ -53,11 +54,11 @@ extension Result: DDSCodable, DDSMessage where Success: DDSCodable, Failure: DDS
         try encoder.withStruct { encoder throws(DDSEncoder.EncodingError) in
             switch self {
                 case .success(let result):
-                    try encoder.encode(member: 0, true) // descriminator
+                    try encoder.encode(member: 0, true)  // descriminator
 
                     try encoder.encode(member: 1, result)
                 case .failure(let error):
-                    try encoder.encode(member: 0, false) // descriminator
+                    try encoder.encode(member: 0, false)  // descriminator
 
                     try encoder.encode(member: 2, error)
             }

@@ -1,17 +1,18 @@
 /**
  * Publisher.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 2/05/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import Synchronization
 internal import _CFastDDS
 
 /// A publisher for a DDS topic.
-/// 
+///
 /// A publisher is used to publish messages to a topic.
-public final class DDSPublisher<Message: DDSMessage> : @unchecked Sendable {
+public final class DDSPublisher<Message: DDSMessage>: @unchecked Sendable {
     /// The topic that this publisher is publishing on.
     public let topic: DDSTopic<Message>
     /// A wrapper around the underlying FastDDS DataWriter.
@@ -179,7 +180,9 @@ extension DDSPublisher {
     /// - Throws: DDSError if the data fails to publish.
     @usableFromInline
     @discardableResult
-    internal func publishRawWithMetadata(_ sample: UnsafeRawPointer, metadata: MessageMetadata? = nil) throws(DDSError) -> DDSMessageIdentifier {
+    internal func publishRawWithMetadata(
+        _ sample: UnsafeRawPointer, metadata: MessageMetadata? = nil
+    ) throws(DDSError) -> DDSMessageIdentifier {
         let relatedIdentifier = metadata?.relatedIdentifier
         var sampleIdentitiy = FastDDS.SampleIdentity()
 
@@ -202,7 +205,9 @@ extension DDSPublisher {
     /// - Throws: DDSError if the message fails to publish.
     @inlinable
     @discardableResult
-    public func publishWithMetadata(_ message: borrowing Message, metadata: MessageMetadata? = nil) throws(DDSError) -> DDSMessageIdentifier {
+    public func publishWithMetadata(
+        _ message: borrowing Message, metadata: MessageMetadata? = nil
+    ) throws(DDSError) -> DDSMessageIdentifier {
         try withUnsafePointer(to: message) { messagePtr throws(DDSError) in
             try publishRawWithMetadata(messagePtr, metadata: metadata)
         }
@@ -231,14 +236,15 @@ extension DDSPublisher where Message: DDSLoaningCodable {
         assert(Message.ddsTypeSupport.typeSupport.isPlain, "loan is only supported for plain and bounded types.")
 
         // The LoanInitiationKind enum isn't bridged to swift. This is a painful workaround.
-        let initKind: CInt = switch initializationMode {
-            case .none:
-                FastDDS.DataWriter.getLoanInitKindNone()
-            case .zero:
-                FastDDS.DataWriter.getLoanInitKindZero()
-            case .constructed:
-                FastDDS.DataWriter.getLoanInitKindConstructed()
-        }
+        let initKind: CInt =
+            switch initializationMode {
+                case .none:
+                    FastDDS.DataWriter.getLoanInitKindNone()
+                case .zero:
+                    FastDDS.DataWriter.getLoanInitKindZero()
+                case .constructed:
+                    FastDDS.DataWriter.getLoanInitKindConstructed()
+            }
 
         var sample: UnsafeMutableRawPointer?
         let retcode = raw.loan(dataPtr: &sample, initKind: initKind)
@@ -287,7 +293,9 @@ extension DDSPublisher where Message: DDSLoaningCodable {
     /// - Throws: DDSError if the message fails to publish.
     /// - Throws: E if the body throws.
     @inlinable
-    public func publish<E: Error>(initializationMode: LoanInitializationMode = .constructed, _ body: (inout Message) throws(E) -> Void) throws {
+    public func publish<E: Error>(
+        initializationMode: LoanInitializationMode = .constructed, _ body: (inout Message) throws(E) -> Void
+    ) throws {
         let sample = try loan(initializationMode: initializationMode)
 
         do throws(E) {
@@ -587,5 +595,3 @@ extension DDSTopic {
         try DDSPublisher(topic: self, settings: settings)
     }
 }
-
-

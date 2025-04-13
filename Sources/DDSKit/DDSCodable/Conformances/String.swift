@@ -1,10 +1,11 @@
 /**
  * String.swift
  * Conformances
- * 
+ *
  * Created by Hunter Baker on 3/15/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 extension String: DDSCodable {
@@ -21,7 +22,7 @@ extension String: DDSCodable {
             // When in debug mode, we always build the type, so we can ensure that the type is same as the one that is already registered.
             var foundExistingType = false
             #if !DEBUG
-                foundExistingType = FastDDS.Types.getIdentifiersForName(name: .init(typeName), identifiers: &identifier) 
+                foundExistingType = FastDDS.Types.getIdentifiersForName(name: .init(typeName), identifiers: &identifier)
             #endif
 
             // If the type is not found, we need to build it.

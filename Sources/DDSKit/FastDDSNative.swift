@@ -1,10 +1,11 @@
 /**
  * FastDDSNative.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 3/01/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 @_spi(DDSKitNative)

@@ -1,12 +1,13 @@
 /**
  * TypeSupport.swift
  * DDSCodable
- * 
+ *
  * Created by Hunter Baker on 3/16/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-internal import _CFastDDS
+
 internal import Logging
+internal import _CFastDDS
 
 /// Type support functionality for a topic. Represents the underlying FastDDS `TypeSupport` object.
 public struct DDSTypeSupport: Sendable {
@@ -37,7 +38,10 @@ public struct DDSTypeSupport: Sendable {
         /// Just used so the value is copied when used in createType, and the type descriptor can be deallocated.
         let isPlain = Message.ddsTypeDescriptor.isPlain
 
-        self.init(name: name, type: type, isBounded: Message.ddsTypeDescriptor.isBounded, isPlain: isPlain, maxSize: UInt32(Message.ddsTypeDescriptor.maxSize))
+        self.init(
+            name: name, type: type, isBounded: Message.ddsTypeDescriptor.isBounded, isPlain: isPlain,
+            maxSize: UInt32(Message.ddsTypeDescriptor.maxSize)
+        )
     }
 
     /// Creates a new topic type support object with the given name and type descriptor.

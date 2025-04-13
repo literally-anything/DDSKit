@@ -1,12 +1,13 @@
 /**
  * Participant.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 2/03/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-internal import Synchronization
+
 internal import Logging
+internal import Synchronization
 internal import _CFastDDS
 
 /// A participant in the DDS network.
@@ -43,7 +44,9 @@ public final class DDSParticipant: @unchecked Sendable {
     ///   - name: The user-defined name for the participant. Defaults to the name of the function that intialized the participant.
     ///   - settings: An optional list of settings for the participant.
     /// - Throws: DDSError if the participant fails to initialize.
-    public init(domain: UInt32 = 0, name: String = DDSNamespace.current.appending(relative: #function).description, settings: [Setting] = []) throws(DDSError) {
+    public init(
+        domain: UInt32 = 0, name: String = DDSNamespace.current.appending(relative: #function).description, settings: [Setting] = []
+    ) throws(DDSError) {
         /// In C++, this is represented as a fixed-size string, so it must be less than 256 characters.
         assert(name.count < 256, "Name must be less than 256 characters")
 
@@ -90,7 +93,7 @@ public final class DDSParticipant: @unchecked Sendable {
         try FastDDSErrorCode.checkThrow(raw.enable(), from: .participant)
 
         rawPublisher = FastDDS.Publisher(
-            participant: raw, 
+            participant: raw,
             // profile: FastDDS.Publisher.Qos(participant: raw),
             success: &success
         )
@@ -118,24 +121,25 @@ public final class DDSParticipant: @unchecked Sendable {
         }
 
         try FastDDSErrorCode.checkThrowInternal(
-            raw.setCallbacks(.init { [unowned self] participantNameC in
-                // Called when new participant is discovered
-                detectionCallbacks.withLock { callbacks in
-                    guard !callbacks.isEmpty else {
-                        return
-                    }
+            raw.setCallbacks(
+                .init { [unowned self] participantNameC in
+                    // Called when new participant is discovered
+                    detectionCallbacks.withLock { callbacks in
+                        guard !callbacks.isEmpty else {
+                            return
+                        }
 
-                    let name = String(cString: participantNameC)
+                        let name = String(cString: participantNameC)
 
-                    // This is reversed so that we can remove elements from the array while iterating
-                    for (index, callback) in callbacks.enumerated().reversed() {
-                        // Remove the callback if it returns true
-                        if callback(name) {
-                            callbacks.remove(at: index)
+                        // This is reversed so that we can remove elements from the array while iterating
+                        for (index, callback) in callbacks.enumerated().reversed() {
+                            // Remove the callback if it returns true
+                            if callback(name) {
+                                callbacks.remove(at: index)
+                            }
                         }
                     }
-                }
-            }),
+                }),
             from: .participant
         )
 
@@ -353,31 +357,31 @@ extension DDSParticipant {
         /// How this works is documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/discovery/discovery.html
         public enum DiscoveryMode {
             /// Use the SIMPLE discovery mode.
-            /// 
+            ///
             /// This is the default mode, and is the simplest to use.
-            /// 
+            ///
             /// The Participant Discovery Phase (PDP) will identify the participants in the network using multicast (default) or unicast.
             /// The Endpoint Discovery Phase (EDP) will identify the publishers and subscribers of each participant.
             /// This mode allows for very simple configuration and is very robust, but it increases the network traffic and setup time.
-            /// 
+            ///
             /// To only use unicast for discovery, set `enableMulticast` to false, and add every participant's address to `initialPeers`.
             /// `initialPeers` can also be used with multicast enabled in situations where multicast is not possible or unreliable (for example, on WiFi).
-            /// 
+            ///
             /// If there are multiple discovery mode settings, the last one will be used, but the `initialPeers` will be combined.
-            /// 
+            ///
             /// - Parameters:
             ///   - enableMulticast: Whether to enable multicast for discovery. Defaults to true.
             ///   - initialPeers: The initial peers to connect to. This allows for participants to be discovered through unicast. Defaults to an empty array.
             case simple(enableMulticast: Bool = true, initialPeers: [SocketAddress] = [])
             /// Use the STATIC discovery mode.
-            /// 
+            ///
             /// The Participant Discovery Phase (PDP) will identify the participants in the network using multicast (default) or unicast.
             /// But, the Endpoint Discovery Phase (EDP) is not used. This means that you have to manually configure the data readers and writers of each participant.
             /// This is documented in the FastDDS documentation: https://fast-dds.docs.eprosima.com/en/latest/fastdds/discovery/static.html#static-discovery-settings
             ///
             /// To only use unicast for discovery, set `enableMulticast` to false, and add every participant's address to `initialPeers`.
             /// `initialPeers` can also be used with multicast enabled in situations where multicast is not possible or unreliable (for example, on WiFi).
-            /// 
+            ///
             /// If there are multiple discovery mode settings, the last one will be used, but the `initialPeers` will be combined.
             ///
             /// - Parameter config: The XML configuration file to use for the static discovery mode.
@@ -391,7 +395,7 @@ extension DDSParticipant {
             /// There are three types of discovery server modes: server, client, and backupServer.
             /// Server makes this participant a discovery server.
             /// BackupServer makes this participant a discovery server that also stores the discovery information in persistant storage.
-            /// 
+            ///
             /// - Parameter mode: The mode to use for the discovery server.
             case server(mode: DiscoveryServerMode)
 
@@ -540,7 +544,9 @@ extension DDSParticipant {
                     let privateKey, let password,
                     let identityCrl, let prefferedKeyAlgorithm
                 ):
-                    authenticationSettings = (identityCA, identityCertificate, privateKey, password, identityCrl, prefferedKeyAlgorithm?.rawValue)
+                    authenticationSettings = (
+                        identityCA, identityCertificate, privateKey, password, identityCrl, prefferedKeyAlgorithm?.rawValue
+                    )
                 case .accessControl(let permissionsCA, let governance, let permissions):
                     accessControlSettings = (permissionsCA, governance, permissions)
                 case .encryption: encryptionEnabled = true
@@ -624,7 +630,10 @@ extension DDSParticipant {
         for transport in userTransports {
             switch transport {
                 case .sharedMemory(let segmentSize, let queueCapacity, let healthTimeout, let common):
-                    qos.addUserTransportSHM(segmentSize: segmentSize ?? 0, queueCapacity: queueCapacity ?? 0, healthTimeout: healthTimeout ?? 0, common: .init(common))
+                    qos.addUserTransportSHM(
+                        segmentSize: segmentSize ?? 0, queueCapacity: queueCapacity ?? 0, healthTimeout: healthTimeout ?? 0,
+                        common: .init(common)
+                    )
                 case .udp4(let outPort, let common, let networkSettings):
                     qos.addUserTransportUDPv4(outPort: outPort, common: .init(common), networkSettings: .init(networkSettings))
                 case .udp6(let outPort, let common, let networkSettings):
@@ -690,7 +699,7 @@ extension DDSParticipant {
         return { participant, logger throws(DDSError) in
             // Set after creating the participant but before enabling, so the base of the GUID will be generated, but can still be modified.
             switch identifierPrefixMethod {
-                case .internallyAssigned: break // Nothing to do here, this is the default
+                case .internallyAssigned: break  // Nothing to do here, this is the default
                 case .hostUnique:
                     let hostIdentifier = FastDDS.getMachineId()
                     #if DEBUG

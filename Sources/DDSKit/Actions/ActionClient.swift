@@ -1,17 +1,20 @@
 /**
  * ActionClient.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 1/23/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 public import Logging
 public import Synchronization
 internal import _CFastDDS
 
 /// An action client with support for throwing errors as the result.
 /// This is actually just a type alias for DDSActionClient<Request, Result<Success, Failure>>.
-public typealias DDSThrowingActionClient<Request: DDSMessage, Success: DDSCodable, Failure: DDSCodable & Error> = DDSActionClient<Request, Result<Success, Failure>>
+public typealias DDSThrowingActionClient<
+    Request: DDSMessage, Success: DDSCodable, Failure: DDSCodable & Error
+> = DDSActionClient<Request, Result<Success, Failure>>
 
 /// A client for an action server.
 /// Actions are an implementation of the request reply pattern using topics.
@@ -113,7 +116,7 @@ public final class DDSActionClient<Request: DDSMessage, Reply: DDSMessage>: Send
     @usableFromInline
     internal static func setupReplyFilter(logger: Logger, topic: DDSTopic<Reply>) {
         // Try to register the content filter factory
-        let ret = FastDDS.Actions.registerContentFilterFactory(&topic.participant.raw);
+        let ret = FastDDS.Actions.registerContentFilterFactory(&topic.participant.raw)
         if let error = FastDDSErrorCode.check(ret) {
             logger.warning("Failed to register content filter factory: \(error), falling back to normal topic")
             return
@@ -199,7 +202,8 @@ extension DDSActionClient {
     }
 }
 
-extension DDSActionClient where Reply: DDSActionResult /* This just means that it is a Result where both Failure and Success are DDSCodable */ {
+extension DDSActionClient
+where Reply: DDSActionResult /* This just means that it is a Result where both Failure and Success are DDSCodable */ {
     /// Sends a request to the action server and asynchronously waits for the reply.
     /// This can be cancelled by the caller.
     /// The reply is a Result, so it will be upacked into a success or it will throw a failure.

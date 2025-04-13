@@ -1,10 +1,11 @@
 /**
  * EntitiyIdentifier.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 2/26/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// An identifier for a DDS entity.
@@ -125,21 +126,15 @@ extension DDSEntityIdentifier {
 
         /// The vendor id of the prefix.
         public var vendorId: (UInt8, UInt8) {
-            get {
-                (guidPrefix.value.0, guidPrefix.value.1)
-            }
+            (guidPrefix.value.0, guidPrefix.value.1)
         }
         /// The bytes in the prefix that represent the host.
         public var hostId: (UInt8, UInt8) {
-            get {
-                (guidPrefix.value.2, guidPrefix.value.3)
-            }
+            (guidPrefix.value.2, guidPrefix.value.3)
         }
         /// The bytes in the prefix that represent the process.
         public var processId: (UInt8, UInt8, UInt8, UInt8) {
-            get {
-                (guidPrefix.value.4, guidPrefix.value.5, guidPrefix.value.6, guidPrefix.value.7)
-            }
+            (guidPrefix.value.4, guidPrefix.value.5, guidPrefix.value.6, guidPrefix.value.7)
         }
 
         /// Creates a new prefix from an array of UInt8s.
@@ -264,7 +259,7 @@ extension Optional where Wrapped == DDSEntityIdentifier {
     /// The fastdds GUID representation of the entity identifier.
     /// If the entity identifier is nil, this will be an unknown() GUID.
     internal var guid: FastDDS.GUID {
-        switch (self) {
+        switch self {
             case .none:
                 .init()
             case .some(let value):

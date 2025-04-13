@@ -1,13 +1,14 @@
 /**
  * EnumMacro.swift
  * DDSKitMacros
- * 
+ *
  * Created by Hunter Baker on 4/08/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
-import SwiftDiagnostics
 
 struct EnumMacro {
     private static func evaluateType(
@@ -47,7 +48,8 @@ struct EnumMacro {
 
             // Find all variable and constant declarations
             guard let variableDecl = member.decl.as(VariableDeclSyntax.self),
-                  variableDecl.bindingSpecifier.tokenKind == .keyword(.var) || variableDecl.bindingSpecifier.tokenKind == .keyword(.let) else {
+                variableDecl.bindingSpecifier.tokenKind == .keyword(.var) || variableDecl.bindingSpecifier.tokenKind == .keyword(.let)
+            else {
                 continue
             }
 
@@ -92,15 +94,17 @@ struct EnumMacro {
                 continue
             }
 
-            cases.append(contentsOf: caseDecl.elements.map { element in
-                if element.rawValue?.value != nil {
-                    hasRawValue = true
+            cases.append(
+                contentsOf: caseDecl.elements.map { element in
+                    if element.rawValue?.value != nil {
+                        hasRawValue = true
+                    }
+                    if element.parameterClause?.parameters.count ?? 0 > 0 {
+                        hasParameters = true
+                    }
+                    return (element.name, element.parameterClause?.parameters)
                 }
-                if element.parameterClause?.parameters.count ?? 0 > 0 {
-                    hasParameters = true
-                }
-                return (element.name, element.parameterClause?.parameters)
-            })
+            )
         }
 
         if !hasRawValue && !hasParameters {
@@ -110,7 +114,8 @@ struct EnumMacro {
             if cases.count > UInt32.max { suggestedRawValue = "UInt64" }
 
             let error = DDSKitDiagnosticMessage(
-                message: "DDSEnum: A type should either have a raw value or have cases with parameters. Fix this by adding a RawValue to the enum.",
+                message:
+                    "DDSEnum: A type should either have a raw value or have cases with parameters. Fix this by adding a RawValue to the enum.",
                 diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSEnum.noRawValue"),
                 severity: .error
             )
@@ -122,28 +127,30 @@ struct EnumMacro {
                 changes: [
                     .replace(
                         oldNode: Syntax(typeDecl),
-                        newNode: Syntax({
-                            var fixedDecl = typeDecl
+                        newNode: Syntax(
+                            {
+                                var fixedDecl = typeDecl
 
-                            if fixedDecl.inheritanceClause == nil {
-                                fixedDecl.inheritanceClause = InheritanceClauseSyntax(
-                                    inheritedTypes: [
-                                        InheritedTypeSyntax(type: suggestedRawValue)
-                                    ]
-                                )
-                            } else {
-                                fixedDecl.inheritanceClause!.inheritedTypes.insert(
-                                    InheritedTypeSyntax(
-                                        type: suggestedRawValue,
-                                        trailingComma: fixedDecl.inheritanceClause!.inheritedTypes.count > 0 ? .commaToken() : nil
-                                    ),
-                                    at: fixedDecl.inheritanceClause!.inheritedTypes.startIndex
-                                )
-                            }
-                            fixedDecl.inheritanceClause = fixedDecl.inheritanceClause!.formatted().as(InheritanceClauseSyntax.self)!
+                                if fixedDecl.inheritanceClause == nil {
+                                    fixedDecl.inheritanceClause = InheritanceClauseSyntax(
+                                        inheritedTypes: [
+                                            InheritedTypeSyntax(type: suggestedRawValue)
+                                        ]
+                                    )
+                                } else {
+                                    fixedDecl.inheritanceClause!.inheritedTypes.insert(
+                                        InheritedTypeSyntax(
+                                            type: suggestedRawValue,
+                                            trailingComma: fixedDecl.inheritanceClause!.inheritedTypes.count > 0 ? .commaToken() : nil
+                                        ),
+                                        at: fixedDecl.inheritanceClause!.inheritedTypes.startIndex
+                                    )
+                                }
+                                fixedDecl.inheritanceClause = fixedDecl.inheritanceClause!.formatted().as(InheritanceClauseSyntax.self)!
 
-                            return fixedDecl
-                        }())
+                                return fixedDecl
+                            }()
+                        )
                     )
                 ]
             )
@@ -153,7 +160,7 @@ struct EnumMacro {
                     message: error,
                     highlights: [
                         Syntax(node),
-                        Syntax(typeDecl.name),
+                        Syntax(typeDecl.name)
                     ],
                     fixIt: fixit
                 )
@@ -261,9 +268,11 @@ extension EnumMacro: MemberMacro {
                         pattern: IdentifierPatternSyntax(identifier: "ddsInitialized"),
                         typeAnnotation: TypeAnnotationSyntax(type: "Self" as TypeSyntax),
                         accessorBlock: AccessorBlockSyntax(
-                            accessors: .getter("""
-                                .init()
-                            """)
+                            accessors: .getter(
+                                """
+                                    .init()
+                                """
+                            )
                         )
                     )
                 ]
@@ -274,7 +283,8 @@ extension EnumMacro: MemberMacro {
         // If there is a raw value, the type is automatically conformed to DDSCodable using the DDSRawRepresentable conformance
         if rawValue == nil {
             let error = DDSKitDiagnosticMessage(
-                message: "DDSEnum: Types that are not raw representable are not supported yet. They must manually be conformed to DDSCodable.",
+                message:
+                    "DDSEnum: Types that are not raw representable are not supported yet. They must manually be conformed to DDSCodable.",
                 diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.temp_notRawRepresentable"),
                 severity: .error
             )

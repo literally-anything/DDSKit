@@ -1,7 +1,7 @@
 /**
  * Namespace.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 4/04/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
@@ -257,7 +257,7 @@ extension DDSNamespace {
 }
 
 extension DDSNamespace: DDSCodable {
-    public static var ddsInitialized: DDSNamespace {.init(path: "")}
+    public static var ddsInitialized: DDSNamespace { .init(path: "") }
 
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         .createStruct(name: "DDSKit.DDSNamespace") { builder in

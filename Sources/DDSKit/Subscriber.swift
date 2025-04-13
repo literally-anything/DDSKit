@@ -1,17 +1,18 @@
 /**
  * Subscriber.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 2/06/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 public import Synchronization
 internal import _CFastDDS
 
 /// A subscriber for a topic.
-/// 
+///
 /// A subscriber is used to receive messages from a topic.
-public final class DDSSubscriber<Message: DDSMessage> : @unchecked Sendable {
+public final class DDSSubscriber<Message: DDSMessage>: @unchecked Sendable {
     /// The topic that this subscriber is subscribed to.
     public let topic: DDSTopic<Message>
     /// A wrapper around the underlying FastDDS DataReader.
@@ -247,7 +248,9 @@ extension DDSSubscriber {
     /// - Parameter bufferingPolicy: The buffering policy to use for the stream.
     /// - Throws: If an error occurs while reading the message.
     @inlinable
-    public func getMessageStream(bufferingPolicy: AsyncThrowingStream<Message, Error>.Continuation.BufferingPolicy) -> AsyncThrowingStream<Message, Error> {
+    public func getMessageStream(
+        bufferingPolicy: AsyncThrowingStream<Message, Error>.Continuation.BufferingPolicy
+    ) -> AsyncThrowingStream<Message, Error> {
         AsyncThrowingStream(bufferingPolicy: bufferingPolicy) { continuation in
             let end = Atomic(false)
             dataCallbacks.withLock { @Sendable callbacks in
@@ -378,10 +381,6 @@ public enum DDSSubscriberSettings {
     ///   - reliability: The reliability to set.
     case reliability(Reliability)
 
-    /// Sets whether the subscriber will use the topic or the content filtered topic.
-    /// - Note: This is currently only used internally for Actions and has no effect normally.
-    /// - Parameter enableFilter: Whether to use the content filtered topic.
-    
     /// Enables the content filtered topic instead of the normal topic. This has no effect on subsribers that aren't part of an action.
     /// - Note: This is currently only used internally for Actions; it is not intended for normal use and will almost always do nothing.
     case enableFilter

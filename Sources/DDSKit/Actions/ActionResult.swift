@@ -1,7 +1,7 @@
 /**
  * Result.swift
  * Actions
- * 
+ *
  * Created by Hunter Baker on 4/01/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */

@@ -1,7 +1,7 @@
 /**
  * Duration.swift
  * Conformances
- * 
+ *
  * Created by Hunter Baker on 3/17/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
@@ -37,12 +37,12 @@ extension Duration: DDSCodable, DDSLoaningCodable {
         var attoseconds = components.attoseconds
         try decoder.withStruct { decoder, memberId throws(DDSDecoder.DecodingError) in
             switch memberId {
-            case 0:
-                try decoder.decode(&seconds)
-            case 1:
-                try decoder.decode(&attoseconds)
-            default:
-                throw .unknownMember
+                case 0:
+                    try decoder.decode(&seconds)
+                case 1:
+                    try decoder.decode(&attoseconds)
+                default:
+                    throw .unknownMember
             }
         }
         self = .init(secondsComponent: seconds, attosecondsComponent: attoseconds)

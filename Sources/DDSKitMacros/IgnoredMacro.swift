@@ -1,13 +1,14 @@
 /**
  * IgnoredMacro.swift
  * DDSKitMacros
- * 
+ *
  * Created by Hunter Baker on 4/07/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
-import SwiftDiagnostics
 
 /// A macro that ignores the declaration it is applied to.
 /// This doesn't actually do anything, it's just used as a marker of ignored members.
@@ -21,13 +22,15 @@ struct IgnoredMacro: PeerMacro {
             changes: [
                 .replace(
                     oldNode: Syntax(type.attributes),
-                    newNode: Syntax({
-                        var fixedAttributes = type.attributes
-                        fixedAttributes = fixedAttributes.filter {
-                            $0.as(AttributeSyntax.self)?.attributeName.as(IdentifierTypeSyntax.self)?.name.text != "DDSIgnored"
-                        }
-                        return fixedAttributes.formatted()
-                    }())
+                    newNode: Syntax(
+                        {
+                            var fixedAttributes = type.attributes
+                            fixedAttributes = fixedAttributes.filter {
+                                $0.as(AttributeSyntax.self)?.attributeName.as(IdentifierTypeSyntax.self)?.name.text != "DDSIgnored"
+                            }
+                            return fixedAttributes.formatted()
+                        }()
+                    )
                 )
             ]
         )
@@ -102,7 +105,7 @@ struct IgnoredMacro: PeerMacro {
                 )
             )
         }
-        
+
         if let parent = context.lexicalContext.first {
             let warning = DDSKitDiagnosticMessage(
                 message: "DDSIgnored should be applied to a member of a struct annotated with @DDSMessage.",

@@ -1,10 +1,11 @@
 /**
  * CDRSizeCalculator.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 1/27/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// A calculator for determining the size of a DDS encoded type.
@@ -113,19 +114,19 @@ extension DDSSizeCalculator {
         if calculatedSize > 0 {
             if calc.get_cdr_version() == eprosima.fastcdr.XCDRv2 && calc.get_encoding() == eprosima.fastcdr.PL_CDR2 {
                 if calculatedSize > 8 || (calculatedSize != 1 && calculatedSize != 2 && calculatedSize != 4 && calculatedSize != 8) {
-                    extraSize = 8 // Long EMHEADER.
+                    extraSize = 8  // Long EMHEADER.
                     if serializedSequenceMemberSize != .NO_SERIALIZED_MEMBER_SIZE {
                         // If no data has been calculated
-                        calculatedSize -= 4; // Join NEXTINT and DHEADER.
+                        calculatedSize -= 4  // Join NEXTINT and DHEADER.
                     }
                 } else {
-                    extraSize = 4 // EMHEADER;
+                    extraSize = 4  // EMHEADER;
                 }
             } else if calc.get_cdr_version() == eprosima.fastcdr.XCDRv1 && calc.get_encoding() == eprosima.fastcdr.PL_CDR {
-                extraSize = 4 // ShortMemberHeader
+                extraSize = 4  // ShortMemberHeader
 
                 if memberId > 0x3F00 || calculatedSize > UInt16.max {
-                    extraSize += 8 // LongMemberHeader
+                    extraSize += 8  // LongMemberHeader
                 }
             }
         }
@@ -196,19 +197,21 @@ extension DDSSizeCalculator {
 
         if calc.get_cdr_version() == eprosima.fastcdr.XCDRv2 && calc.get_encoding() == eprosima.fastcdr.PL_CDR2 && calculatedSize > 0 {
             if calculatedSize > 8 {
-                extraSize = 8 // Long EMHEADER.
-                    if serializedSequenceMemberSize != .NO_SERIALIZED_MEMBER_SIZE {
-                        // If no data has been calculated
-                        calculatedSize -= 4; // Join NEXTINT and DHEADER.
-                    }
+                extraSize = 8  // Long EMHEADER.
+                if serializedSequenceMemberSize != .NO_SERIALIZED_MEMBER_SIZE {
+                    // If no data has been calculated
+                    calculatedSize -= 4  // Join NEXTINT and DHEADER.
+                }
             } else {
-                extraSize = 4 // EMHEADER;
+                extraSize = 4  // EMHEADER;
             }
-        } else if calc.get_cdr_version() == eprosima.fastcdr.XCDRv1 && (calculatedSize > 0 || calc.get_encoding() == eprosima.fastcdr.PLAIN_CDR) {
-            extraSize = 4 // ShortMemberHeader
+        } else if calc.get_cdr_version() == eprosima.fastcdr.XCDRv1
+            && (calculatedSize > 0 || calc.get_encoding() == eprosima.fastcdr.PLAIN_CDR)
+        {
+            extraSize = 4  // ShortMemberHeader
 
             if memberId > 0x3F00 || calculatedSize > UInt16.max {
-                extraSize += 8 // LongMemberHeader
+                extraSize += 8  // LongMemberHeader
             }
         }
 
@@ -311,7 +314,7 @@ extension DDSSizeCalculator {
 
         value.calculateDDSSize(calculator: &calculator)
 
-        calculator.size += 4 // Encapsulation
+        calculator.size += 4  // Encapsulation
         return UInt32(calculator.size)
     }
 }

@@ -1,10 +1,11 @@
 /**
  * StructTypeBuilder.swift
  * TypeBuilders
- * 
+ *
  * Created by Hunter Baker on 3/18/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// A builder for creating DDS type descriptors.
@@ -41,10 +42,14 @@ public struct DDSStructTypeBuilder: ~Copyable {
     ///   - descriptor: The descriptor of the type to add as a member.
     /// - Note: This method will throw a fatal error if the member type cannot be added.
     public mutating func addMember(name memberName: String, memberId: UInt32, optional: Bool = false, descriptor: DDSTypeDescriptor) {
-        guard FastDDS.Types.addStructMember(
-            info: &info, identifiers: descriptor.identifier, name: .init(memberName), id: memberId, isOptional: optional, isKey: false
-        ) else {
-            fatalError("Failed to add member \"\(memberName)\" to DDS type builder: \(name). This is likely either two members with the same id or a library bug.")
+        guard
+            FastDDS.Types.addStructMember(
+                info: &info, identifiers: descriptor.identifier, name: .init(memberName), id: memberId, isOptional: optional, isKey: false
+            )
+        else {
+            fatalError(
+                "Failed to add member \"\(memberName)\" to DDS type builder: \(name). This is likely either two members with the same id or a library bug."
+            )
         }
 
         // A type is only bounded if all of its members are bounded and is only plain if all of its members are plain and bounded.
@@ -97,7 +102,9 @@ extension DDSTypeDescriptor {
     ///   - isBounded: Overrides whether the type is bounded or unbounded. Defaults to `nil`, which means is is determined based on the members.
     ///   - isPlain: Overrides whether the serialization is plain or not (can be loaned). Defaults to `nil`, which means is is determined based on the members.
     ///   - build: The closure to build the type with.
-    public static func createStruct(name: String, isBounded: Bool? = nil, isPlain: Bool? = nil, build: (inout DDSStructTypeBuilder) -> Void) -> DDSTypeDescriptor {
+    public static func createStruct(
+        name: String, isBounded: Bool? = nil, isPlain: Bool? = nil, build: (inout DDSStructTypeBuilder) -> Void
+    ) -> DDSTypeDescriptor {
         // Lock the building process to avoid data races, but no need to lock if the task we are running on is already building this type.
         if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.wait() }
         defer { if !DDSTypeDescriptor.isBuilding { DDSTypeDescriptor.lock.signal() } }

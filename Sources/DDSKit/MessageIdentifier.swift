@@ -1,10 +1,11 @@
 /**
  * MessageIdentifier.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 2/22/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// A unique identifier for a message.
@@ -60,7 +61,7 @@ extension Optional where Wrapped == DDSMessageIdentifier {
     /// The fastdds SampleIdentity representation of the message identifier.
     /// If the message identifier is nil, this will be an unknown() SampleIdentity.
     internal var sampleIdentity: FastDDS.SampleIdentity {
-        switch (self) {
+        switch self {
             case .none:
                 .init()
             case .some(let value):

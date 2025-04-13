@@ -1,10 +1,11 @@
 /**
  * ArrayTypeBuilder.swift
  * TypeBuilders
- * 
+ *
  * Created by Hunter Baker on 3/24/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 extension DDSTypeDescriptor {
@@ -17,7 +18,7 @@ extension DDSTypeDescriptor {
     @usableFromInline
     internal static func createUnboundedArray(of elementType: DDSTypeDescriptor, primitive: Bool) -> DDSTypeDescriptor {
         var elementName = elementType.name
-        if elementName.starts(with: "_") { elementName.removeFirst() } // We don't want the leading underscore in primitive names.
+        if elementName.starts(with: "_") { elementName.removeFirst() }  // We don't want the leading underscore in primitive names.
 
         // Figure out what the type name should be using the standard FastDDS naming convention.
         let name = "anonymous_sequence_\(elementName)_unbounded"
@@ -66,7 +67,7 @@ extension DDSTypeDescriptor {
         assert(shape.allSatisfy { $0 > 0 }, "Array shape elements must be greater than 0")
 
         var elementName = elementType.name
-        if elementName.starts(with: "_") { elementName.removeFirst() } // We don't want the leading underscore in primitive names.
+        if elementName.starts(with: "_") { elementName.removeFirst() }  // We don't want the leading underscore in primitive names.
 
         // Figure out what the type name should be using the standard FastDDS naming convention.
         let name = "anonymous_array_\(elementName)_\(shape.map({ String($0) }).joined(separator: "_"))"
@@ -84,11 +85,15 @@ extension DDSTypeDescriptor {
             // If the type is not found, we need to build it.
             if !foundExistingType {
                 // When using a size that fits in a UInt8, we can use UInt8 bounds for the array.
-                let ret = if shape.allSatisfy({ $0 <= UInt8.max }) {
-                    FastDDS.Types.createArray(name: .init(name), shape: .init(shape.map { UInt8($0) }), element: elementType.identifier, identifiers: &identifier)
-                } else {
-                    FastDDS.Types.createArray(name: .init(name), shape: .init(shape), element: elementType.identifier, identifiers: &identifier)
-                }
+                let ret =
+                    if shape.allSatisfy({ $0 <= UInt8.max }) {
+                        FastDDS.Types.createArray(
+                            name: .init(name), shape: .init(shape.map { UInt8($0) }), element: elementType.identifier,
+                            identifiers: &identifier)
+                    } else {
+                        FastDDS.Types.createArray(
+                            name: .init(name), shape: .init(shape), element: elementType.identifier, identifiers: &identifier)
+                    }
                 guard ret else {
                     fatalError("Failed to build DDS array type: \(name). Another type with the same name already exists.")
                 }
@@ -103,7 +108,7 @@ extension DDSTypeDescriptor {
                 if primitive {
                     alignment += 4 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 4)
                 }
-                
+
                 // Multiply all elements together to get the total size of the array.
                 let totalSize: Int = shape.reduce(1) { $0 &* Int($1) }
                 assert(totalSize > 0, "Array size must be greater than 0")

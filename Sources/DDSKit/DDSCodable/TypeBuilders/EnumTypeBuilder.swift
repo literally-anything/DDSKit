@@ -1,10 +1,11 @@
 /**
  * EnumTypeBuilder.swift
  * TypeBuilders
- * 
+ *
  * Created by Hunter Baker on 3/29/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// A builder for creating DDS enum types (represented as unions with struct members).
@@ -27,7 +28,9 @@ public struct DDSEnumTypeBuilder: ~Copyable {
     /// - Note: This method will throw a fatal error if the type cannot be created.
     internal init(name: String, descriminator: DDSTypeDescriptor) {
         self.name = name
-        guard FastDDS.Types.createUnion(name: .init(name), descriminator: descriminator.identifier, isDescriminatorKey: false, info: &info) else {
+        guard
+            FastDDS.Types.createUnion(name: .init(name), descriminator: descriminator.identifier, isDescriminatorKey: false, info: &info)
+        else {
             fatalError("Failed to create DDS enum type builder: \(name). This is likely a library bug.")
         }
     }
@@ -39,10 +42,14 @@ public struct DDSEnumTypeBuilder: ~Copyable {
     ///   - descriptor: The descriptor of the type to add as a case.
     /// - Note: This method will throw a fatal error if the case type cannot be added.
     public mutating func addCase(name caseName: String, caseId: UInt32, descriptor: DDSTypeDescriptor) {
-        guard FastDDS.Types.addUnionCase(
-            info: &info, identifiers: descriptor.identifier, name: .init(caseName), id: caseId
-        ) else {
-            fatalError("Failed to add case \"\(caseName)\" to DDS enum type builder: \(name). This is likely either two cases with the same id or a library bug.")
+        guard
+            FastDDS.Types.addUnionCase(
+                info: &info, identifiers: descriptor.identifier, name: .init(caseName), id: caseId
+            )
+        else {
+            fatalError(
+                "Failed to add case \"\(caseName)\" to DDS enum type builder: \(name). This is likely either two cases with the same id or a library bug."
+            )
         }
 
         isBounded = isBounded && descriptor.isBounded
@@ -57,10 +64,14 @@ public struct DDSEnumTypeBuilder: ~Copyable {
     /// - Note: This method will throw a fatal error if the case type cannot be added.
     public mutating func addCase(name caseName: String, caseId: UInt32, build: (inout DDSStructTypeBuilder) -> Void) {
         let caseDescriptor = DDSTypeDescriptor.createStruct(name: name + "." + caseName, build: build)
-        guard FastDDS.Types.addUnionCase(
-            info: &info, identifiers: caseDescriptor.identifier, name: .init(caseName), id: caseId
-        ) else {
-            fatalError("Failed to add case \"\(caseName)\" to DDS enum type builder: \(name). This is likely either two cases with the same id or a library bug.")
+        guard
+            FastDDS.Types.addUnionCase(
+                info: &info, identifiers: caseDescriptor.identifier, name: .init(caseName), id: caseId
+            )
+        else {
+            fatalError(
+                "Failed to add case \"\(caseName)\" to DDS enum type builder: \(name). This is likely either two cases with the same id or a library bug."
+            )
         }
 
         isBounded = isBounded && caseDescriptor.isBounded

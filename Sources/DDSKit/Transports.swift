@@ -1,10 +1,11 @@
 /**
  * Transports.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 3/01/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// Defines the transport type that will be used by a DDS participant.
@@ -58,7 +59,8 @@ public enum DDSTransport {
         ///   - allowedInterfaces: A list of allowed interfaces. Allows all if left empty.
         ///   - blockedInterfaces: A list of blocked interfaces.
         public init(
-            sendBufferSize: UInt32 = 0, receiveBufferSize: UInt32 = 0, netmaskFilter: Bool? = nil, timeToLive: UInt8 = 1, nonBlockingSend: Bool = false,
+            sendBufferSize: UInt32 = 0, receiveBufferSize: UInt32 = 0, netmaskFilter: Bool? = nil, timeToLive: UInt8 = 1,
+            nonBlockingSend: Bool = false,
             allowedInterfaces: [String] = [], blockedInterfaces: [String] = []
         ) {
             self.sendBufferSize = sendBufferSize
@@ -81,7 +83,8 @@ public enum DDSTransport {
         ///   - blockedInterfaces: A list of blocked interfaces.
         @_disfavoredOverload
         public init(
-            sendBufferSize: UInt32 = 0, receiveBufferSize: UInt32 = 0, netmaskFilter: Bool? = nil, timeToLive: UInt8 = 1, nonBlockingSend: Bool = false,
+            sendBufferSize: UInt32 = 0, receiveBufferSize: UInt32 = 0, netmaskFilter: Bool? = nil, timeToLive: UInt8 = 1,
+            nonBlockingSend: Bool = false,
             allowedInterfaces: [String: Bool?] = [:], blockedInterfaces: [String] = []
         ) {
             self.sendBufferSize = sendBufferSize

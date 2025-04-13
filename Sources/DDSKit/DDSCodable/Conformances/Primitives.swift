@@ -1,7 +1,7 @@
 /**
  * Primatives.swift
  * DDSCodable
- * 
+ *
  * Created by Hunter Baker on 3/09/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
@@ -61,7 +61,8 @@ extension Int: DDSCodable, DDSLoaningCodable {
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         if MemoryLayout<Int>.size == 8 {
-            let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+            let calculatedSize =
+                8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
             calculator.alignment += calculatedSize
             calculator.size += calculatedSize
         } else {
@@ -122,7 +123,8 @@ extension UInt: DDSCodable, DDSLoaningCodable {
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         if MemoryLayout<UInt>.size == 8 {
-            let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+            let calculatedSize =
+                8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
             calculator.alignment += calculatedSize
             calculator.size += calculatedSize
         } else {
@@ -369,7 +371,8 @@ extension Int64: DDSCodable, DDSLoaningCodable {
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+        let calculatedSize =
+            8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
     }
@@ -401,7 +404,8 @@ extension UInt64: DDSCodable, DDSLoaningCodable {
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+        let calculatedSize =
+            8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
     }
@@ -420,40 +424,40 @@ extension UInt64: DDSCodable, DDSLoaningCodable {
 }
 
 #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
-extension Float16: DDSCodable, DDSLoaningCodable {
-    @inlinable
-    public static var ddsInitialized: Float16 { .nan }
+    extension Float16: DDSCodable, DDSLoaningCodable {
+        @inlinable
+        public static var ddsInitialized: Float16 { .nan }
 
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_uint16") { alignment in
-            2 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 2)
+        public static var ddsTypeDescriptor: DDSTypeDescriptor {
+            let descriptor = DDSTypeDescriptor(lookup: "_uint16") { alignment in
+                2 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 2)
+            }
+            guard let descriptor else {
+                fatalError("Failed to lookup type descriptor for Float: _uint16")
+            }
+            return descriptor
         }
-        guard let descriptor else {
-            fatalError("Failed to lookup type descriptor for Float: _uint16")
-        }
-        return descriptor
-    }
 
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 2 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-    }
+        public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
+            let calculatedSize = 2 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: 2)
+            calculator.alignment += calculatedSize
+            calculator.size += calculatedSize
+        }
 
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(bitPattern) else {
-            throw .notEnoughStorage
+        public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+            guard encoder.serializer.serialize(bitPattern) else {
+                throw .notEnoughStorage
+            }
+        }
+
+        public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+            var bitPattern: UInt16 = self.bitPattern
+            guard decoder.deserializer.deserialize(&bitPattern) else {
+                throw .outOfBounds
+            }
+            self = Float16(bitPattern: bitPattern)
         }
     }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        var bitPattern: UInt16 = self.bitPattern
-        guard decoder.deserializer.deserialize(&bitPattern) else {
-            throw .outOfBounds
-        }
-        self = Float16(bitPattern: bitPattern)
-    }
-}
 #endif
 extension Float: DDSCodable, DDSLoaningCodable {
     @inlinable
@@ -502,7 +506,8 @@ extension Double: DDSCodable, DDSLoaningCodable {
     }
 
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+        let calculatedSize =
+            8 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
         calculator.alignment += calculatedSize
         calculator.size += calculatedSize
     }
@@ -520,36 +525,37 @@ extension Double: DDSCodable, DDSLoaningCodable {
     }
 }
 #if !(os(Windows) || os(Android) || ($Embedded && !os(Linux) && !(os(macOS) || os(iOS) || os(watchOS) || os(tvOS)))) && (arch(i386) || arch(x86_64))
-extension Float80: DDSCodable, DDSLoaningCodable {
-    @inlinable
-    public static var ddsInitialized: Float80 { .nan }
+    extension Float80: DDSCodable, DDSLoaningCodable {
+        @inlinable
+        public static var ddsInitialized: Float80 { .nan }
 
-    public static var ddsTypeDescriptor: DDSTypeDescriptor {
-        let descriptor = DDSTypeDescriptor(lookup: "_longdouble") { alignment in
-            16 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 16)
+        public static var ddsTypeDescriptor: DDSTypeDescriptor {
+            let descriptor = DDSTypeDescriptor(lookup: "_longdouble") { alignment in
+                16 &+ DDSSizeCalculator.getAlignment(currentAlignment: alignment, dataSize: 16)
+            }
+            guard let descriptor else {
+                fatalError("Failed to lookup type descriptor for Float80: _longdouble")
+            }
+            return descriptor
         }
-        guard let descriptor else {
-            fatalError("Failed to lookup type descriptor for Float80: _longdouble")
-        }
-        return descriptor
-    }
 
-    public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
-        let calculatedSize = 16 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
-        calculator.alignment += calculatedSize
-        calculator.size += calculatedSize
-    }
+        public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
+            let calculatedSize =
+                16 &+ DDSSizeCalculator.getAlignment(currentAlignment: calculator.alignment, dataSize: DDSSizeCalculator.align64)
+            calculator.alignment += calculatedSize
+            calculator.size += calculatedSize
+        }
 
-    public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
-        guard encoder.serializer.serialize(self) else {
-            throw .notEnoughStorage
+        public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
+            guard encoder.serializer.serialize(self) else {
+                throw .notEnoughStorage
+            }
+        }
+
+        public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
+            guard decoder.deserializer.deserialize(&self) else {
+                throw .outOfBounds
+            }
         }
     }
-
-    public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
-        guard decoder.deserializer.deserialize(&self) else {
-            throw .outOfBounds
-        }
-    }
-}
 #endif

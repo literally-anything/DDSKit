@@ -1,16 +1,19 @@
 /**
  * ActionServer.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 1/23/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 public import Logging
 internal import Synchronization
 
 /// An action server with support for throwing errors as the result.
 /// This is actually just a type alias for DDSActionServer<Request, Result<Success, Failure>>.
-public typealias DDSThrowingActionServer<Request: DDSMessage, Success: DDSCodable, Failure: DDSCodable & Error> = DDSActionServer<Request, Result<Success, Failure>>
+public typealias DDSThrowingActionServer<
+    Request: DDSMessage, Success: DDSCodable, Failure: DDSCodable & Error
+> = DDSActionServer<Request, Result<Success, Failure>>
 
 /// A server for an action client.
 /// Actions are an implementation of the request reply pattern using topics.
@@ -117,7 +120,7 @@ public final class DDSActionServer<Request: DDSMessage, Reply: DDSMessage>: Send
     }
 }
 
-extension DDSActionServer where Reply: DDSActionResult /* This just means that it is a Result where both Failure and Success are DDSCodable */ {
+extension DDSActionServer where Reply: DDSActionResult /* where Reply is a Result where Failure and Success are DDSCodable */ {
     /// Initializes a new action server for a Reply that is a Result,
     /// - Parameters:
     ///   - participant: The participant to use for the action.

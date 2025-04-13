@@ -1,13 +1,14 @@
 /**
  * MessageMacro.swift
  * DDSKitMacros
- * 
+ *
  * Created by Hunter Baker on 4/07/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
-import SwiftDiagnostics
 
 struct MessageMacro {
     private static func evaluateType(
@@ -51,7 +52,8 @@ struct MessageMacro {
 
             // Find all variable and constant declarations
             guard let variableDecl = member.decl.as(VariableDeclSyntax.self),
-                  variableDecl.bindingSpecifier.tokenKind == .keyword(.var) || variableDecl.bindingSpecifier.tokenKind == .keyword(.let) else {
+                variableDecl.bindingSpecifier.tokenKind == .keyword(.var) || variableDecl.bindingSpecifier.tokenKind == .keyword(.let)
+            else {
                 continue
             }
 
@@ -74,7 +76,7 @@ struct MessageMacro {
 
         // Find all member variables that are not ignored
         // Also check if all stored variables have initializers (will a default constructor be created?)
-        var hasImplicitDefaultConstructor = !hasOtherConstructor // If there there is another constructor, the implicit default constructor will not be created
+        var hasImplicitDefaultConstructor = !hasOtherConstructor  // If there there is another constructor, the implicit default constructor will not be created
         var sentMembers: [(PatternBindingSyntax, IdentifierPatternSyntax)] = []
         memberLoop: for member in typeDecl.memberBlock.members {
             // Find all variable declarations
@@ -126,9 +128,9 @@ struct MessageMacro {
                             node: binding.1,
                             message: DDSKitDiagnosticMessage(
                                 message: """
-                                DDSMessage: This member is ignored because it has no type annotation. \
-                                To silence this warning if this is not intended to be sent, add @DDSIgnored.
-                                """,
+                                    DDSMessage: This member is ignored because it has no type annotation. \
+                                    To silence this warning if this is not intended to be sent, add @DDSIgnored.
+                                    """,
                                 diagnosticID: MessageID(domain: "DDSKitMacros", id: "DDSMessage.noTypeAnnotation"),
                                 severity: .warning
                             ),
@@ -140,12 +142,17 @@ struct MessageMacro {
                                 changes: [
                                     .replace(
                                         oldNode: Syntax(variableDecl.attributes),
-                                        newNode: Syntax({
-                                            // Add the DDSIgnored attribute to the variable declaration
-                                            var fixedAttributes = variableDecl.attributes
-                                            fixedAttributes.append(.init(AttributeSyntax(leadingTrivia: .newline, attributeName: "DDSIgnored" as TypeSyntax)))
-                                            return fixedAttributes.formatted()
-                                        }())
+                                        newNode: Syntax(
+                                            {
+                                                // Add the DDSIgnored attribute to the variable declaration
+                                                var fixedAttributes = variableDecl.attributes
+                                                fixedAttributes.append(
+                                                    .init(
+                                                        AttributeSyntax(leadingTrivia: .newline, attributeName: "DDSIgnored" as TypeSyntax))
+                                                )
+                                                return fixedAttributes.formatted()
+                                            }()
+                                        )
                                     )
                                 ]
                             )
@@ -200,35 +207,39 @@ struct MessageMacro {
             changes: [
                 .replace(
                     oldNode: Syntax(memberBlock.members),
-                    newNode: Syntax({
-                        var fixedMembers = memberBlock.members
+                    newNode: Syntax(
+                        {
+                            var fixedMembers = memberBlock.members
 
-                        var variableDecl = VariableDeclSyntax(
-                            modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.static))],
-                            bindingSpecifier: .keyword(.var),
-                            bindings: [
-                                PatternBindingSyntax(
-                                    pattern: IdentifierPatternSyntax(identifier: "ddsInitialized"),
-                                    typeAnnotation: TypeAnnotationSyntax(type: "Self" as TypeSyntax)
-                                )
-                            ]
-                        ).formatted().as(VariableDeclSyntax.self)!
+                            var variableDecl = VariableDeclSyntax(
+                                modifiers: [.init(name: .keyword(.public)), .init(name: .keyword(.static))],
+                                bindingSpecifier: .keyword(.var),
+                                bindings: [
+                                    PatternBindingSyntax(
+                                        pattern: IdentifierPatternSyntax(identifier: "ddsInitialized"),
+                                        typeAnnotation: TypeAnnotationSyntax(type: "Self" as TypeSyntax)
+                                    )
+                                ]
+                            ).formatted().as(VariableDeclSyntax.self)!
 
-                        // Provided later, so it is not formatted into multiple lines
-                        variableDecl.bindings[variableDecl.bindings.startIndex].accessorBlock = AccessorBlockSyntax(
-                            leadingTrivia: .space,
-                            accessors: .getter(" fatalError(\"Not implemented\") /* ToDo: Implement ddsInitialized for \(raw: typeName) */ ")
-                        )
+                            // Provided later, so it is not formatted into multiple lines
+                            variableDecl.bindings[variableDecl.bindings.startIndex].accessorBlock = AccessorBlockSyntax(
+                                leadingTrivia: .space,
+                                accessors: .getter(
+                                    " fatalError(\"Not implemented\") /* ToDo: Implement ddsInitialized for \(raw: typeName) */ ")
+                            )
 
-                        let member = MemberBlockItemSyntax(
-                            leadingTrivia: .init(pieces: [
-                                .newlines(2)
-                            ] + fixedMembers.leadingTrivia.indentation(isOnNewline: true)!.pieces),
-                            decl: variableDecl
-                        )
-                        fixedMembers.append(member)
-                        return fixedMembers
-                    }())
+                            let member = MemberBlockItemSyntax(
+                                leadingTrivia: .init(
+                                    pieces: [
+                                        .newlines(2)
+                                    ] + fixedMembers.leadingTrivia.indentation(isOnNewline: true)!.pieces),
+                                decl: variableDecl
+                            )
+                            fixedMembers.append(member)
+                            return fixedMembers
+                        }()
+                    )
                 )
             ]
         )
@@ -323,9 +334,11 @@ extension MessageMacro: MemberMacro {
                         pattern: IdentifierPatternSyntax(identifier: "ddsInitialized"),
                         typeAnnotation: TypeAnnotationSyntax(type: "Self" as TypeSyntax),
                         accessorBlock: AccessorBlockSyntax(
-                            accessors: .getter("""
-                                .init()
-                            """)
+                            accessors: .getter(
+                                """
+                                    .init()
+                                """
+                            )
                         )
                     )
                 ]
@@ -344,9 +357,11 @@ extension MessageMacro: MemberMacro {
                         pattern: IdentifierPatternSyntax(identifier: "ddsTypeSupport"),
                         typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeSupport" as TypeSyntax),
                         accessorBlock: AccessorBlockSyntax(
-                            accessors: .getter("""
-                                .init(name: \(name), type: Self.self)
-                            """)
+                            accessors: .getter(
+                                """
+                                    .init(name: \(name), type: Self.self)
+                                """
+                            )
                         )
                     )
                 ]
@@ -386,11 +401,13 @@ extension MessageMacro: MemberMacro {
                     pattern: IdentifierPatternSyntax(identifier: "ddsTypeDescriptor"),
                     typeAnnotation: TypeAnnotationSyntax(type: "DDSKit.DDSTypeDescriptor" as TypeSyntax),
                     initializer: InitializerClauseSyntax(
-                        value: ExprSyntax("""
-                            .createStruct(name: \(name)) { builder in
-                                \(CodeBlockItemListSyntax(typeDescriptorMembers))
-                            }
-                        """)
+                        value: ExprSyntax(
+                            """
+                                .createStruct(name: \(name)) { builder in
+                                    \(CodeBlockItemListSyntax(typeDescriptorMembers))
+                                }
+                            """
+                        )
                     )
                 )
             ]
@@ -410,11 +427,14 @@ extension MessageMacro: MemberMacro {
                     )
                 ])
             ),
-            body: CodeBlockSyntax(statements: """
-                calculator.withStruct { calculator in
-                    \(CodeBlockItemListSyntax(calculateSizeMembers))
-                }
-            """)
+            body: CodeBlockSyntax(
+                statements:
+                    """
+                        calculator.withStruct { calculator in
+                            \(CodeBlockItemListSyntax(calculateSizeMembers))
+                        }
+                    """
+            )
         )
         outputs.append(.init(calculateSizeDecl))
         let encodeDecl = FunctionDeclSyntax(
@@ -437,11 +457,14 @@ extension MessageMacro: MemberMacro {
                     )
                 )
             ),
-            body: CodeBlockSyntax(statements: """
-                try encoder.withStruct { encoder throws(DDSKit.DDSEncoder.EncodingError) in
-                    \(CodeBlockItemListSyntax(encodeMembers))
-                }
-            """)
+            body: CodeBlockSyntax(
+                statements:
+                    """
+                        try encoder.withStruct { encoder throws(DDSKit.DDSEncoder.EncodingError) in
+                            \(CodeBlockItemListSyntax(encodeMembers))
+                        }
+                    """
+            )
         )
         outputs.append(.init(encodeDecl))
         let decodeDecl = FunctionDeclSyntax(
@@ -464,15 +487,18 @@ extension MessageMacro: MemberMacro {
                     )
                 )
             ),
-            body: CodeBlockSyntax(statements: """
-                try decoder.withStruct { decoder, member throws(DDSKit.DDSDecoder.DecodingError) in
-                    switch member {
-                        \(CodeBlockItemListSyntax(decodeMembers))
-                        default:
-                            throw .unknownMember
-                    }
-                }
-            """)
+            body: CodeBlockSyntax(
+                statements:
+                    """
+                        try decoder.withStruct { decoder, member throws(DDSKit.DDSDecoder.DecodingError) in
+                            switch member {
+                                \(CodeBlockItemListSyntax(decodeMembers))
+                                default:
+                                    throw .unknownMember
+                            }
+                        }
+                    """
+                )
         )
         outputs.append(.init(decodeDecl))
 
@@ -510,7 +536,7 @@ extension MessageMacro: ExtensionMacro {
                 }
             }
         }
-        
+
         let allPrimitive = memberInfo.allSatisfy {
             if let identifier = $0.type.as(IdentifierTypeSyntax.self) {
                 return ddsLoaningTypes.contains(identifier.name.text)

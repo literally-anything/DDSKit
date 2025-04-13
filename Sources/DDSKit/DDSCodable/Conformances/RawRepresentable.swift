@@ -1,7 +1,7 @@
 /**
  * RawRepresentable.swift
  * Conformances
- * 
+ *
  * Created by Hunter Baker on 3/17/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */

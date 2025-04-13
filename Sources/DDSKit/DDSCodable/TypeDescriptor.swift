@@ -1,12 +1,13 @@
 /**
  * TypeDescriptor.swift
  * DDSCodable
- * 
+ *
  * Created by Hunter Baker on 3/16/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-internal import _CFastDDS
+
 internal import Dispatch
+internal import _CFastDDS
 
 /// A descriptor for a DDS type.
 public struct DDSTypeDescriptor: Sendable {

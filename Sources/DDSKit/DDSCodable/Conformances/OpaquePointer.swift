@@ -1,7 +1,7 @@
 /**
  * OpaquePointer.swift
  * Conformances
- * 
+ *
  * Created by Hunter Baker on 4/04/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
@@ -9,19 +9,19 @@
 // This can't be directly DDSCodable because pointer types are not Sendable.
 // When using this, you should wrap it in an @uncheked Sendable type and pass calls through to these functions.
 
-extension OpaquePointer {    
+extension OpaquePointer {
     public static var ddsTypeDescriptor: DDSTypeDescriptor {
         UInt.ddsTypeDescriptor
     }
-    
+
     public func calculateDDSSize(calculator: inout DDSSizeCalculator) {
         UInt(bitPattern: self).calculateDDSSize(calculator: &calculator)
     }
-    
+
     public func ddsEncode(encoder: inout DDSEncoder) throws(DDSEncoder.EncodingError) {
         try UInt(bitPattern: self).ddsEncode(encoder: &encoder)
     }
-    
+
     public mutating func ddsDecode(decoder: inout DDSDecoder) throws(DDSDecoder.DecodingError) {
         var value = UInt(bitPattern: self)
         try value.ddsDecode(decoder: &decoder)

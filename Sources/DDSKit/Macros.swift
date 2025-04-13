@@ -1,7 +1,7 @@
 /**
  * Macros.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 4/07/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
@@ -14,7 +14,7 @@ public macro DDSIgnored() = #externalMacro(module: "DDSKitMacros", type: "Ignore
 
 /// A macro that automatically conforms a type to `DDSCodable`, `DDSLoaningCodable`, and `DDSMessage`.
 /// It generates the required methods and properties for the type to be used with DDSKit.
-/// 
+///
 /// This will not include static members, computed properties, or constants.
 /// This will ignore any members that are marked with `@DDSIgnored`.
 ///
@@ -29,7 +29,7 @@ public macro DDSIgnored() = #externalMacro(module: "DDSKitMacros", type: "Ignore
 @attached(
     member,
     names: named(ddsInitialized), named(ddsTypeSupport), named(ddsTypeDescriptor),
-           named(calculateDDSSize), named(ddsEncode), named(ddsDecode)
+    named(calculateDDSSize), named(ddsEncode), named(ddsDecode)
 )
 @attached(extension, conformances: DDSCodable, DDSLoaningCodable, DDSMessage)
 public macro DDSMessage(name: String? = nil, onlyCodable: Bool = false) = #externalMacro(module: "DDSKitMacros", type: "MessageMacro")
@@ -54,7 +54,7 @@ public macro DDSMessage(name: String? = nil, onlyCodable: Bool = false) = #exter
 @attached(
     member,
     names: named(ddsInitialized), named(ddsTypeDescriptor),
-           named(calculateDDSSize), named(ddsEncode), named(ddsDecode)
+    named(calculateDDSSize), named(ddsEncode), named(ddsDecode)
 )
 @attached(extension, conformances: DDSRawRepresentable, DDSCodable, DDSLoaningCodable)
 public macro DDSEnum(name: String? = nil) = #externalMacro(module: "DDSKitMacros", type: "EnumMacro")

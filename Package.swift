@@ -1,15 +1,15 @@
 /**
  * Package.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 8/19/2024
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
 // swift-tools-version: 6.1
 
-import PackageDescription
 import CompilerPluginSupport
 import Foundation
+import PackageDescription
 
 let cxxSettings: [CXXSetting] = [
     .define("FASTDDS_ENFORCE_LOG_INFO", to: "1", .when(configuration: .debug))
@@ -21,24 +21,26 @@ let swiftSettings: [SwiftSetting] = [
 var cfastddsLinkerSettings: [LinkerSetting] = []
 
 #if canImport(Darwin)
-let applePlatformDependencies: [Package.Dependency] = [
-    .package(url: "https://github.com/literally-anything/Fast-DDS-Prebuild.git", from: "3.0.0")
-]
-let applePlatformTargetDependencies: [Target.Dependency] = [
-    .product(name: "Fast-DDS", package: "Fast-DDS-Prebuild", condition: .when(platforms: [.macOS, .iOS, .visionOS], traits: ["DarwinDDSPrebuild"])),
-]
-cfastddsLinkerSettings.append(contentsOf: [
-    .linkedFramework("CoreFoundation", .when(platforms: [.macOS, .iOS, .visionOS])), // Used for the BlocksRuntime
-    .linkedFramework("IOKit", .when(platforms: [.macOS, .iOS, .visionOS])) // IOKit is used by FastDDS on macOS
-])
+    let applePlatformDependencies: [Package.Dependency] = [
+        .package(url: "https://github.com/literally-anything/Fast-DDS-Prebuild.git", from: "3.0.0")
+    ]
+    let applePlatformTargetDependencies: [Target.Dependency] = [
+        .product(
+            name: "Fast-DDS", package: "Fast-DDS-Prebuild",
+            condition: .when(platforms: [.macOS, .iOS, .visionOS], traits: ["DarwinDDSPrebuild"]))
+    ]
+    cfastddsLinkerSettings.append(contentsOf: [
+        .linkedFramework("CoreFoundation", .when(platforms: [.macOS, .iOS, .visionOS])),  // Used for the BlocksRuntime
+        .linkedFramework("IOKit", .when(platforms: [.macOS, .iOS, .visionOS]))  // IOKit is used by FastDDS on macOS
+    ])
 #else
-let applePlatformDependencies: [Package.Dependency] = []
-let applePlatformTargetDependencies: [Target.Dependency] = []
-cfastddsLinkerSettings.append(contentsOf: [
-    .linkedLibrary("fastdds"),
-    .linkedLibrary("fastcdr"),
-    .linkedLibrary("BlocksRuntime")
-])
+    let applePlatformDependencies: [Package.Dependency] = []
+    let applePlatformTargetDependencies: [Target.Dependency] = []
+    cfastddsLinkerSettings.append(contentsOf: [
+        .linkedLibrary("fastdds"),
+        .linkedLibrary("fastcdr"),
+        .linkedLibrary("BlocksRuntime")
+    ])
 #endif
 
 
@@ -54,7 +56,8 @@ let package = Package(
     traits: [
         .trait(
             name: "DarwinDDSPrebuild",
-            description: "Whether or not to use the prebuilt FastDDS library for Darwin platforms. This has no effect on non-Darwin platforms."
+            description:
+                "Whether or not to use the prebuilt FastDDS library for Darwin platforms. This has no effect on non-Darwin platforms."
         ),
         .default(enabledTraits: ["DarwinDDSPrebuild"])
     ],

@@ -1,10 +1,11 @@
 /**
  * Decoder.swift
  * DDSCodable
- * 
+ *
  * Created by Hunter Baker on 3/15/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// A decoder for decoding data from the DDS's CDR format.
@@ -124,7 +125,7 @@ extension DDSDecoder {
             value = T.ddsInitialized
         }
         try value!.ddsDecode(decoder: &self)
-}
+    }
 }
 
 extension DDSDecoder {

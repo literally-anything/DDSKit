@@ -1,10 +1,11 @@
 /**
  * Encoder.swift
  * DDSKit
- * 
+ *
  * Created by Hunter Baker on 1/31/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
+
 internal import _CFastDDS
 
 /// An encoder for encoding data to the DDS's CDR format.
@@ -139,7 +140,9 @@ extension DDSEncoder {
     ///   - memberId: The id of the member to encode.
     ///   - body: A closure that will be called with the encoder to encode the struct.
     /// - Throws: An error if there is not enough storage allocated to encode the struct or some other unexpected error occurs in the closure.
-    public mutating func encodeAnonymousStruct(member memberId: UInt32, _ body: (inout DDSEncoder) throws(EncodingError) -> Void) throws(EncodingError) {
+    public mutating func encodeAnonymousStruct(
+        member memberId: UInt32, _ body: (inout DDSEncoder) throws(EncodingError) -> Void
+    ) throws(EncodingError) {
         var state = StateWrapper(encoder: self)
 
         try startMember(state: &state, member: memberId)

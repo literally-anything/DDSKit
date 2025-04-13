@@ -1,7 +1,7 @@
 /**
  * PrimitiveTypeNames.swift
  * DDSKitMacros
- * 
+ *
  * Created by Hunter Baker on 4/12/2025
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
