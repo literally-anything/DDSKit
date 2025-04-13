@@ -16,7 +16,7 @@ struct MessageMacro {
         context: (any MacroExpansionContext)?
     ) throws -> (
         type: StructDeclSyntax, name: String, loaningCompatible: Bool, hasDefaultConstructor: Bool, needsDDSInitialized: Bool,
-        members: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
+        members: [(name: TokenSyntax, type: TypeSyntax, binding: PatternBindingSyntax)]
     ) {
         guard let typeDecl = parent.as(StructDeclSyntax.self) else {
             let error = DDSKitDiagnosticMessage(
@@ -87,7 +87,7 @@ struct MessageMacro {
                 continue
             }
 
-            let patternBindings: [(PatternBindingSyntax, IdentifierPatternSyntax)] = variableDecl.bindings.map { $0 }.compactMap { binding in
+            let patternBindings: [(PatternBindingSyntax, IdentifierPatternSyntax)] = variableDecl.bindings.compactMap { binding in
                 let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self)
                 if let identifierPattern {
                     return (binding as PatternBindingSyntax, identifierPattern)
@@ -173,10 +173,10 @@ struct MessageMacro {
         }
 
         // Extract the name and type of each member
-        let sentMemberInfo: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)] = sentMembers.map { member in
+        let sentMemberInfo: [(name: TokenSyntax, type: TypeSyntax, binding: PatternBindingSyntax)] = sentMembers.map { member in
             (
                 name: member.1.identifier,
-                type: member.0.typeAnnotation!.type.as(IdentifierTypeSyntax.self)!,
+                type: member.0.typeAnnotation!.type,
                 binding: member.0
             )
         }
@@ -246,7 +246,7 @@ extension MessageMacro: MemberMacro {
         let typeName: String
         let hasConstructor: Bool
         let needsInitialized: Bool
-        let memberInfo: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
+        let memberInfo: [(name: TokenSyntax, type: TypeSyntax, binding: PatternBindingSyntax)]
         do {
             (typeDecl, typeName, _, hasConstructor, needsInitialized, memberInfo) = try evaluateType(
                 of: node, parent: declaration, context: context
@@ -362,7 +362,7 @@ extension MessageMacro: MemberMacro {
         var currentMemberId: UInt32 = 0
         for member in memberInfo {
             typeDescriptorMembers.append(
-                "builder.addMember(name: \"\(member.name)\", memberId: \(raw: currentMemberId), type: \(raw: member.type.name.text).self)"
+                "builder.addMember(name: \"\(member.name)\", memberId: \(raw: currentMemberId), type: \(member.type).self)"
             )
             calculateSizeMembers.append(
                 "calculator.add(member: \(raw: currentMemberId), \(member.name))"
@@ -489,7 +489,7 @@ extension MessageMacro: ExtensionMacro {
         in context: some MacroExpansionContext
     ) -> [ExtensionDeclSyntax] {
         let loaningCompatible: Bool
-        let memberInfo: [(name: TokenSyntax, type: IdentifierTypeSyntax, binding: PatternBindingSyntax)]
+        let memberInfo: [(name: TokenSyntax, type: TypeSyntax, binding: PatternBindingSyntax)]
         do {
             let info = try evaluateType(of: node, parent: declaration, context: nil)
             loaningCompatible = info.loaningCompatible
@@ -511,7 +511,12 @@ extension MessageMacro: ExtensionMacro {
             }
         }
         
-        let allPrimitive = memberInfo.allSatisfy { ddsLoaningTypes.contains($0.type.name.text) }
+        let allPrimitive = memberInfo.allSatisfy {
+            if let identifier = $0.type.as(IdentifierTypeSyntax.self) {
+                return ddsLoaningTypes.contains(identifier.name.text)
+            }
+            return false
+        }
 
         var extensions: [ExtensionDeclSyntax] = [try! ExtensionDeclSyntax("extension \(type): DDSCodable {}")]
         if !onlyCodable {
