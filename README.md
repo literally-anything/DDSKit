@@ -34,6 +34,8 @@ The following code publishes a message on a topic
 ```swift
 import DDSKit
 
+DDSParticipant.setIntraProcessDelivery(enabled: false)  // Without this fastdds crashes. I don't know why yet; I haven't had a change to check.
+
 @DDSMessage
 struct HelloWorld {
     var index: Int
