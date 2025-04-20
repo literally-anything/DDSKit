@@ -1,18 +1,15 @@
 /**
- * Package.swift
+ * Package@swift-6.0.swift
  * DDSKit
  *
- * Created by Hunter Baker on 8/19/2024
+ * Created by Hunter Baker on 4/20/25
  * Copyright (C) 2024-2025, by Hunter Baker hunterbaker@me.com
  */
-// swift-tools-version: 6.1
+// swift-tools-version: 6.0
 
 import CompilerPluginSupport
 import PackageDescription
 
-let cxxSettings: [CXXSetting] = [
-    .define("FASTDDS_ENFORCE_LOG_INFO", to: "1", .when(configuration: .debug))
-]
 let swiftSettings: [SwiftSetting] = [
     .interoperabilityMode(.Cxx),
     .enableUpcomingFeature("InternalImportsByDefault")
@@ -26,7 +23,7 @@ var cfastddsLinkerSettings: [LinkerSetting] = []
     let applePlatformTargetDependencies: [Target.Dependency] = [
         .product(
             name: "Fast-DDS", package: "Fast-DDS-Prebuild",
-            condition: .when(platforms: [.macOS, .iOS, .visionOS], traits: ["DarwinDDSPrebuild"])
+            condition: .when(platforms: [.macOS, .iOS, .visionOS])
         )
     ]
     cfastddsLinkerSettings.append(contentsOf: [
@@ -53,14 +50,6 @@ let package = Package(
             targets: ["DDSKit"]
         )
     ],
-    traits: [
-        .trait(
-            name: "DarwinDDSPrebuild",
-            description:
-                "Whether or not to use the prebuilt FastDDS library for Darwin platforms. This has no effect on non-Darwin platforms."
-        ),
-        .default(enabledTraits: ["DarwinDDSPrebuild"])
-    ],
     dependencies: applePlatformDependencies + [
         .package(url: "https://github.com/apple/swift-syntax", from: "600.0.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0")
@@ -83,13 +72,11 @@ let package = Package(
                 "_CFastDDS",
                 .product(name: "Logging", package: "swift-log")
             ],
-            cxxSettings: cxxSettings,
             swiftSettings: swiftSettings
         ),
         .target(
             name: "_CFastDDS",
             dependencies: applePlatformTargetDependencies,
-            cxxSettings: cxxSettings,
             linkerSettings: cfastddsLinkerSettings
         )
     ],
